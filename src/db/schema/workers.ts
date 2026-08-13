@@ -75,6 +75,14 @@ export const skills = pgTable(
   (table) => [index("idx_skills_role_id").on(table.roleId)]
 );
 
+export const workerVerificationStatusEnum = pgEnum("worker_verification_status", [
+  "PENDING_VERIFICATION",
+  "VERIFIED",
+  "REJECTED",
+  "SUSPENDED",
+  "BLOCKED",
+]);
+
 export const workerProfiles = pgTable(
   "worker_profiles",
   {
@@ -92,6 +100,9 @@ export const workerProfiles = pgTable(
       .default("100.00")
       .notNull(),
     isAvailable: boolean("is_available").default(true).notNull(),
+    verificationStatus: workerVerificationStatusEnum("verification_status")
+      .default("PENDING_VERIFICATION")
+      .notNull(),
     completedShiftsCount: integer("completed_shifts_count")
       .default(0)
       .notNull(),
@@ -107,6 +118,7 @@ export const workerProfiles = pgTable(
   (table) => [
     index("idx_worker_profiles_user_id").on(table.userId),
     index("idx_worker_profiles_reliability").on(table.reliabilityScore),
+    index("idx_worker_profiles_status").on(table.verificationStatus),
   ]
 );
 

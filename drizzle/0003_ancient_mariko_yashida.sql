@@ -1,0 +1,3 @@
+CREATE TYPE "public"."worker_verification_status" AS ENUM('PENDING_VERIFICATION', 'VERIFIED', 'REJECTED', 'SUSPENDED', 'BLOCKED');--> statement-breakpoint
+ALTER TABLE "worker_profiles" ADD COLUMN "verification_status" "worker_verification_status" DEFAULT 'PENDING_VERIFICATION' NOT NULL;--> statement-breakpoint
+CREATE INDEX "idx_worker_profiles_status" ON "worker_profiles" USING btree ("verification_status");
