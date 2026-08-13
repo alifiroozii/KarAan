@@ -11,23 +11,19 @@ export interface GeoLocationState {
 }
 
 export function useLocation(enableHighAccuracy = true) {
-  const [location, setLocation] = useState<GeoLocationState>({
-    latitude: null,
-    longitude: null,
-    accuracy: null,
-    error: null,
-    loading: true,
+  const [location, setLocation] = useState<GeoLocationState>(() => {
+    const isSupported = typeof window !== "undefined" && "geolocation" in navigator;
+    return {
+      latitude: null,
+      longitude: null,
+      accuracy: null,
+      error: isSupported ? null : "مرورگر شما از قابلیت مکان‌یابی (GPS) پشتیبانی نمی‌کند.",
+      loading: isSupported,
+    };
   });
 
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setLocation({
-        latitude: null,
-        longitude: null,
-        accuracy: null,
-        error: "مرورگر شما از قابلیت مکان‌یابی (GPS) پشتیبانی نمی‌کند.",
-        loading: false,
-      });
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
       return;
     }
 
