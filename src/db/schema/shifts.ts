@@ -65,6 +65,15 @@ export const assignmentStateEnum = pgEnum("assignment_state", [
   "REMOVED",
 ]);
 
+export const shiftTypeEnum = pgEnum("shift_type", [
+  "HOURLY",
+  "FULL_SHIFT",
+  "ASAP",
+  "DAILY",
+  "MULTI_DAY",
+  "RECURRING",
+]);
+
 export const shifts = pgTable(
   "shifts",
   {
@@ -83,6 +92,8 @@ export const shifts = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     description: text("description"),
+    shiftType: shiftTypeEnum("shift_type").default("HOURLY").notNull(),
+    requiredWorkers: integer("required_workers").default(1).notNull(),
     locationName: text("location_name").notNull(),
     latitude: doublePrecision("latitude").notNull(),
     longitude: doublePrecision("longitude").notNull(),
@@ -93,6 +104,14 @@ export const shifts = pgTable(
       .$type<string[]>()
       .default([])
       .notNull(),
+    minRating: doublePrecision("min_rating").default(0.0).notNull(),
+    minReliability: doublePrecision("min_reliability").default(0.0).notNull(),
+    dressCode: text("dress_code"),
+    toolsNeeded: text("tools_needed"),
+    checkinInstructions: text("checkin_instructions"),
+    supervisorPhone: text("supervisor_phone"),
+    breakDurationMinutes: integer("break_duration_minutes").default(30).notNull(),
+    isPaidBreak: integer("is_paid_break").default(0).notNull(),
     hourlyPayRials: bigint("hourly_pay_rials", { mode: "bigint" }).notNull(),
     totalBudgetRials: bigint("total_budget_rials", { mode: "bigint" }).notNull(),
     startAt: timestamp("start_at", { withTimezone: true }).notNull(),
