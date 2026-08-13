@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { AuthService } from "./auth.service";
 import { AuthSession, UserRole } from "./auth.types";
+import { Permission, assertPermission, assertOwnership } from "./permissions";
 import { AppError } from "@/lib/errors";
 
 const authService = new AuthService();
@@ -42,4 +43,18 @@ export async function requireRole(req: NextRequest, allowedRoles: UserRole[]): P
     throw new AppError("شما مجوز دسترسی به این بخش را ندارید.", "FORBIDDEN", 403);
   }
   return session;
+}
+
+export async function requirePermission(req: NextRequest, permission: Permission): Promise<AuthSession> {
+  const session = await requireAuth(req);
+  assertPermission(session.role, permission);
+  return session;
+}
+
+export async function requireOwnership(
+  actorUserId: string,
+  resourceOwnerId: string,
+  actorRole?: UserRole
+): Promise<void> {
+  assertOwnership(actorUserId, resourceOwnerId, actorRole);
 }
