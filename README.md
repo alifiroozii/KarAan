@@ -1,137 +1,117 @@
-# KarAan (کارآن) - Iranian Hourly & Shift Workforce Platform
+# KarAan (کارآن) - Local Infrastructure & Platform Guide
 
-Production-Ready Full-Stack Modular Monolith platform built with **Next.js App Router**, **TypeScript**, **PostgreSQL + PostGIS**, **Redis**, and **Drizzle ORM** for matching, attendance tracking, and idempotent financial settlements for hourly and shift workers in Iran.
-
----
-
-## 🏗 System Architecture & Directory Structure
-
-KarAan follows a **Modular Monolith** structure isolating domain features, adapters, and data layers:
-
-```
-src/
-├── app/                  # Next.js App Router (Public, Auth, Worker PWA, Employer, Admin, API)
-│   ├── (public)/         # Public landing & static pages
-│   ├── (auth)/           # Authentication pages (SMS OTP)
-│   ├── worker/           # Worker Mobile PWA dashboard & Shift Execution HUD
-│   ├── employer/         # Employer Desktop & Mobile responsive dashboard
-│   ├── admin/            # Admin management portal & Audit Trail viewer
-│   └── api/              # Standardized REST / RPC API routes
-├── components/           # UI Component Library (shadcn/ui primitives & layouts)
-│   ├── ui/               # Base UI primitives (Button, Card, Input, Badge)
-│   ├── common/           # Common components (Header, Footer, Spinner)
-│   ├── layout/           # PageShell, Sidebar
-│   ├── maps/             # Interactive map picker component
-│   ├── worker/           # Worker profile cards
-│   ├── employer/         # Employer cards
-│   └── shifts/           # Shift cards
-├── features/             # Business Domain Features
-│   ├── auth/             # OTP authentication & JWT sessions
-│   ├── users/            # User profile management
-│   ├── workers/          # Worker skill set & reliability profile
-│   ├── employers/        # Employer company profiles
-│   ├── businesses/       # Business entity records
-│   ├── branches/         # Branch locations
-│   ├── shifts/           # Shift creation & status machine
-│   ├── matching/         # PostGIS radial spatial search & Redis live index
-│   ├── location/         # GPS tracking & geofencing validation
-│   ├── attendance/       # Clock-in / clock-out & timesheet calculator
-│   ├── payments/         # Zarinpal / Mock payment gateway adapter
-│   ├── wallet/           # Wallet balance & escrow ledger
-│   ├── ratings/          # Mutual rating & reliability scoring
-│   ├── notifications/    # Kavenegar / FarazSMS notification service
-│   └── disputes/         # Shift dispute management
-├── db/                   # Database layer
-│   ├── schema/           # Drizzle schema definitions (PostgreSQL + PostGIS)
-│   ├── migrations/       # SQL migration scripts
-│   └── queries/          # Reusable database queries
-├── lib/                  # Infrastructure Adapters & System Drivers
-│   ├── auth/             # Authorization middleware & helpers
-│   ├── redis/            # Redis client & BullMQ setup
-│   ├── queue/            # Async job queues
-│   ├── maps/             # Neshan / OpenStreetMap adapter
-│   ├── payments/         # Gateway driver interfaces
-│   ├── sms/              # SMS gateway driver interfaces
-│   ├── storage/          # MinIO / S3 file upload adapter
-│   └── realtime/         # Socket.IO realtime connection handlers
-├── hooks/                # Custom React hooks (useAuth, useLocation, useDebounce)
-├── stores/               # Zustand state stores (authStore, shiftStore)
-├── validators/           # Zod schema validators (authSchema, shiftSchema)
-├── types/                # TypeScript type definitions
-└── config/               # System configuration & Zod environment validation (env.ts)
-```
+KarAan is a Production-Ready Iranian Hourly & Shift Workforce Platform built on Next.js App Router, TypeScript (Strict), PostgreSQL + PostGIS, Redis, Drizzle ORM, and MinIO S3 storage.
 
 ---
 
-## ⚡ Tech Stack
+## 🛠 Local Infrastructure Stack (Docker Compose)
 
-- **Framework**: Next.js 15+ (App Router, React 19)
-- **Language**: TypeScript Strict
-- **Styling**: Tailwind CSS v4, Vazirmatn Persian Font, RTL layout (`dir="rtl"`)
-- **UI & Motion**: Lucide Icons, Framer Motion
-- **State & Data**: TanStack Query, Zustand, React Hook Form, Zod
-- **Database & Spatial**: PostgreSQL + PostGIS, Drizzle ORM
-- **Cache & Realtime**: Redis, BullMQ, Socket.IO
-- **Storage & Services**: MinIO / S3 Adapter, Payment Gateway Adapter (Zarinpal / Mock), SMS Adapter (Kavenegar / Mock), Map Adapter (Neshan / Mock)
-- **Testing**: Vitest, Docker
+The local development environment uses `docker-compose.yml` to spin up isolated containers with built-in healthchecks:
 
----
-
-## ⚙️ Environment Variables & Configuration
-
-All environment variables are strictly validated at launch via `src/config/env.ts`:
-
-```env
-NODE_ENV=development
-DATABASE_URL=postgres://postgres:postgrespassword@localhost:5432/karaan
-REDIS_URL=redis://localhost:6379
-JWT_SECRET=karaan_super_secret_jwt_key_2026
-
-# Adapters
-SMS_PROVIDER=mock # mock | kavenegar | farazsms
-KAVENEGAR_API_KEY=
-
-MAP_PROVIDER=mock # mock | neshan | balad
-NESHAN_API_KEY=
-
-PAYMENT_PROVIDER=mock # mock | zarinpal
-ZARINPAL_MERCHANT_ID=
-
-S3_ENDPOINT=http://localhost:9000
-S3_ACCESS_KEY=minioadmin
-S3_SECRET_KEY=minioadminpassword
-S3_BUCKET=karaan-uploads
-
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
+1. **PostgreSQL 15 + PostGIS 3.3**: Database with spatial GIS extensions.
+   - Port: `5432`
+   - Healthcheck: `pg_isready -U postgres -d karaan`
+2. **Redis 7 (Alpine)**: Live geospatial worker location cache & BullMQ queue.
+   - Port: `6379`
+   - Healthcheck: `redis-cli ping`
+3. **MinIO Object Storage**: S3-compatible file storage for worker document uploads.
+   - API Port: `9000` | Console Port: `9001`
+   - Healthcheck: `curl -f http://localhost:9000/minio/health/live`
+4. **App (Next.js Application)**: Fully containerized production app with auto-wait on PostgreSQL and Redis health states.
 
 ---
 
-## 🛠 Commands & Development Scripts
+## 🔑 Environment Variables Setup (`.env.example`)
+
+Copy `.env.example` to `.env.local` or `.env` before running the application:
 
 ```bash
-# 1. Install dependencies
-npm install
+cp .env.example .env.local
+```
 
-# 2. Start PostgreSQL (PostGIS), Redis, and MinIO via Docker Compose
+### Complete Variable Reference:
+
+| Variable | Description | Default Value |
+| :--- | :--- | :--- |
+| `NODE_ENV` | Environment mode | `development` |
+| `NEXT_PUBLIC_APP_URL` | Application Public URL | `http://localhost:3000` |
+| `DATABASE_URL` | PostgreSQL PostGIS Connection String | `postgres://postgres:postgrespassword@localhost:5432/karaan` |
+| `REDIS_URL` | Redis Connection String | `redis://localhost:6379` |
+| `AUTH_SECRET` | Secret key for JWT & Session signing | `karaan_super_secret_jwt_key_2026` |
+| `SMS_PROVIDER` | SMS Provider Driver (`mock` \| `kavenegar` \| `farazsms`) | `mock` |
+| `SMS_API_KEY` | SMS Provider API Key | `your_sms_api_key` |
+| `PAYMENT_PROVIDER` | Payment Gateway Driver (`mock` \| `zarinpal`) | `mock` |
+| `PAYMENT_API_KEY` | Payment Gateway Merchant ID | `your_zarinpal_merchant_id` |
+| `PAYMENT_CALLBACK_URL` | Payment Callback URL | `http://localhost:3000/api/finance/callback` |
+| `MAP_PROVIDER` | Map Provider Driver (`mock` \| `neshan` \| `balad`) | `mock` |
+| `MAP_API_KEY` | Map Provider API Key | `your_neshan_api_key` |
+| `S3_ENDPOINT` | MinIO / S3 Storage Endpoint | `http://localhost:9000` |
+| `S3_BUCKET` | S3 Upload Bucket | `karaan-uploads` |
+| `S3_ACCESS_KEY` | S3 Access Key ID | `minioadmin` |
+| `S3_SECRET_KEY` | S3 Secret Key | `minioadminpassword` |
+| `SENTRY_DSN` | Sentry Error Monitoring DSN (Optional) | `""` |
+
+---
+
+## 💻 Local Development Workflow
+
+### 1. Launch Services via Docker Compose
+```bash
 docker-compose up -d
+```
 
-# 3. Push Database Schema
-npx drizzle-kit push
+### 2. Database Migration & Seed
+```bash
+# Push schema migrations to PostgreSQL
+npm run db:migrate
 
-# 4. Start Next.js Development Server
+# Seed database with mock users & initial shifts
+npm run db:seed
+
+# (Optional) Open Drizzle Visual Studio
+npm run db:studio
+```
+
+### 3. Start Next.js Development Server
+```bash
 npm run dev
+```
 
-# 5. Typecheck & Verification
-npm run typecheck
-npm run lint
-npm run test
+Visit the app at [http://localhost:3000](http://localhost:3000).
+
+---
+
+## 📜 All Package Scripts Reference
+
+```bash
+npm run dev          # Start Next.js App Router in development mode
+npm run build        # Build production bundle using Webpack compiler
+npm run start        # Start Next.js production server
+npm run lint         # Execute ESLint checks
+npm run typecheck    # Execute strict TypeScript typecheck (tsc --noEmit)
+npm run test         # Execute Vitest unit & integration test suite
+npm run test:e2e     # Execute Playwright End-to-End test suite
+npm run db:generate  # Generate Drizzle migration files
+npm run db:migrate   # Apply database migrations
+npm run db:studio    # Launch Drizzle Studio database GUI
+npm run db:seed      # Seed PostgreSQL with initial mock data
 ```
 
 ---
 
-## 🔒 Security & Architecture Directives
+## 🏥 Service Health Checks
 
-1. **Server-Side Authorization**: Every API route and Server Action verifies identity via `requireAuth` and role access via `requireRole(["WORKER", "EMPLOYER", "ADMIN"])`.
-2. **Idempotent Financial Transactions**: Double-entry ledger architecture enforcing unique `idempotency_key` headers for all wallet & escrow movements. Money is ALWAYS stored as integer Rials (BigInt).
-3. **UTC Data Isolation**: All timestamps stored in UTC in PostgreSQL and formatted to Jalali (Shamsi) in the user interface.
+The application provides an API health check route handler at `/api/health`:
+
+- Endpoint: `GET /api/health`
+- Response:
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-08-13T19:00:00.000Z",
+  "services": {
+    "api": "healthy",
+    "redis": "healthy"
+  }
+}
+```
