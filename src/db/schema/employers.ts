@@ -52,6 +52,8 @@ export const businesses = pgTable(
       .notNull()
       .references(() => employerProfiles.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    category: text("category").default("فروشگاهی").notNull(),
+    description: text("description"),
     registrationNumber: text("registration_number"),
     logoUrl: text("logo_url"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
