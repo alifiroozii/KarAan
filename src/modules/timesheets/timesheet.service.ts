@@ -133,7 +133,7 @@ export class TimesheetService {
     await db
       .update(shiftAssignments)
       .set({
-        state: "TIMESHEET_SUBMITTED",
+        state: "CHECKED_OUT",
         checkedOutAt: now,
         totalBreakMinutes: breakMinutes,
         actualPayRials,

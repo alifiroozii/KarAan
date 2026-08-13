@@ -17,9 +17,18 @@ import { users } from "./users";
 export const shiftStatusEnum = pgEnum("shift_status", [
   "DRAFT",
   "PUBLISHED",
+  "MATCHING",
+  "PARTIALLY_FILLED",
+  "FILLED",
+  "CONFIRMED",
   "IN_PROGRESS",
   "COMPLETED",
+  "TIMESHEET_PENDING",
+  "APPROVED",
+  "SETTLED",
   "CANCELLED",
+  "EXPIRED",
+  "DISPUTED",
 ]);
 
 export const slotStatusEnum = pgEnum("slot_status", [
@@ -36,19 +45,24 @@ export const offerStatusEnum = pgEnum("offer_status", [
 ]);
 
 export const assignmentStateEnum = pgEnum("assignment_state", [
-  "MATCHED",
+  "OFFERED",
+  "VIEWED",
   "ACCEPTED",
-  "RECONFIRMED",
+  "DECLINED",
+  "RECONFIRM_PENDING",
+  "CONFIRMED",
   "EN_ROUTE",
   "ARRIVED",
   "CHECKED_IN",
-  "WORKING",
   "ON_BREAK",
   "CHECKED_OUT",
-  "TIMESHEET_SUBMITTED",
-  "APPROVED",
-  "SETTLED",
-  "CANCELLED",
+  "COMPLETED",
+  "CANCELLED_BY_WORKER",
+  "CANCELLED_BY_EMPLOYER",
+  "NO_SHOW",
+  "LEFT_EARLY",
+  "REPLACED",
+  "REMOVED",
 ]);
 
 export const shifts = pgTable(
@@ -163,7 +177,7 @@ export const shiftAssignments = pgTable(
     workerId: text("worker_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    state: assignmentStateEnum("state").default("MATCHED").notNull(),
+    state: assignmentStateEnum("state").default("OFFERED").notNull(),
     checkedInAt: timestamp("checked_in_at", { withTimezone: true }),
     checkedOutAt: timestamp("checked_out_at", { withTimezone: true }),
     totalBreakMinutes: integer("total_break_minutes").default(0).notNull(),

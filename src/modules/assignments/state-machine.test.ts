@@ -1,44 +1,28 @@
 import { describe, it, expect } from "vitest";
-import {
-  AssignmentStateMachine,
-  AssignmentState,
-} from "./assignment.state-machine";
+import { AssignmentStateMachine } from "./assignment.state-machine";
 
-describe("AssignmentStateMachine Lifecycle", () => {
-  it("should allow correct sequential lifecycle transitions", () => {
-    const happyPath: AssignmentState[] = [
-      "MATCHED",
-      "ACCEPTED",
-      "RECONFIRMED",
-      "EN_ROUTE",
-      "ARRIVED",
-      "CHECKED_IN",
-      "WORKING",
-      "ON_BREAK",
-      "WORKING",
-      "CHECKED_OUT",
-      "TIMESHEET_SUBMITTED",
-      "APPROVED",
-      "SETTLED",
-    ];
-
-    for (let i = 0; i < happyPath.length - 1; i++) {
-      const current = happyPath[i];
-      const next = happyPath[i + 1];
-      expect(AssignmentStateMachine.canTransition(current, next)).toBe(true);
-      expect(() =>
-        AssignmentStateMachine.assertCanTransition(current, next)
-      ).not.toThrow();
-    }
+describe("AssignmentStateMachine Unit Tests", () => {
+  it("should allow valid progressive transitions", () => {
+    expect(AssignmentStateMachine.canTransition("OFFERED", "VIEWED")).toBe(true);
+    expect(AssignmentStateMachine.canTransition("VIEWED", "ACCEPTED")).toBe(true);
+    expect(AssignmentStateMachine.canTransition("ACCEPTED", "CONFIRMED")).toBe(true);
+    expect(AssignmentStateMachine.canTransition("CONFIRMED", "EN_ROUTE")).toBe(true);
+    expect(AssignmentStateMachine.canTransition("EN_ROUTE", "ARRIVED")).toBe(true);
+    expect(AssignmentStateMachine.canTransition("ARRIVED", "CHECKED_IN")).toBe(true);
+    expect(AssignmentStateMachine.canTransition("CHECKED_IN", "ON_BREAK")).toBe(true);
+    expect(AssignmentStateMachine.canTransition("ON_BREAK", "CHECKED_OUT")).toBe(true);
+    expect(AssignmentStateMachine.canTransition("CHECKED_OUT", "COMPLETED")).toBe(true);
   });
 
-  it("should throw AppError on invalid transition attempts", () => {
-    expect(() =>
-      AssignmentStateMachine.assertCanTransition("MATCHED", "CHECKED_IN")
-    ).toThrow();
+  it("should reject invalid transitions (e.g. COMPLETED -> OFFERED)", () => {
+    expect(AssignmentStateMachine.canTransition("COMPLETED", "OFFERED")).toBe(false);
+    expect(AssignmentStateMachine.canTransition("COMPLETED", "ACCEPTED")).toBe(false);
+    expect(AssignmentStateMachine.canTransition("DECLINED", "CHECKED_IN")).toBe(false);
+  });
 
+  it("should throw AppError on invalid transition assertion", () => {
     expect(() =>
-      AssignmentStateMachine.assertCanTransition("SETTLED", "WORKING")
-    ).toThrow();
+      AssignmentStateMachine.assertCanTransition("COMPLETED", "OFFERED")
+    ).toThrowError("تغییر وضعیت نامعتبر از COMPLETED به OFFERED");
   });
 });

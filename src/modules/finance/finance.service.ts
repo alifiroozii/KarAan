@@ -176,7 +176,7 @@ export class FinanceService {
       // Mark assignment settled
       await tx
         .update(shiftAssignments)
-        .set({ state: "SETTLED", updatedAt: new Date() })
+        .set({ state: "COMPLETED", updatedAt: new Date() })
         .where(eq(shiftAssignments.id, assignmentId));
 
       // Record in ledger
