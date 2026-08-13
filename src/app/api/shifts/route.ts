@@ -29,7 +29,7 @@ const createShiftSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     // Server-side authorization check (Rule 17)
-    const session = requireRole(req, ["EMPLOYER", "ADMIN"]);
+    const session = await requireRole(req, ["EMPLOYER", "ADMIN"]);
     const body = await req.json();
     const parsed = createShiftSchema.parse(body);
 

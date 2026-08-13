@@ -12,6 +12,11 @@ export type ErrorCode =
   | "INSUFFICIENT_FUNDS"
   | "INVALID_STATE_TRANSITION"
   | "GEOFENCE_VIOLATION"
+  | "RATE_LIMITED"
+  | "EXPIRED_OTP"
+  | "MAX_ATTEMPTS_EXCEEDED"
+  | "INVALID_OTP"
+  | "ACCOUNT_BLOCKED"
   | "INTERNAL_SERVER_ERROR";
 
 export class AppError extends Error {

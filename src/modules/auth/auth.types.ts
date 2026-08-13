@@ -1,4 +1,6 @@
-export type UserRole = "WORKER" | "EMPLOYER" | "ADMIN";
+import { UserRole } from "./auth.service";
+
+export type { UserRole };
 
 export interface JWTPayload {
   userId: string;

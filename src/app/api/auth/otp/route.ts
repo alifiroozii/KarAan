@@ -1,57 +1,85 @@
-import { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { AuthService } from "@/modules/auth/auth.service";
-import { createSuccessResponse, createErrorResponse } from "@/lib/errors";
-import { z } from "zod";
+import { AppError } from "@/lib/errors";
 
 const authService = new AuthService();
 
-const requestOtpSchema = z.object({
-  phone: z.string().regex(/^09\d{9}$/, "شماره موبایل نامعتبر است"),
-});
-
-const verifyOtpSchema = z.object({
-  phone: z.string().regex(/^09\d{9}$/, "شماره موبایل نامعتبر است"),
-  code: z.string().length(5, "کد تایید باید ۵ رقم باشد"),
-  role: z.enum(["WORKER", "EMPLOYER"]).optional(),
-  fullName: z.string().optional(),
-});
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const { phone } = body;
 
-    if (body.action === "VERIFY") {
-      const parsed = verifyOtpSchema.parse(body);
-      const result = await authService.verifyOTPAndLogin(
-        parsed.phone,
-        parsed.code,
-        parsed.role || "WORKER",
-        parsed.fullName
+    if (!phone || typeof phone !== "string") {
+      return NextResponse.json(
+        { error: "شماره موبایل الزامی است." },
+        { status: 400 }
       );
-
-      const response = createSuccessResponse({
-        session: result.session,
-        token: result.token,
-        isNewUser: result.isNewUser,
-      });
-
-      // Set session cookie
-      response.cookies.set("karaan_session", result.token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-        maxAge: 30 * 24 * 60 * 60,
-      });
-
-      return response;
     }
 
-    // Default action: REQUEST_OTP
-    const parsed = requestOtpSchema.parse(body);
-    const result = await authService.requestOTP(parsed.phone);
-    return createSuccessResponse(result);
-  } catch (error) {
-    return createErrorResponse(error);
+    const result = await authService.requestOtp(phone);
+    return NextResponse.json(result, { status: 200 });
+  } catch (err) {
+    if (err instanceof AppError) {
+      return NextResponse.json(
+        { error: err.message, code: err.code, details: err.details },
+        { status: err.statusCode }
+      );
+    }
+    return NextResponse.json(
+      { error: "خطا در درخواست کد تایید" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    const body = await req.json();
+    const { phone, code, role } = body;
+
+    if (!phone || !code) {
+      return NextResponse.json(
+        { error: "شماره موبایل و کد تایید الزامی هستند." },
+        { status: 400 }
+      );
+    }
+
+    const userAgent = req.headers.get("user-agent") || undefined;
+    const ipAddress = req.headers.get("x-forwarded-for") || undefined;
+
+    const { token, user, expiresAt } = await authService.verifyOtp(
+      phone,
+      code,
+      role || "WORKER",
+      userAgent,
+      ipAddress
+    );
+
+    const response = NextResponse.json(
+      { success: true, user: { id: user.id, phone: user.phone, role: user.role, fullName: user.fullName } },
+      { status: 200 }
+    );
+
+    // Set HttpOnly Secure Cookie
+    response.cookies.set("karaan_session", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      expires: expiresAt,
+      path: "/",
+    });
+
+    return response;
+  } catch (err) {
+    if (err instanceof AppError) {
+      return NextResponse.json(
+        { error: err.message, code: err.code },
+        { status: err.statusCode }
+      );
+    }
+    return NextResponse.json(
+      { error: "خطا در بررسی کد تایید" },
+      { status: 500 }
+    );
   }
 }

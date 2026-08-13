@@ -1,166 +1,229 @@
 import { db } from "@/db";
-import { users, workerProfiles, employerProfiles } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { users, sessions, devices, otpCodes, workerProfiles, employerProfiles } from "@/db/schema";
+import { eq, and, gt, sql } from "drizzle-orm";
 import { getSMSAdapter } from "@/infrastructure/sms";
-import { redis } from "@/infrastructure/redis/redis-client";
 import { AppError } from "@/lib/errors";
-import { AuthSession, UserRole } from "./auth.types";
 import crypto from "crypto";
 
-const OTP_PREFIX = "karaan:otp:";
-const JWT_SECRET = process.env.JWT_SECRET || "karaan_super_secret_jwt_key_2026";
+export type UserRole =
+  | "WORKER"
+  | "EMPLOYER"
+  | "BRANCH_MANAGER"
+  | "SHIFT_SUPERVISOR"
+  | "SUPPORT_AGENT"
+  | "DISPUTE_AGENT"
+  | "FINANCE_ADMIN"
+  | "ADMIN"
+  | "SUPER_ADMIN";
+
+export function hashOtp(code: string): string {
+  return crypto.createHash("sha256").update(code).digest("hex");
+}
+
+export function generateNumericOtp(_length = 6): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 export class AuthService {
   private smsAdapter = getSMSAdapter();
 
-  async requestOTP(phone: string): Promise<{ success: boolean; message: string }> {
-    const cleanPhone = phone.trim();
-    if (!/^09\d{9}$/.test(cleanPhone)) {
-      throw new AppError("شماره موبایل وارد شده معتبر نمی‌باشد (نمونه: ۰۹۱۲۳۴۵۶۷۸۹)", "VALIDATION_ERROR", 422);
+  /**
+   * Request OTP for a phone number with resend cooldown and rate limiting.
+   */
+  async requestOtp(phone: string): Promise<{ success: boolean; cooldownSeconds: number; debugCode?: string }> {
+    const normalizedPhone = phone.trim();
+
+    // Check resend cooldown (120 seconds)
+    const recentOtp = await db
+      .select()
+      .from(otpCodes)
+      .where(
+        and(
+          eq(otpCodes.phone, normalizedPhone),
+          gt(otpCodes.createdAt, new Date(Date.now() - 120000))
+        )
+      )
+      .limit(1);
+
+    if (recentOtp.length > 0) {
+      const elapsedSeconds = Math.floor(
+        (Date.now() - new Date(recentOtp[0].createdAt).getTime()) / 1000
+      );
+      const remainingCooldown = Math.max(1, 120 - elapsedSeconds);
+      throw new AppError(
+        `لطفاً ${remainingCooldown} ثانیه دیگر جهت درخواست مجدد کد شکیبایی ورزید.`,
+        "RATE_LIMITED",
+        429,
+        { remainingCooldown }
+      );
     }
 
-    // Generate 5-digit OTP
-    const otpCode = process.env.NODE_ENV === "test" ? "12345" : Math.floor(10000 + Math.random() * 90000).toString();
+    const rawOtp = generateNumericOtp(6);
+    const codeHash = hashOtp(rawOtp);
+    const expiresAt = new Date(Date.now() + 300000); // 5 minutes expiration
 
-    // Store in Redis for 3 minutes (180s)
-    try {
-      if (redis.status !== "ready") await redis.connect();
-      await redis.setex(`${OTP_PREFIX}${cleanPhone}`, 180, otpCode);
-    } catch (err) {
-      console.warn("[Redis OTP Save Warning]", err);
-    }
+    await db.insert(otpCodes).values({
+      id: `otp_${crypto.randomUUID()}`,
+      phone: normalizedPhone,
+      code: codeHash,
+      attemptCount: 0,
+      isUsed: false,
+      expiresAt,
+    });
 
-    // Dispatch SMS
-    await this.smsAdapter.sendOTP(cleanPhone, otpCode);
+    // Send SMS
+    await this.smsAdapter.sendOTP(normalizedPhone, rawOtp);
 
     return {
       success: true,
-      message: "کد تایید با موفقیت ارسال شد.",
+      cooldownSeconds: 120,
+      debugCode: process.env.NODE_ENV === "development" ? rawOtp : undefined,
     };
   }
 
-  async verifyOTPAndLogin(
-    phone: string,
-    code: string,
-    roleIfNew: UserRole = "WORKER",
-    fullNameIfNew?: string
-  ): Promise<{ session: AuthSession; token: string; isNewUser: boolean }> {
-    const cleanPhone = phone.trim();
-    
-    // Verify OTP against Redis or test code fallback
-    let storedOtp: string | null = null;
-    try {
-      if (redis.status !== "ready") await redis.connect();
-      storedOtp = await redis.get(`${OTP_PREFIX}${cleanPhone}`);
-    } catch (err) {
-      console.warn("[Redis OTP Read Warning]", err);
-    }
-
-    const isValid = (storedOtp && storedOtp === code) || code === "12345";
-    if (!isValid) {
-      throw new AppError("کد تایید اشتباه است یا انقضا یافته است.", "UNAUTHORIZED", 401);
-    }
-
-    // Remove OTP after verification
-    try {
-      await redis.del(`${OTP_PREFIX}${cleanPhone}`);
-    } catch {}
-
-    // Find or create user
-    const existingUsers = await db
-      .select()
-      .from(users)
-      .where(eq(users.phone, cleanPhone))
+  /**
+   * Verify session token and return user if active.
+   */
+  async verifyToken(token: string): Promise<{ userId: string; role: UserRole } | null> {
+    const sessionList = await db
+      .select({
+        userId: sessions.userId,
+        role: users.role,
+      })
+      .from(sessions)
+      .innerJoin(users, eq(users.id, sessions.userId))
+      .where(and(eq(sessions.token, token), gt(sessions.expiresAt, new Date())))
       .limit(1);
 
-    let user = existingUsers[0];
-    let isNewUser = false;
+    if (sessionList.length === 0) return null;
+    return { userId: sessionList[0].userId, role: sessionList[0].role as UserRole };
+  }
 
-    if (!user) {
-      isNewUser = true;
+  /**
+   * Verify OTP and create user session.
+   */
+  async verifyOtp(
+    phone: string,
+    code: string,
+    requestedRole: UserRole = "WORKER",
+    userAgent?: string,
+    ipAddress?: string
+  ): Promise<{ token: string; user: typeof users.$inferSelect; expiresAt: Date }> {
+    const normalizedPhone = phone.trim();
+    const inputHash = hashOtp(code.trim());
+
+    const activeOtps = await db
+      .select()
+      .from(otpCodes)
+      .where(
+        and(
+          eq(otpCodes.phone, normalizedPhone),
+          eq(otpCodes.isUsed, false),
+          gt(otpCodes.expiresAt, new Date())
+        )
+      )
+      .orderBy(sql`${otpCodes.createdAt} DESC`)
+      .limit(1);
+
+    if (activeOtps.length === 0) {
+      throw new AppError("کد تایید منقضی شده یا وجود ندارد. مجدداً تلاش کنید.", "EXPIRED_OTP", 400);
+    }
+
+    const otpRecord = activeOtps[0];
+
+    if (otpRecord.attemptCount >= 5) {
+      await db.update(otpCodes).set({ isUsed: true }).where(eq(otpCodes.id, otpRecord.id));
+      throw new AppError("تعداد تلاش‌های ناموفق بیش از حد مجاز است. درخواست کد جدید بدهید.", "MAX_ATTEMPTS_EXCEEDED", 429);
+    }
+
+    if (otpRecord.code !== inputHash) {
+      await db
+        .update(otpCodes)
+        .set({ attemptCount: otpRecord.attemptCount + 1 })
+        .where(eq(otpCodes.id, otpRecord.id));
+
+      throw new AppError("کد تایید وارد شده اشتباه است.", "INVALID_OTP", 400);
+    }
+
+    // Mark OTP as used
+    await db.update(otpCodes).set({ isUsed: true }).where(eq(otpCodes.id, otpRecord.id));
+
+    // Lookup or create user
+    const userList = await db.select().from(users).where(eq(users.phone, normalizedPhone)).limit(1);
+    let userRecord: typeof users.$inferSelect;
+
+    if (userList.length === 0) {
       const userId = `usr_${crypto.randomUUID()}`;
-      const defaultName = fullNameIfNew || (roleIfNew === "WORKER" ? "کارجو" : "کارفرما");
-
       const [newUser] = await db
         .insert(users)
         .values({
           id: userId,
-          phone: cleanPhone,
-          role: roleIfNew,
-          fullName: defaultName,
+          phone: normalizedPhone,
+          role: requestedRole,
+          fullName: requestedRole === "WORKER" ? "کارجو جدید" : "کارفرما جدید",
+          isVerified: true,
         })
         .returning();
 
-      user = newUser;
+      userRecord = newUser;
 
-      // Create role profile
-      if (roleIfNew === "WORKER") {
+      // Auto-create role profile
+      if (requestedRole === "WORKER") {
         await db.insert(workerProfiles).values({
           id: `wp_${crypto.randomUUID()}`,
-          userId: user.id,
+          userId,
         });
-      } else if (roleIfNew === "EMPLOYER") {
+      } else if (requestedRole === "EMPLOYER") {
         await db.insert(employerProfiles).values({
           id: `ep_${crypto.randomUUID()}`,
-          userId: user.id,
-          companyName: defaultName,
+          userId,
+          companyName: "کسب‌وکار جدید",
         });
       }
-    }
+    } else {
+      userRecord = userList[0];
 
-    const session: AuthSession = {
-      userId: user.id,
-      phone: user.phone,
-      role: user.role as UserRole,
-      fullName: user.fullName,
-    };
-
-    const token = this.createToken(session);
-
-    return { session, token, isNewUser };
-  }
-
-  public createToken(session: AuthSession): string {
-    const payload = {
-      ...session,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60, // 30 days
-    };
-    const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
-    const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
-    const signature = crypto
-      .createHmac("sha256", JWT_SECRET)
-      .update(`${header}.${body}`)
-      .digest("base64url");
-
-    return `${header}.${body}.${signature}`;
-  }
-
-  public verifyToken(token: string): AuthSession | null {
-    try {
-      const [header, body, signature] = token.split(".");
-      if (!header || !body || !signature) return null;
-
-      const expectedSignature = crypto
-        .createHmac("sha256", JWT_SECRET)
-        .update(`${header}.${body}`)
-        .digest("base64url");
-
-      if (signature !== expectedSignature) return null;
-
-      const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf-8"));
-      if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-        return null; // Expired
+      if (userRecord.isBlocked) {
+        throw new AppError("حساب کاربری شما مسدود شده است.", "ACCOUNT_BLOCKED", 403);
       }
-
-      return {
-        userId: payload.userId,
-        phone: payload.phone,
-        role: payload.role,
-        fullName: payload.fullName,
-      };
-    } catch {
-      return null;
     }
+
+    // Create session token (expires in 30 days)
+    const token = `sess_${crypto.randomBytes(32).toString("hex")}`;
+    const expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000);
+
+    await db.insert(sessions).values({
+      id: `sid_${crypto.randomUUID()}`,
+      userId: userRecord.id,
+      token,
+      ipAddress: ipAddress || "127.0.0.1",
+      userAgent: userAgent || "Unknown Device",
+      expiresAt,
+    });
+
+    // Track device
+    await db.insert(devices).values({
+      id: `dev_${crypto.randomUUID()}`,
+      userId: userRecord.id,
+      deviceToken: crypto.createHash("md5").update(userAgent || "web").digest("hex"),
+      platform: "WEB",
+      lastActiveAt: new Date(),
+    });
+
+    return { token, user: userRecord, expiresAt };
+  }
+
+  /**
+   * Revoke a single session token.
+   */
+  async revokeSession(token: string): Promise<void> {
+    await db.delete(sessions).where(eq(sessions.token, token));
+  }
+
+  /**
+   * Revoke all sessions for a user (Logout all devices).
+   */
+  async revokeAllSessions(userId: string): Promise<void> {
+    await db.delete(sessions).where(eq(sessions.userId, userId));
   }
 }

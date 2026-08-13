@@ -4,13 +4,20 @@ import {
   timestamp,
   pgEnum,
   boolean,
+  integer,
   index,
 } from "drizzle-orm/pg-core";
 
 export const userRoleEnum = pgEnum("user_role", [
   "WORKER",
   "EMPLOYER",
+  "BRANCH_MANAGER",
+  "SHIFT_SUPERVISOR",
+  "SUPPORT_AGENT",
+  "DISPUTE_AGENT",
+  "FINANCE_ADMIN",
   "ADMIN",
+  "SUPER_ADMIN",
 ]);
 
 export const platformEnum = pgEnum("platform_type", [
@@ -24,6 +31,10 @@ export const users = pgTable(
   {
     id: text("id").primaryKey(),
     phone: text("phone").notNull().unique(),
+    email: text("email").unique(),
+    passwordHash: text("password_hash"),
+    twoFactorSecret: text("two_factor_secret"),
+    twoFactorEnabled: boolean("two_factor_enabled").default(false).notNull(),
     role: userRoleEnum("role").notNull(),
     fullName: text("full_name").notNull(),
     avatarUrl: text("avatar_url"),
@@ -39,6 +50,7 @@ export const users = pgTable(
   },
   (table) => [
     index("idx_users_phone").on(table.phone),
+    index("idx_users_email").on(table.email),
     index("idx_users_role").on(table.role),
     index("idx_users_created_at").on(table.createdAt),
   ]
@@ -91,6 +103,7 @@ export const otpCodes = pgTable(
     id: text("id").primaryKey(),
     phone: text("phone").notNull(),
     code: text("code").notNull(),
+    attemptCount: integer("attempt_count").default(0).notNull(),
     isUsed: boolean("is_used").default(false).notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })

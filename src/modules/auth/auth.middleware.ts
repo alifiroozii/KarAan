@@ -5,35 +5,39 @@ import { AppError } from "@/lib/errors";
 
 const authService = new AuthService();
 
-export function getSessionFromRequest(req: NextRequest): AuthSession | null {
-  // Check Authorization header
+export async function getSessionFromRequest(req: NextRequest): Promise<AuthSession | null> {
+  let token: string | undefined;
+
   const authHeader = req.headers.get("authorization");
   if (authHeader && authHeader.startsWith("Bearer ")) {
-    const token = authHeader.substring(7);
-    const session = authService.verifyToken(token);
-    if (session) return session;
+    token = authHeader.substring(7);
+  } else {
+    token = req.cookies.get("karaan_session")?.value;
   }
 
-  // Check Cookie
-  const cookieToken = req.cookies.get("karaan_session")?.value;
-  if (cookieToken) {
-    const session = authService.verifyToken(cookieToken);
-    if (session) return session;
-  }
+  if (!token) return null;
 
-  return null;
+  const result = await authService.verifyToken(token);
+  if (!result) return null;
+
+  return {
+    userId: result.userId,
+    phone: "",
+    role: result.role,
+    fullName: "",
+  };
 }
 
-export function requireAuth(req: NextRequest): AuthSession {
-  const session = getSessionFromRequest(req);
+export async function requireAuth(req: NextRequest): Promise<AuthSession> {
+  const session = await getSessionFromRequest(req);
   if (!session) {
     throw new AppError("لطفاً ابتدا وارد حساب کاربری خود شوید.", "UNAUTHORIZED", 401);
   }
   return session;
 }
 
-export function requireRole(req: NextRequest, allowedRoles: UserRole[]): AuthSession {
-  const session = requireAuth(req);
+export async function requireRole(req: NextRequest, allowedRoles: UserRole[]): Promise<AuthSession> {
+  const session = await requireAuth(req);
   if (!allowedRoles.includes(session.role)) {
     throw new AppError("شما مجوز دسترسی به این بخش را ندارید.", "FORBIDDEN", 403);
   }
