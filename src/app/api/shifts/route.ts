@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       .returning();
 
     // 3. Dispatch spatial matching alerts
-    matchingService.dispatchShiftAlertToWorkers(shiftId).catch(console.error);
+    await matchingService.dispatchOffersForShift(newShift.id);
 
     return createSuccessResponse(
       {
