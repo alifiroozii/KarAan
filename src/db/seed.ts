@@ -21,7 +21,6 @@ export async function seedDatabase() {
       id: `wp_${crypto.randomUUID()}`,
       userId: workerUserId,
       bio: "نیروی انبارداری و بسته‌بندی مسلط به سیستم‌های فروشگاهی",
-      skills: ["انبارداری", "بسته‌بندی"],
       hourlyRateRials: BigInt(1500000),
       reliabilityScore: "98.50",
     }).onConflictDoNothing();
@@ -54,8 +53,8 @@ export async function seedDatabase() {
       requiredSkills: ["انبارداری", "بسته‌بندی"],
       hourlyPayRials: BigInt(1500000),
       totalBudgetRials: BigInt(6000000),
-      startTime: new Date(Date.now() + 3600000),
-      endTime: new Date(Date.now() + 3600000 * 5),
+      startAt: new Date(Date.now() + 3600000),
+      endAt: new Date(Date.now() + 3600000 * 5),
       status: "PUBLISHED",
     }).onConflictDoNothing();
 

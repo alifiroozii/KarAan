@@ -59,7 +59,6 @@ export class MatchingService {
         fullName: users.fullName,
         phone: users.phone,
         reliabilityScore: workerProfiles.reliabilityScore,
-        skills: workerProfiles.skills,
         distanceMeters: distanceSql,
       })
       .from(workerProfiles)
@@ -113,7 +112,7 @@ export class MatchingService {
       await this.smsAdapter.sendShiftAlert(
         w.phone,
         shift.title,
-        formatToJalali(shift.startTime)
+        formatToJalali(shift.startAt)
       );
       alertCount++;
     }

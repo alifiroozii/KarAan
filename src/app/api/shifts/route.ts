@@ -60,8 +60,8 @@ export async function POST(req: NextRequest) {
         requiredSkills: parsed.requiredSkills,
         hourlyPayRials: hourlyPayBigInt,
         totalBudgetRials: totalBudgetBigInt,
-        startTime: new Date(parsed.startTime),
-        endTime: new Date(parsed.endTime),
+        startAt: new Date(parsed.startTime),
+        endAt: new Date(parsed.endTime),
         status: "PUBLISHED",
       })
       .returning();

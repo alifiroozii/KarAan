@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { ratings, workerProfiles, employerFavorites, auditLogs } from "@/db/schema";
+import { ratings, workerProfiles, workerRosters, employerProfiles, auditLogs } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { AppError } from "@/lib/errors";
 import crypto from "crypto";
@@ -72,24 +72,44 @@ export class ReviewsService {
     employerUserId: string,
     workerUserId: string
   ): Promise<{ isFavorite: boolean }> {
+    const employerProfileList = await db
+      .select()
+      .from(employerProfiles)
+      .where(eq(employerProfiles.userId, employerUserId))
+      .limit(1);
+
+    const workerProfileList = await db
+      .select()
+      .from(workerProfiles)
+      .where(eq(workerProfiles.userId, workerUserId))
+      .limit(1);
+
+    if (employerProfileList.length === 0 || workerProfileList.length === 0) {
+      throw new AppError("پروفایل کاربر یافت نشد.", "NOT_FOUND", 404);
+    }
+
+    const employerProfileId = employerProfileList[0].id;
+    const workerProfileId = workerProfileList[0].id;
+
     const existing = await db
       .select()
-      .from(employerFavorites)
+      .from(workerRosters)
       .where(
-        sql`${employerFavorites.employerId} = ${employerUserId} AND ${employerFavorites.workerId} = ${workerUserId}`
+        sql`${workerRosters.employerProfileId} = ${employerProfileId} AND ${workerRosters.workerProfileId} = ${workerProfileId}`
       )
       .limit(1);
 
     if (existing.length > 0) {
       await db
-        .delete(employerFavorites)
-        .where(eq(employerFavorites.id, existing[0].id));
+        .delete(workerRosters)
+        .where(eq(workerRosters.id, existing[0].id));
       return { isFavorite: false };
     } else {
-      await db.insert(employerFavorites).values({
+      await db.insert(workerRosters).values({
         id: `fav_${crypto.randomUUID()}`,
-        employerId: employerUserId,
-        workerId: workerUserId,
+        employerProfileId,
+        workerProfileId,
+        rosterType: "FAVORITE",
       });
       return { isFavorite: true };
     }

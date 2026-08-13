@@ -2,36 +2,88 @@ import {
   pgTable,
   text,
   timestamp,
+  pgEnum,
   integer,
   jsonb,
+  index,
 } from "drizzle-orm/pg-core";
-import { shiftAssignments } from "./assignments";
+import { shiftAssignments } from "./shifts";
 import { users } from "./users";
+import { employerProfiles } from "./employers";
+import { workerProfiles } from "./workers";
 
-export const ratings = pgTable("ratings", {
-  id: text("id").primaryKey(),
-  assignmentId: text("assignment_id")
-    .notNull()
-    .references(() => shiftAssignments.id, { onDelete: "cascade" }),
-  evaluatorId: text("evaluator_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  evaluateeId: text("evaluatee_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  score: integer("score").notNull(), // 1 to 5
-  tags: jsonb("tags").$type<string[]>().default([]).notNull(),
-  comment: text("comment"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const rosterTypeEnum = pgEnum("roster_type", [
+  "FAVORITE",
+  "PREFERRED",
+  "BLOCKED",
+]);
 
-export const employerFavorites = pgTable("employer_favorites", {
-  id: text("id").primaryKey(),
-  employerId: text("employer_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  workerId: text("worker_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const ratings = pgTable(
+  "ratings",
+  {
+    id: text("id").primaryKey(),
+    assignmentId: text("assignment_id")
+      .notNull()
+      .references(() => shiftAssignments.id, { onDelete: "cascade" }),
+    evaluatorId: text("evaluator_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    evaluateeId: text("evaluatee_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    score: integer("score").notNull(),
+    tags: jsonb("tags").$type<string[]>().default([]).notNull(),
+    comment: text("comment"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_ratings_assignment_id").on(table.assignmentId),
+    index("idx_ratings_evaluator_id").on(table.evaluatorId),
+    index("idx_ratings_evaluatee_id").on(table.evaluateeId),
+  ]
+);
+
+export const workerRosters = pgTable(
+  "worker_rosters",
+  {
+    id: text("id").primaryKey(),
+    employerProfileId: text("employer_profile_id")
+      .notNull()
+      .references(() => employerProfiles.id, { onDelete: "cascade" }),
+    workerProfileId: text("worker_profile_id")
+      .notNull()
+      .references(() => workerProfiles.id, { onDelete: "cascade" }),
+    rosterType: rosterTypeEnum("roster_type").default("FAVORITE").notNull(),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_roster_employer_id").on(table.employerProfileId),
+    index("idx_roster_worker_id").on(table.workerProfileId),
+  ]
+);
+
+export const blocks = pgTable(
+  "blocks",
+  {
+    id: text("id").primaryKey(),
+    blockerUserId: text("blocker_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    blockedUserId: text("blocked_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reason: text("reason"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_blocks_blocker_id").on(table.blockerUserId),
+    index("idx_blocks_blocked_id").on(table.blockedUserId),
+  ]
+);

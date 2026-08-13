@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import {
-  financialLedger,
+  walletTransactions,
+  wallets,
   employerProfiles,
   workerProfiles,
   shiftAssignments,
@@ -25,8 +26,8 @@ export class FinanceService {
     // Check idempotency
     const existingTx = await db
       .select()
-      .from(financialLedger)
-      .where(eq(financialLedger.idempotencyKey, idempotencyKey))
+      .from(walletTransactions)
+      .where(eq(walletTransactions.idempotencyKey, idempotencyKey))
       .limit(1);
 
     if (existingTx.length > 0) {
@@ -53,6 +54,15 @@ export class FinanceService {
       throw new AppError("موجودی کیف پول کارفرما برای این شیفت کافی نیست.", "INSUFFICIENT_FUNDS", 400);
     }
 
+    // Fetch wallet
+    const walletList = await db
+      .select()
+      .from(wallets)
+      .where(eq(wallets.userId, employerUserId))
+      .limit(1);
+
+    const walletId = walletList[0]?.id || `wlt_${crypto.randomUUID()}`;
+
     // Update balances atomically: debit wallet, credit escrow
     const txId = `tx_${crypto.randomUUID()}`;
 
@@ -66,14 +76,16 @@ export class FinanceService {
         })
         .where(eq(employerProfiles.id, profile.id));
 
-      await tx.insert(financialLedger).values({
+      await tx.insert(walletTransactions).values({
         id: txId,
+        walletId,
         idempotencyKey,
-        shiftId,
-        senderId: employerUserId,
         amountRials,
-        transactionType: "ESCROW_LOCK",
-        status: "COMPLETED",
+        direction: "DEBIT",
+        referenceType: "ESCROW_LOCK",
+        referenceId: shiftId,
+        balanceAfterRials: profile.walletBalanceRials - amountRials,
+        status: "SUCCESS",
       });
 
       await tx.insert(auditLogs).values({
@@ -96,8 +108,8 @@ export class FinanceService {
     // Check idempotency
     const existingTx = await db
       .select()
-      .from(financialLedger)
-      .where(eq(financialLedger.idempotencyKey, idempotencyKey))
+      .from(walletTransactions)
+      .where(eq(walletTransactions.idempotencyKey, idempotencyKey))
       .limit(1);
 
     if (existingTx.length > 0) {
@@ -132,6 +144,14 @@ export class FinanceService {
     const shift = shiftList[0];
     const amountToSettle = assignment.actualPayRials > BigInt(0) ? assignment.actualPayRials : shift.totalBudgetRials;
 
+    const walletList = await db
+      .select()
+      .from(wallets)
+      .where(eq(wallets.userId, shift.employerId))
+      .limit(1);
+
+    const walletId = walletList[0]?.id || `wlt_${crypto.randomUUID()}`;
+
     const txId = `tx_${crypto.randomUUID()}`;
 
     await db.transaction(async (tx) => {
@@ -148,7 +168,7 @@ export class FinanceService {
       await tx
         .update(workerProfiles)
         .set({
-          totalCompletedShifts: sql`${workerProfiles.totalCompletedShifts} + 1`,
+          completedShiftsCount: sql`${workerProfiles.completedShiftsCount} + 1`,
           updatedAt: new Date(),
         })
         .where(eq(workerProfiles.userId, assignment.workerId));
@@ -160,16 +180,16 @@ export class FinanceService {
         .where(eq(shiftAssignments.id, assignmentId));
 
       // Record in ledger
-      await tx.insert(financialLedger).values({
+      await tx.insert(walletTransactions).values({
         id: txId,
+        walletId,
         idempotencyKey,
-        shiftId: shift.id,
-        assignmentId: assignment.id,
-        senderId: shift.employerId,
-        recipientId: assignment.workerId,
         amountRials: amountToSettle,
-        transactionType: "SETTLEMENT",
-        status: "COMPLETED",
+        direction: "CREDIT",
+        referenceType: "SETTLEMENT",
+        referenceId: assignmentId,
+        balanceAfterRials: amountToSettle,
+        status: "SUCCESS",
       });
 
       // Audit Log
