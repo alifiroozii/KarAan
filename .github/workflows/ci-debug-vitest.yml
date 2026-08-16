@@ -1,0 +1,46 @@
+name: Vitest Debug
+
+on:
+  push:
+    branches:
+      - agent/prompt-21-qr-attendance
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Run Vitest and annotate failure
+        shell: bash
+        run: |
+          set +e
+          npm test 2>&1 | tee vitest-debug.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            python - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path('vitest-debug.log').read_text(errors='replace')
+          lines = text.splitlines()
+          keep = []
+          patterns = [r'FAIL', r'AssertionError', r'expected', r'Expected', r'Received', r'Error:', r'×', r'❯']
+          for line in lines:
+              if any(re.search(p, line) for p in patterns):
+                  clean = line.replace('%','%25').replace('\r','%0D').replace('\n','%0A')
+                  keep.append(clean[:800])
+          if not keep:
+              keep = [line[:800] for line in lines[-30:]]
+          for i, line in enumerate(keep[-25:], 1):
+              print(f'::error title=Vitest failure {i}::{line}')
+          PY
+          fi
+          exit "$status"
