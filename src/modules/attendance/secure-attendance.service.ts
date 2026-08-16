@@ -5,7 +5,11 @@ import { auditLogs, systemSettings } from "@/db/schema/system";
 import { shiftAssignments, shifts } from "@/db/schema/shifts";
 import { getMapAdapter } from "@/infrastructure/map";
 import { AppError } from "@/lib/errors";
-import { AttendanceCredentialService, type AttendanceCredentialMetadata, type AttendancePurpose } from "./attendance-credential.service";
+import {
+  AttendanceCredentialService,
+  type AttendanceCredentialMetadata,
+  type AttendancePurpose,
+} from "./attendance-credential.service";
 import { validateAttendancePolicy } from "./attendance-policy";
 import { AttendanceService } from "./attendance.service";
 
@@ -63,8 +67,6 @@ export class SecureAttendanceService {
       throw new AppError("این کد برای این عملیات معتبر نیست.", "QR_WRONG_PURPOSE", 400);
     }
 
-    // Preserve idempotency for retried successful requests while still validating
-    // credential branch and purpose.
     if (
       input.purpose === "CHECK_IN" &&
       (row.assignment.state === "CHECKED_IN" || row.assignment.state === "ON_BREAK")
@@ -210,28 +212,26 @@ export class SecureAttendanceService {
     purpose: AttendancePurpose;
     location: AttendanceLocationInput;
   }) {
-    const credential = await this.credentials.resolveSupervisorCode({
+    const claim = await this.credentials.claimSupervisorCode({
       branchId: input.branchId,
       purpose: input.purpose,
       code: input.code,
     });
 
-    const result = await this.validateAndRun({
-      assignmentId: input.assignmentId,
-      workerUserId: input.workerUserId,
-      purpose: input.purpose,
-      credential,
-      location: input.location,
-    });
+    try {
+      const result = await this.validateAndRun({
+        assignmentId: input.assignmentId,
+        workerUserId: input.workerUserId,
+        purpose: input.purpose,
+        credential: claim.metadata,
+        location: input.location,
+      });
 
-    // Supervisor codes are intentionally one-time and are consumed only after
-    // the attendance mutation succeeds.
-    await this.credentials.revokeSupervisorCode({
-      branchId: input.branchId,
-      purpose: input.purpose,
-      code: input.code,
-    });
-
-    return result;
+      await this.credentials.consumeSupervisorCodeClaim(claim);
+      return result;
+    } catch (error) {
+      await this.credentials.releaseSupervisorCodeClaim(claim);
+      throw error;
+    }
   }
 }
