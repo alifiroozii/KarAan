@@ -199,6 +199,8 @@ export const shiftAssignments = pgTable(
     state: assignmentStateEnum("state").default("OFFERED").notNull(),
     checkedInAt: timestamp("checked_in_at", { withTimezone: true }),
     checkedOutAt: timestamp("checked_out_at", { withTimezone: true }),
+    // Assignment-level end isolates accepted overtime for one worker in a multi-worker shift.
+    effectiveEndAt: timestamp("effective_end_at", { withTimezone: true }),
     totalBreakMinutes: integer("total_break_minutes").default(0).notNull(),
     actualPayRials: bigint("actual_pay_rials", { mode: "bigint" })
       .default(sql`0`)
@@ -214,6 +216,7 @@ export const shiftAssignments = pgTable(
     index("idx_assignments_shift_id").on(table.shiftId),
     index("idx_assignments_worker_id").on(table.workerId),
     index("idx_assignments_state").on(table.state),
+    index("idx_assignments_effective_end_at").on(table.effectiveEndAt),
     index("idx_assignments_created_at").on(table.createdAt),
   ]
 );
