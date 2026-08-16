@@ -1,30 +1,19 @@
 import { NextRequest } from "next/server";
 import { requirePermission } from "@/modules/auth/auth.middleware";
-import { AttendanceService } from "@/modules/attendance/attendance.service";
-import { createErrorResponse, createSuccessResponse } from "@/lib/errors";
-import { z } from "zod";
+import { AppError, createErrorResponse } from "@/lib/errors";
 
-const checkOutSchema = z.object({
-  assignmentId: z.string().min(1),
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
-});
-
-const attendanceService = new AttendanceService();
-
+/**
+ * Legacy GPS-only endpoint intentionally disabled by Prompt 21.
+ * Attendance must now be proven through /api/attendance/scan or /api/attendance/code.
+ */
 export async function POST(req: NextRequest) {
   try {
-    const session = await requirePermission(req, "shift.checkout");
-    const parsed = checkOutSchema.parse(await req.json());
-
-    const result = await attendanceService.checkOutWorker(
-      parsed.assignmentId,
-      session.userId,
-      parsed.latitude,
-      parsed.longitude
+    await requirePermission(req, "shift.checkout");
+    throw new AppError(
+      "ثبت خروج مستقیم غیرفعال است؛ QR شعبه یا کد مسئول را استفاده کنید.",
+      "BAD_REQUEST",
+      410
     );
-
-    return createSuccessResponse(result);
   } catch (error) {
     return createErrorResponse(error);
   }
