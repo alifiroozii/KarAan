@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node server.mjs",
     "build": "next build --webpack",
-    "start": "NODE_ENV=production node server.mjs",
+    "start": "node server.mjs --production",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
