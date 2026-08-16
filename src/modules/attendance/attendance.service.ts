@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { attendanceEvents, timesheets } from "@/db/schema/attendance";
 import { auditLogs } from "@/db/schema/system";
@@ -65,17 +65,6 @@ export class AttendanceService {
     const eventId = `att_${crypto.randomUUID()}`;
 
     await db.transaction(async (tx) => {
-      await tx.insert(attendanceEvents).values({
-        id: eventId,
-        assignmentId,
-        eventType: "CHECK_IN",
-        timestamp: now,
-        latitude: currentLat,
-        longitude: currentLng,
-        isWithinGeofence: true,
-        distanceFromTargetMeters: distanceMeters,
-      });
-
       const updated = await tx
         .update(shiftAssignments)
         .set({ state: "CHECKED_IN", checkedInAt: now, updatedAt: now })
@@ -88,8 +77,23 @@ export class AttendanceService {
         .returning({ id: shiftAssignments.id });
 
       if (updated.length !== 1) {
-        throw new AppError("وضعیت شیفت تغییر کرده است. دوباره تلاش کنید.", "INVALID_STATE_TRANSITION", 409);
+        throw new AppError(
+          "وضعیت شیفت تغییر کرده است. دوباره تلاش کنید.",
+          "INVALID_STATE_TRANSITION",
+          409
+        );
       }
+
+      await tx.insert(attendanceEvents).values({
+        id: eventId,
+        assignmentId,
+        eventType: "CHECK_IN",
+        timestamp: now,
+        latitude: currentLat,
+        longitude: currentLng,
+        isWithinGeofence: true,
+        distanceFromTargetMeters: distanceMeters,
+      });
 
       await tx.insert(auditLogs).values({
         id: `aud_${crypto.randomUUID()}`,
@@ -101,7 +105,6 @@ export class AttendanceService {
       });
     });
 
-    // Publish only after the DB transaction succeeds.
     publishRealtimeEvent("assignment", assignmentId, "worker.checked_in", {
       assignmentId,
       workerId: workerUserId,
@@ -143,7 +146,7 @@ export class AttendanceService {
 
     if (row.assignment.state === "CHECKED_OUT" || row.assignment.state === "COMPLETED") {
       const [existingTimesheet] = await db
-        .select()
+        .select({ id: timesheets.id })
         .from(timesheets)
         .where(eq(timesheets.assignmentId, assignmentId))
         .limit(1);
@@ -181,9 +184,29 @@ export class AttendanceService {
     const netWorkedMinutes = Math.max(0, grossMinutes - breakMinutes);
     const calculatedPayRials = calculateHourlyShiftPay(row.shift.hourlyPayRials, netWorkedMinutes);
     const eventId = `att_${crypto.randomUUID()}`;
-    const timesheetId = `ts_${crypto.randomUUID()}`;
+    let finalTimesheetId = `ts_${crypto.randomUUID()}`;
 
     await db.transaction(async (tx) => {
+      const updated = await tx
+        .update(shiftAssignments)
+        .set({
+          state: "CHECKED_OUT",
+          checkedOutAt: now,
+          actualPayRials: calculatedPayRials,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(shiftAssignments.id, assignmentId),
+            inArray(shiftAssignments.state, ["CHECKED_IN", "ON_BREAK"])
+          )
+        )
+        .returning({ id: shiftAssignments.id });
+
+      if (updated.length !== 1) {
+        throw new AppError("ثبت خروج انجام نشد؛ وضعیت شیفت تغییر کرده است.", "CHECK_OUT_FAILED", 409);
+      }
+
       await tx.insert(attendanceEvents).values({
         id: eventId,
         assignmentId,
@@ -195,30 +218,17 @@ export class AttendanceService {
         distanceFromTargetMeters: distanceMeters,
       });
 
-      const updated = await tx
-        .update(shiftAssignments)
-        .set({
-          state: "CHECKED_OUT",
-          checkedOutAt: now,
-          actualPayRials: calculatedPayRials,
-          updatedAt: now,
-        })
-        .where(eq(shiftAssignments.id, assignmentId))
-        .returning({ id: shiftAssignments.id });
-
-      if (updated.length !== 1) {
-        throw new AppError("ثبت خروج انجام نشد.", "CHECK_OUT_FAILED", 409);
-      }
-
       const [existingTimesheet] = await tx
         .select({ id: timesheets.id })
         .from(timesheets)
         .where(eq(timesheets.assignmentId, assignmentId))
         .limit(1);
 
-      if (!existingTimesheet) {
+      if (existingTimesheet) {
+        finalTimesheetId = existingTimesheet.id;
+      } else {
         await tx.insert(timesheets).values({
-          id: timesheetId,
+          id: finalTimesheetId,
           assignmentId,
           grossMinutes,
           breakMinutes,
@@ -237,6 +247,7 @@ export class AttendanceService {
         action: "CHECK_OUT",
         details: {
           eventId,
+          timesheetId: finalTimesheetId,
           latitude: currentLat,
           longitude: currentLng,
           distanceMeters,
@@ -260,7 +271,7 @@ export class AttendanceService {
       state: "CHECKED_OUT",
     });
     publishRealtimeEvent("assignment", assignmentId, "timesheet.updated", {
-      timesheetId,
+      timesheetId: finalTimesheetId,
       status: "SUBMITTED",
     });
 
@@ -268,7 +279,7 @@ export class AttendanceService {
       assignmentId,
       state: "CHECKED_OUT" as const,
       checkedOutAt: now,
-      timesheetId,
+      timesheetId: finalTimesheetId,
       netWorkedMinutes,
       calculatedPayRials,
     };
