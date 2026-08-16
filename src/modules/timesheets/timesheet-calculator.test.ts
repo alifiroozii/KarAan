@@ -25,8 +25,13 @@ describe("calculateTimesheet", () => {
     const unpaid = calculateTimesheet({ ...base, breakMinutes: 30, paidBreak: false });
     const paid = calculateTimesheet({ ...base, breakMinutes: 30, paidBreak: true });
 
+    expect(unpaid.unpaidBreakMinutes).toBe(30);
+    expect(unpaid.paidBreakMinutes).toBe(0);
     expect(unpaid.payableMinutes).toBe(450);
     expect(unpaid.finalPayRials).toBe(9_000_000n);
+
+    expect(paid.unpaidBreakMinutes).toBe(0);
+    expect(paid.paidBreakMinutes).toBe(30);
     expect(paid.payableMinutes).toBe(480);
     expect(paid.finalPayRials).toBe(9_600_000n);
   });
@@ -44,6 +49,16 @@ describe("calculateTimesheet", () => {
     expect(result.requiresAdjustment).toBe(true);
   });
 
+  it("supports deterministic minute rounding policies", () => {
+    const result = calculateTimesheet({
+      ...base,
+      actualCheckOut: new Date("2026-08-16T15:58:00.000Z"),
+      roundingIncrementMinutes: 5,
+    });
+    expect(result.grossMinutes).toBe(480);
+    expect(result.finalPayRials).toBe(9_600_000n);
+  });
+
   it("supports bonus and bounded deduction", () => {
     const result = calculateTimesheet({
       ...base,
@@ -59,12 +74,16 @@ describe("calculateTimesheet", () => {
     expect(neverNegative.finalPayRials).toBe(0n);
   });
 
-  it("rejects missing or invalid checkout ordering", () => {
+  it("rejects invalid attendance ordering and negative monetary adjustments", () => {
     expect(() =>
       calculateTimesheet({
         ...base,
         actualCheckOut: new Date("2026-08-16T07:59:00.000Z"),
       })
     ).toThrow("INVALID_ATTENDANCE_SEQUENCE");
+
+    expect(() => calculateTimesheet({ ...base, bonusRials: -1n })).toThrow(
+      "INVALID_TIMESHEET_ADJUSTMENT"
+    );
   });
 });
