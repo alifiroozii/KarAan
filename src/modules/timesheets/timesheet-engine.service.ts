@@ -1,12 +1,9 @@
 import crypto from "crypto";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import {
-  attendanceEvents,
-  breaks,
-  timesheets,
-} from "@/db/schema/attendance";
+import { attendanceEvents, breaks, timesheets } from "@/db/schema/attendance";
 import { branches, businessMembers } from "@/db/schema/employers";
+import { overtimeRequests } from "@/db/schema/overtime";
 import { auditLogs, systemSettings } from "@/db/schema/system";
 import { shiftAssignments, shifts } from "@/db/schema/shifts";
 import { users } from "@/db/schema/users";
@@ -62,7 +59,6 @@ export class TimesheetEngineService {
 
     const checkIn = events.find((event) => event.eventType === "CHECK_IN");
     const checkOut = [...events].reverse().find((event) => event.eventType === "CHECK_OUT");
-
     if (!checkIn) throw new AppError("رویداد ورود یافت نشد.", "MISSING_CHECK_IN", 400);
     if (!checkOut) throw new AppError("رویداد خروج یافت نشد.", "CHECK_OUT_FAILED", 400);
     if (checkOut.timestamp <= checkIn.timestamp) {
@@ -79,11 +75,7 @@ export class TimesheetEngineService {
     let previousEnd: Date | null = null;
     for (const item of breakRows) {
       if (!item.endAt) {
-        throw new AppError(
-          "یک استراحت فعال هنوز پایان نیافته است.",
-          "ACTIVE_BREAK_EXISTS",
-          400
-        );
+        throw new AppError("یک استراحت فعال هنوز پایان نیافته است.", "ACTIVE_BREAK_EXISTS", 400);
       }
       if (
         item.startAt < checkIn.timestamp ||
@@ -102,6 +94,17 @@ export class TimesheetEngineService {
       previousEnd = item.endAt;
     }
 
+    const acceptedOvertimeRows = await db
+      .select()
+      .from(overtimeRequests)
+      .where(
+        and(
+          eq(overtimeRequests.assignmentId, assignmentId),
+          eq(overtimeRequests.status, "ACCEPTED")
+        )
+      )
+      .orderBy(asc(overtimeRequests.originalEndAt));
+
     const roundingIncrementMinutes = await this.readRoundingIncrement();
     const calculation = calculateTimesheet({
       scheduledStart: row.shift.startAt,
@@ -109,12 +112,31 @@ export class TimesheetEngineService {
       actualCheckIn: checkIn.timestamp,
       actualCheckOut: checkOut.timestamp,
       breakMinutes,
+      breakIntervals: breakRows.map((item) => ({
+        startAt: item.startAt,
+        endAt: item.endAt!,
+      })),
       paidBreak: Boolean(row.shift.isPaidBreak),
       hourlyRateRials: row.shift.hourlyPayRials,
+      acceptedOvertime: acceptedOvertimeRows.map((item) => ({
+        originalEndAt: item.originalEndAt,
+        requestedEndAt: item.requestedEndAt,
+        requestedMinutes: item.requestedMinutes,
+        rateType: item.rateType,
+        rateMultiplierBps: item.rateMultiplierBps,
+        fixedBonusRials: item.fixedBonusRials,
+      })),
       roundingIncrementMinutes,
     });
 
-    return { row, checkIn, checkOut, breakRows, calculation };
+    return {
+      row,
+      checkIn,
+      checkOut,
+      breakRows,
+      acceptedOvertimeRows,
+      calculation,
+    };
   }
 
   private publishUpdated(input: {
@@ -132,9 +154,8 @@ export class TimesheetEngineService {
 
   async createOrGetForAssignment(assignmentId: string) {
     const input = await this.loadCalculationInputs(assignmentId);
-    const proposedStatus = input.calculation.requiresAdjustment
-      ? "ADJUSTMENT_REQUIRED"
-      : "SUBMITTED";
+    const proposedStatus: "ADJUSTMENT_REQUIRED" | "SUBMITTED" =
+      input.calculation.requiresAdjustment ? "ADJUSTMENT_REQUIRED" : "SUBMITTED";
     let created = false;
     let timesheetId = "";
 
@@ -148,7 +169,6 @@ export class TimesheetEngineService {
         .from(timesheets)
         .where(eq(timesheets.assignmentId, assignmentId))
         .limit(1);
-
       if (existing) {
         timesheetId = existing.id;
         return;
@@ -166,7 +186,9 @@ export class TimesheetEngineService {
         netWorkedMinutes: input.calculation.payableMinutes,
         regularMinutes: input.calculation.regularMinutes,
         overtimeMinutes: input.calculation.overtimeMinutes,
+        unapprovedOvertimeMinutes: input.calculation.unapprovedOvertimeMinutes,
         hourlyRateRials: input.calculation.hourlyRateRials,
+        overtimePayRials: input.calculation.overtimePayRials,
         calculatedPayRials: input.calculation.calculatedPayRials,
         bonusRials: input.calculation.bonusRials,
         deductionRials: input.calculation.deductionRials,
@@ -178,10 +200,7 @@ export class TimesheetEngineService {
 
       await tx
         .update(shiftAssignments)
-        .set({
-          actualPayRials: input.calculation.finalPayRials,
-          updatedAt: now,
-        })
+        .set({ actualPayRials: input.calculation.finalPayRials, updatedAt: now })
         .where(eq(shiftAssignments.id, assignmentId));
 
       await tx.insert(auditLogs).values({
@@ -200,6 +219,9 @@ export class TimesheetEngineService {
           payableMinutes: input.calculation.payableMinutes,
           regularMinutes: input.calculation.regularMinutes,
           overtimeMinutes: input.calculation.overtimeMinutes,
+          unapprovedOvertimeMinutes: input.calculation.unapprovedOvertimeMinutes,
+          overtimePayRials: input.calculation.overtimePayRials.toString(),
+          overtimeContractIds: input.acceptedOvertimeRows.map((item) => item.id),
           hourlyRateRials: input.calculation.hourlyRateRials.toString(),
           finalPayRials: input.calculation.finalPayRials.toString(),
         },
@@ -216,15 +238,13 @@ export class TimesheetEngineService {
         status: proposedStatus,
       });
     }
-
     return this.getByIdInternal(timesheetId);
   }
 
   async recalculateForAssignment(assignmentId: string, actorUserId?: string) {
     const input = await this.loadCalculationInputs(assignmentId);
-    const nextStatus = input.calculation.requiresAdjustment
-      ? "ADJUSTMENT_REQUIRED"
-      : "SUBMITTED";
+    const nextStatus: "ADJUSTMENT_REQUIRED" | "SUBMITTED" =
+      input.calculation.requiresAdjustment ? "ADJUSTMENT_REQUIRED" : "SUBMITTED";
     let timesheetId = "";
 
     await db.transaction(async (tx) => {
@@ -236,11 +256,12 @@ export class TimesheetEngineService {
         .from(timesheets)
         .where(eq(timesheets.assignmentId, assignmentId))
         .limit(1);
-
-      if (!current) {
-        throw new AppError("تایم‌شیت پیدا نشد.", "NOT_FOUND", 404);
-      }
-      if (["READY_FOR_SETTLEMENT", "SETTLED", "VOID"].includes(current.status)) {
+      if (!current) throw new AppError("تایم‌شیت پیدا نشد.", "NOT_FOUND", 404);
+      if (
+        current.status === "READY_FOR_SETTLEMENT" ||
+        current.status === "SETTLED" ||
+        current.status === "VOID"
+      ) {
         throw new AppError("این تایم‌شیت دیگر قابل محاسبه مجدد نیست.", "CONFLICT", 409);
       }
 
@@ -256,7 +277,9 @@ export class TimesheetEngineService {
           netWorkedMinutes: input.calculation.payableMinutes,
           regularMinutes: input.calculation.regularMinutes,
           overtimeMinutes: input.calculation.overtimeMinutes,
+          unapprovedOvertimeMinutes: input.calculation.unapprovedOvertimeMinutes,
           hourlyRateRials: input.calculation.hourlyRateRials,
+          overtimePayRials: input.calculation.overtimePayRials,
           calculatedPayRials: input.calculation.calculatedPayRials,
           bonusRials: input.calculation.bonusRials,
           deductionRials: input.calculation.deductionRials,
@@ -280,6 +303,9 @@ export class TimesheetEngineService {
         details: {
           previousStatus: current.status,
           nextStatus,
+          overtimeMinutes: input.calculation.overtimeMinutes,
+          unapprovedOvertimeMinutes: input.calculation.unapprovedOvertimeMinutes,
+          overtimePayRials: input.calculation.overtimePayRials.toString(),
           finalPayRials: input.calculation.finalPayRials.toString(),
         },
       });
@@ -309,7 +335,6 @@ export class TimesheetEngineService {
       .innerJoin(users, eq(users.id, shiftAssignments.workerId))
       .where(eq(timesheets.id, timesheetId))
       .limit(1);
-
     if (!record) throw new AppError("تایم‌شیت پیدا نشد.", "NOT_FOUND", 404);
 
     const events = await db
@@ -324,6 +349,16 @@ export class TimesheetEngineService {
       .from(breaks)
       .where(eq(breaks.assignmentId, record.assignment.id))
       .orderBy(asc(breaks.startAt));
+    const acceptedOvertimeRows = await db
+      .select()
+      .from(overtimeRequests)
+      .where(
+        and(
+          eq(overtimeRequests.assignmentId, record.assignment.id),
+          eq(overtimeRequests.status, "ACCEPTED")
+        )
+      )
+      .orderBy(asc(overtimeRequests.originalEndAt));
 
     return {
       id: record.timesheet.id,
@@ -337,6 +372,7 @@ export class TimesheetEngineService {
       locationName: record.shift.locationName,
       scheduledStart: record.shift.startAt,
       scheduledEnd: record.shift.endAt,
+      effectiveEndAt: record.assignment.effectiveEndAt ?? record.shift.endAt,
       actualCheckIn: checkIn?.timestamp ?? record.assignment.checkedInAt,
       actualCheckOut: checkOut?.timestamp ?? record.assignment.checkedOutAt,
       grossMinutes: record.timesheet.grossMinutes,
@@ -346,7 +382,9 @@ export class TimesheetEngineService {
       netWorkedMinutes: record.timesheet.netWorkedMinutes,
       regularMinutes: record.timesheet.regularMinutes,
       overtimeMinutes: record.timesheet.overtimeMinutes,
+      unapprovedOvertimeMinutes: record.timesheet.unapprovedOvertimeMinutes,
       hourlyRateRials: record.timesheet.hourlyRateRials.toString(),
+      overtimePayRials: record.timesheet.overtimePayRials.toString(),
       calculatedPayRials: record.timesheet.calculatedPayRials.toString(),
       bonusRials: record.timesheet.bonusRials.toString(),
       deductionRials: record.timesheet.deductionRials.toString(),
@@ -370,6 +408,15 @@ export class TimesheetEngineService {
                 0,
                 Math.floor((item.endAt.getTime() - item.startAt.getTime()) / 60_000)
               ),
+      })),
+      overtimeContracts: acceptedOvertimeRows.map((item) => ({
+        id: item.id,
+        originalEndAt: item.originalEndAt,
+        requestedEndAt: item.requestedEndAt,
+        requestedMinutes: item.requestedMinutes,
+        rateType: item.rateType,
+        rateMultiplierBps: item.rateMultiplierBps,
+        fixedBonusRials: item.fixedBonusRials.toString(),
       })),
     };
   }
@@ -417,7 +464,11 @@ export class TimesheetEngineService {
     }
 
     const [shift] = await db
-      .select({ employerId: shifts.employerId, businessId: shifts.businessId, branchId: shifts.branchId })
+      .select({
+        employerId: shifts.employerId,
+        businessId: shifts.businessId,
+        branchId: shifts.branchId,
+      })
       .from(shifts)
       .where(eq(shifts.id, detail.shiftId))
       .limit(1);
@@ -435,7 +486,6 @@ export class TimesheetEngineService {
       .innerJoin(shiftAssignments, eq(shiftAssignments.id, timesheets.assignmentId))
       .where(eq(shiftAssignments.workerId, workerUserId))
       .orderBy(desc(timesheets.createdAt));
-
     return this.applyListFilters(
       await Promise.all(rows.map((row) => this.getByIdInternal(row.id))),
       filters
@@ -463,19 +513,20 @@ export class TimesheetEngineService {
     for (const item of candidates) {
       if (await this.canManageShift(item, actorUserId, role)) visible.push(item.id);
     }
-
     return this.applyListFilters(
       await Promise.all(visible.map((id) => this.getByIdInternal(id))),
       filters
     );
   }
 
-  private applyListFilters<T extends {
-    branchId: string | null;
-    workerId: string;
-    status: string;
-    createdAt: Date;
-  }>(items: T[], filters: TimesheetListFilters) {
+  private applyListFilters<
+    T extends {
+      branchId: string | null;
+      workerId: string;
+      status: string;
+      createdAt: Date;
+    },
+  >(items: T[], filters: TimesheetListFilters) {
     const page = Math.max(1, filters.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 25));
     const filtered = items.filter((item) => {
@@ -536,7 +587,6 @@ export class TimesheetEngineService {
           updatedAt: now,
         })
         .where(eq(timesheets.id, timesheetId));
-
       await tx.insert(auditLogs).values({
         id: `aud_${crypto.randomUUID()}`,
         actorId: actorUserId,
@@ -571,7 +621,11 @@ export class TimesheetEngineService {
     description: string
   ) {
     const detail = await this.getForActor(timesheetId, actorUserId, role);
-    if (["READY_FOR_SETTLEMENT", "SETTLED", "VOID"].includes(detail.status)) {
+    if (
+      detail.status === "READY_FOR_SETTLEMENT" ||
+      detail.status === "SETTLED" ||
+      detail.status === "VOID"
+    ) {
       throw new AppError("این تایم‌شیت در این مرحله قابل اختلاف نیست.", "CONFLICT", 409);
     }
     if (detail.status === "DISPUTED") return { ...detail, idempotent: true };
