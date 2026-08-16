@@ -1,14 +1,11 @@
-import { IMapAdapter, LocationPoint } from "./map-adapter.interface";
+import { EstimatedArrival, IMapAdapter, LocationPoint } from "./map-adapter.interface";
 
 export class MockMapAdapter implements IMapAdapter {
-  /**
-   * Haversine formula to compute exact distance in meters between two lat/lng points
-   */
   calculateDistanceMeters(
     pointA: LocationPoint,
     pointB: LocationPoint
   ): number {
-    const R = 6371000; // Earth radius in meters
+    const R = 6371000;
     const rad = Math.PI / 180;
     const dLat = (pointB.latitude - pointA.latitude) * rad;
     const dLon = (pointB.longitude - pointA.longitude) * rad;
@@ -33,7 +30,16 @@ export class MockMapAdapter implements IMapAdapter {
     targetLocation: LocationPoint,
     radiusMeters: number
   ): boolean {
-    const dist = this.calculateDistanceMeters(userLocation, targetLocation);
-    return dist <= radiusMeters;
+    return this.calculateDistanceMeters(userLocation, targetLocation) <= radiusMeters;
+  }
+
+  async getEstimatedArrival(
+    origin: LocationPoint,
+    destination: LocationPoint
+  ): Promise<EstimatedArrival> {
+    const distanceMeters = this.calculateDistanceMeters(origin, destination);
+    // Stable deterministic development estimate: ~30 km/h plus a 2 minute urban overhead.
+    const durationSeconds = Math.max(60, Math.round(distanceMeters / (30_000 / 3600)) + 120);
+    return { distanceMeters, durationSeconds };
   }
 }
