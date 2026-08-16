@@ -1,12 +1,11 @@
 import crypto from "crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { attendanceEvents, timesheets } from "@/db/schema/attendance";
+import { attendanceEvents } from "@/db/schema/attendance";
 import { auditLogs } from "@/db/schema/system";
 import { shiftAssignments, shifts } from "@/db/schema/shifts";
 import { getMapAdapter } from "@/infrastructure/map";
 import { AppError } from "@/lib/errors";
-import { calculateHourlyShiftPay } from "@/lib/money";
 import { publishRealtimeEvent } from "@/lib/realtime/socket-server";
 import { AssignmentStateMachine } from "@/modules/assignments/assignment.state-machine";
 
@@ -139,16 +138,13 @@ export class AttendanceService {
     }
 
     if (row.assignment.state === "CHECKED_OUT" || row.assignment.state === "COMPLETED") {
-      const [existingTimesheet] = await db
-        .select({ id: timesheets.id })
-        .from(timesheets)
-        .where(eq(timesheets.assignmentId, assignmentId))
-        .limit(1);
+      const { TimesheetService } = await import("@/modules/timesheets/timesheet.service");
+      const timesheet = await new TimesheetService().createOrGetForAssignment(assignmentId);
       return {
         assignmentId,
         state: row.assignment.state,
         checkedOutAt: row.assignment.checkedOutAt,
-        timesheetId: existingTimesheet?.id ?? null,
+        timesheetId: timesheet.id,
         idempotent: true,
       };
     }
@@ -170,15 +166,7 @@ export class AttendanceService {
     }
 
     const now = new Date();
-    const grossMinutes = Math.max(
-      0,
-      Math.floor((now.getTime() - new Date(row.assignment.checkedInAt).getTime()) / 60000)
-    );
-    const breakMinutes = row.assignment.totalBreakMinutes || 0;
-    const netWorkedMinutes = Math.max(0, grossMinutes - breakMinutes);
-    const calculatedPayRials = calculateHourlyShiftPay(row.shift.hourlyPayRials, netWorkedMinutes);
     const eventId = `att_${crypto.randomUUID()}`;
-    let finalTimesheetId = `ts_${crypto.randomUUID()}`;
 
     await db.transaction(async (tx) => {
       const updated = await tx
@@ -186,7 +174,6 @@ export class AttendanceService {
         .set({
           state: "CHECKED_OUT",
           checkedOutAt: now,
-          actualPayRials: calculatedPayRials,
           updatedAt: now,
         })
         .where(
@@ -212,27 +199,6 @@ export class AttendanceService {
         distanceFromTargetMeters: distanceMeters,
       });
 
-      const [existingTimesheet] = await tx
-        .select({ id: timesheets.id })
-        .from(timesheets)
-        .where(eq(timesheets.assignmentId, assignmentId))
-        .limit(1);
-
-      if (existingTimesheet) {
-        finalTimesheetId = existingTimesheet.id;
-      } else {
-        await tx.insert(timesheets).values({
-          id: finalTimesheetId,
-          assignmentId,
-          grossMinutes,
-          breakMinutes,
-          netWorkedMinutes,
-          calculatedPayRials,
-          finalPayRials: calculatedPayRials,
-          status: "SUBMITTED",
-        });
-      }
-
       await tx.insert(auditLogs).values({
         id: `aud_${crypto.randomUUID()}`,
         actorId: workerUserId,
@@ -241,12 +207,9 @@ export class AttendanceService {
         action: "CHECK_OUT",
         details: {
           eventId,
-          timesheetId: finalTimesheetId,
           latitude: currentLat,
           longitude: currentLng,
           distanceMeters,
-          netWorkedMinutes,
-          calculatedPayRials: calculatedPayRials.toString(),
         },
       });
     });
@@ -267,18 +230,19 @@ export class AttendanceService {
       state: "CHECKED_OUT",
       shiftId: row.shift.id,
     });
-    publishRealtimeEvent("assignment", assignmentId, "timesheet.updated", {
-      timesheetId: finalTimesheetId,
-      status: "SUBMITTED",
-    });
+
+    // Attendance is durable first; timesheet calculation is the next domain step.
+    // If this fails, a retry enters the idempotent branch above and recreates it.
+    const { TimesheetService } = await import("@/modules/timesheets/timesheet.service");
+    const timesheet = await new TimesheetService().createOrGetForAssignment(assignmentId);
 
     return {
       assignmentId,
       state: "CHECKED_OUT" as const,
       checkedOutAt: now,
-      timesheetId: finalTimesheetId,
-      netWorkedMinutes,
-      calculatedPayRials,
+      timesheetId: timesheet.id,
+      netWorkedMinutes: timesheet.netWorkedMinutes,
+      calculatedPayRials: BigInt(timesheet.calculatedPayRials),
     };
   }
 }
