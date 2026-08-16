@@ -16,7 +16,7 @@ describe("AssignmentStateMachine", () => {
     expect(AssignmentStateMachine.canTransition("NO_SHOW", "EN_ROUTE")).toBe(false);
   });
 
-  it("throws a domain error for invalid transitions", () => {
+  it("throws for invalid transitions", () => {
     expect(() => AssignmentStateMachine.assertCanTransition("CONFIRMED", "CHECKED_IN")).toThrow();
   });
 });
