@@ -1,7 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Clock, Loader2, Navigation, Users } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  Navigation,
+  Users,
+} from "lucide-react";
 import { StatusBadge } from "@/components/ui/domain-displays";
 import { useRealtimeRoom } from "@/hooks/use-realtime-room";
 
@@ -116,6 +123,13 @@ export function ShiftAssignmentsLive({ shiftId }: { shiftId: string }) {
                         minute: "2-digit",
                       })}
                     </div>
+                  </div>
+                )}
+
+                {assignment.state === "ARRIVED" && (
+                  <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    <span>نیرو به محدوده محل رسیده و منتظر ثبت ورود است.</span>
                   </div>
                 )}
 
