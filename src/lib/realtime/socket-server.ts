@@ -17,13 +17,26 @@ export interface PublishedRealtimeEvent<E extends RealtimeEventName = RealtimeEv
 
 type RealtimeListener = (event: PublishedRealtimeEvent) => void;
 
+type SocketIoTransport = {
+  to(room: string): {
+    emit(event: string, payload: unknown): void;
+  };
+};
+
+function getSocketTransport(): SocketIoTransport | undefined {
+  return (
+    globalThis as typeof globalThis & {
+      __karaanSocketIO?: SocketIoTransport;
+    }
+  ).__karaanSocketIO;
+}
+
 /**
- * In-process realtime event manager.
+ * Realtime publication abstraction used by domain services.
  *
- * Socket transport wiring can subscribe to `subscribe()` and forward events to
- * the actual Socket.IO room. Keeping publication behind this abstraction lets
- * domain services publish only after successful database mutations and keeps
- * realtime semantics testable without coupling business logic to Socket.IO.
+ * In tests it remains observable through subscribe(). In the self-hosted
+ * runtime server.mjs injects the actual Socket.IO server on globalThis, so the
+ * same publication is forwarded to an authenticated Socket.IO room.
  */
 export class RealtimeServerManager {
   private connections = new Map<string, SocketConnectionSession>();
@@ -54,15 +67,10 @@ export class RealtimeServerManager {
     });
 
     if (!isAuthorized) return false;
-
     session.joinedRooms.add(roomName);
     return true;
   }
 
-  /**
-   * Publish a typed realtime event to a logical room.
-   * Returns the number of currently registered in-process recipients.
-   */
   publish<E extends RealtimeEventName>(
     roomType: RoomType,
     id: string,
@@ -80,6 +88,9 @@ export class RealtimeServerManager {
     for (const listener of this.listeners) {
       listener(envelope as PublishedRealtimeEvent);
     }
+
+    const transport = getSocketTransport();
+    transport?.to(room).emit(event, payload);
 
     let recipientCount = 0;
     for (const session of this.connections.values()) {
