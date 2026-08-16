@@ -3,6 +3,11 @@ export interface LocationPoint {
   longitude: number;
 }
 
+export interface EstimatedArrival {
+  distanceMeters: number;
+  durationSeconds: number;
+}
+
 export interface IMapAdapter {
   calculateDistanceMeters(
     pointA: LocationPoint,
@@ -14,4 +19,8 @@ export interface IMapAdapter {
     targetLocation: LocationPoint,
     radiusMeters: number
   ): boolean;
+  getEstimatedArrival(
+    origin: LocationPoint,
+    destination: LocationPoint
+  ): Promise<EstimatedArrival>;
 }
