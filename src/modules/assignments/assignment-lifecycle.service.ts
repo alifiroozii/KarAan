@@ -96,6 +96,7 @@ export class AssignmentLifecycleService {
     const payload = {
       assignmentId,
       workerId,
+      shiftId,
       distanceMeters: eta.distanceMeters,
       durationSeconds: eta.durationSeconds,
       estimatedArrivalAt: eta.estimatedArrivalAt,
@@ -109,6 +110,7 @@ export class AssignmentLifecycleService {
       const latePayload = {
         assignmentId,
         workerId,
+        shiftId,
         lateRisk: eta.lateRisk,
         estimatedArrivalAt: eta.estimatedArrivalAt,
       } as const;
@@ -179,10 +181,12 @@ export class AssignmentLifecycleService {
     publishRealtimeEvent("assignment", assignmentId, "assignment.updated", {
       assignmentId,
       state: "EN_ROUTE",
+      shiftId: row.shift.id,
     });
     publishRealtimeEvent("shift", row.shift.id, "assignment.updated", {
       assignmentId,
       state: "EN_ROUTE",
+      shiftId: row.shift.id,
     });
 
     return { assignmentId, state: "EN_ROUTE" as const, eta };
