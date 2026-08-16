@@ -1,41 +1,42 @@
+import { QueryClient } from "@tanstack/react-query";
 import { RealtimeEventName } from "./events";
 
-/**
- * Map Realtime Events to TanStack Query Keys for cache invalidation
- */
-export function getQueryKeysToInvalidate(event: RealtimeEventName, payload: Record<string, unknown>): string[][] {
-  const shiftId = String(payload.shiftId || "");
-  const workerId = String(payload.workerId || "");
+export function invalidateQueriesForRealtimeEvent(
+  queryClient: QueryClient,
+  event: RealtimeEventName,
+  payload: Record<string, unknown>
+): void {
+  const assignmentId = payload.assignmentId as string | undefined;
+  const workerId = payload.workerId as string | undefined;
+  const shiftId = payload.shiftId as string | undefined;
+
+  if (assignmentId) {
+    void queryClient.invalidateQueries({ queryKey: ["assignment", assignmentId] });
+    void queryClient.invalidateQueries({ queryKey: ["worker", "current-shift"] });
+  }
+
+  if (workerId) {
+    void queryClient.invalidateQueries({ queryKey: ["worker", workerId] });
+  }
+
+  if (shiftId) {
+    void queryClient.invalidateQueries({ queryKey: ["shift", shiftId] });
+  }
 
   switch (event) {
-    case "shift.created":
-    case "shift.published":
-    case "shift.updated":
-    case "shift.filled":
-      return [["shifts"], ["employer", "shifts"], ["worker", "radar"]];
-
-    case "offer.created":
-    case "offer.accepted":
-    case "offer.expired":
-      return [["offers"], ["shift", shiftId], ["worker", "offers"]];
-
-    case "assignment.updated":
     case "worker.en_route":
     case "worker.arrived":
     case "worker.checked_in":
     case "worker.checked_out":
-      return [["assignments"], ["shift", shiftId], ["timesheets"]];
-
+    case "worker.late_risk":
+    case "assignment.updated":
+      void queryClient.invalidateQueries({ queryKey: ["employer", "live"] });
+      void queryClient.invalidateQueries({ queryKey: ["employer", "shifts"] });
+      break;
     case "timesheet.updated":
-      return [["timesheets"], ["employer", "timesheets"], ["worker", "earnings"]];
-
-    case "payment.updated":
-      return [["wallet"], ["transactions"]];
-
-    case "worker.location.updated":
-      return [["live_locations"], ["worker", workerId]];
-
+      void queryClient.invalidateQueries({ queryKey: ["timesheets"] });
+      break;
     default:
-      return [];
+      break;
   }
 }
