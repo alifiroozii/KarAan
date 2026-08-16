@@ -7,6 +7,7 @@ import { createErrorResponse, createSuccessResponse } from "@/lib/errors";
 const bodySchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
+  accuracy: z.number().positive().max(5000).optional(),
 });
 
 const breaks = new BreakService();
@@ -23,6 +24,7 @@ export async function POST(
       await breaks.endBreak(id, session.userId, {
         latitude: body.latitude,
         longitude: body.longitude,
+        accuracyMeters: body.accuracy,
       })
     );
   } catch (error) {
