@@ -66,6 +66,7 @@ export function BreakControls({
           body: JSON.stringify({
             latitude: location.latitude,
             longitude: location.longitude,
+            accuracy: location.accuracy ?? undefined,
           }),
         })
       );
@@ -122,6 +123,9 @@ export function BreakControls({
         </Button>
       )}
 
+      {statusQuery.isError && (
+        <p className="text-xs text-red-300">{statusQuery.error.message}</p>
+      )}
       {mutateBreak.error && (
         <p className="text-xs text-red-300">{mutateBreak.error.message}</p>
       )}
