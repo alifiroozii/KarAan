@@ -18,6 +18,18 @@ export type ErrorCode =
   | "LOCATION_UNAVAILABLE"
   | "MISSING_CHECK_IN"
   | "CHECK_OUT_FAILED"
+  | "QR_INVALID"
+  | "QR_EXPIRED"
+  | "QR_WRONG_PURPOSE"
+  | "QR_WRONG_BRANCH"
+  | "ATTENDANCE_CODE_INVALID"
+  | "ATTENDANCE_CODE_EXPIRED"
+  | "CHECK_IN_TOO_EARLY"
+  | "CHECK_IN_TOO_LATE"
+  | "ALREADY_CHECKED_IN"
+  | "ALREADY_CHECKED_OUT"
+  | "ACTIVE_BREAK_EXISTS"
+  | "CAMERA_PERMISSION_REQUIRED"
   | "RATE_LIMITED"
   | "EXPIRED_OTP"
   | "MAX_ATTEMPTS_EXCEEDED"
@@ -65,9 +77,7 @@ export function createSuccessResponse<T>(data: T, status = 200): NextResponse<St
   );
 }
 
-export function createErrorResponse(
-  error: unknown
-): NextResponse<StandardApiResponse> {
+export function createErrorResponse(error: unknown): NextResponse<StandardApiResponse> {
   console.error("[API Error]", error);
 
   if (error instanceof AppError) {
@@ -89,9 +99,7 @@ export function createErrorResponse(
     const formattedDetails: Record<string, string[]> = {};
     error.errors.forEach((err) => {
       const field = err.path.join(".") || "form";
-      if (!formattedDetails[field]) {
-        formattedDetails[field] = [];
-      }
+      if (!formattedDetails[field]) formattedDetails[field] = [];
       formattedDetails[field].push(err.message);
     });
 

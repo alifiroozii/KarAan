@@ -10,10 +10,12 @@ import {
   LocateFixed,
   MapPin,
   Navigation,
+  PauseCircle,
   Route,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/domain-displays";
+import { AttendanceScanner } from "@/components/worker/attendance-scanner";
 import { useLocation } from "@/hooks/use-location";
 import { useRealtimeRoom } from "@/hooks/use-realtime-room";
 import { calculateDistanceKm } from "@/lib/maps/distance";
@@ -30,6 +32,7 @@ interface CurrentShift {
   assignmentId: string;
   state: string;
   shiftId: string;
+  branchId: string | null;
   title: string;
   locationName: string;
   latitude: number;
@@ -353,15 +356,40 @@ export function CurrentShiftCard() {
         </div>
       )}
 
-      {currentShift.state === "ARRIVED" && (
-        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-2">
-          <div className="flex items-center gap-2 text-sm font-bold text-emerald-300">
-            <CheckCircle2 className="h-5 w-5" />
-            رسیدن شما ثبت شد
+      {currentShift.state === "ARRIVED" && currentShift.branchId && (
+        <div className="space-y-3">
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+            <div className="flex items-center gap-2 text-sm font-bold text-emerald-300">
+              <CheckCircle2 className="h-5 w-5" />
+              رسیدن شما ثبت شد؛ حالا ورود را تأیید کنید.
+            </div>
           </div>
-          <p className="text-xs leading-6 text-muted-foreground">
-            موقعیت و زمان رسیدن ثبت شده است. مرحله بعد «ثبت ورود» است که با QR امن در Prompt 21 تکمیل می‌شود.
-          </p>
+          <AttendanceScanner
+            assignmentId={currentShift.assignmentId}
+            branchId={currentShift.branchId}
+            purpose="CHECK_IN"
+          />
+        </div>
+      )}
+
+      {currentShift.state === "ARRIVED" && !currentShift.branchId && (
+        <p className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-xs text-red-300">
+          این شیفت شعبه معتبر ندارد و ثبت ورود امن ممکن نیست.
+        </p>
+      )}
+
+      {currentShift.state === "CHECKED_IN" && currentShift.branchId && (
+        <AttendanceScanner
+          assignmentId={currentShift.assignmentId}
+          branchId={currentShift.branchId}
+          purpose="CHECK_OUT"
+        />
+      )}
+
+      {currentShift.state === "ON_BREAK" && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-300 flex items-center gap-2">
+          <PauseCircle className="h-4 w-4" />
+          برای ثبت خروج ابتدا استراحت فعال را پایان دهید.
         </div>
       )}
     </section>

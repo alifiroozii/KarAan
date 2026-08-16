@@ -1,46 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requirePermission } from "@/modules/auth/auth.middleware";
-import { AttendanceService } from "@/modules/attendance/attendance.service";
-import { AppError } from "@/lib/errors";
-import { z } from "zod";
+import { AppError, createErrorResponse } from "@/lib/errors";
 
-const checkInSchema = z.object({
-  assignmentId: z.string().min(1),
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
-});
-
-const attendanceService = new AttendanceService();
-
+/**
+ * Legacy GPS-only endpoint intentionally disabled by Prompt 21.
+ * Attendance must now be proven through /api/attendance/scan or /api/attendance/code.
+ */
 export async function POST(req: NextRequest) {
   try {
-    const session = await requirePermission(req, "shift.checkin");
-    const parsed = checkInSchema.parse(await req.json());
-
-    const result = await attendanceService.checkInWorker(
-      parsed.assignmentId,
-      session.userId,
-      parsed.latitude,
-      parsed.longitude
+    await requirePermission(req, "shift.checkin");
+    throw new AppError(
+      "ثبت ورود مستقیم غیرفعال است؛ QR شعبه یا کد مسئول را استفاده کنید.",
+      "BAD_REQUEST",
+      410
     );
-
-    return NextResponse.json({ success: true, result });
-  } catch (err: unknown) {
-    if (err instanceof AppError) {
-      return NextResponse.json(
-        { success: false, error: { code: err.code, message: err.message, details: err.details } },
-        { status: err.statusCode }
-      );
-    }
-    if (err instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: { code: "VALIDATION_ERROR", message: "اطلاعات موقعیت معتبر نیست." } },
-        { status: 400 }
-      );
-    }
-    return NextResponse.json(
-      { success: false, error: { code: "CHECK_IN_FAILED", message: "خطا در ثبت ورود." } },
-      { status: 500 }
-    );
+  } catch (error) {
+    return createErrorResponse(error);
   }
 }

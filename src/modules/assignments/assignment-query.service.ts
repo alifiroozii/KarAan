@@ -27,6 +27,7 @@ export class AssignmentQueryService {
         checkedOutAt: shiftAssignments.checkedOutAt,
         totalBreakMinutes: shiftAssignments.totalBreakMinutes,
         shiftId: shifts.id,
+        branchId: shifts.branchId,
         title: shifts.title,
         locationName: shifts.locationName,
         latitude: shifts.latitude,
