@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 import { requirePermission } from "@/modules/auth/auth.middleware";
-import { TimesheetEngineService } from "@/modules/timesheets/timesheet-engine.service";
+import { TimesheetService } from "@/modules/timesheets/timesheet.service";
 import { createErrorResponse, createSuccessResponse } from "@/lib/errors";
 
-const timesheets = new TimesheetEngineService();
+const timesheets = new TimesheetService();
 
 export async function GET(
   req: NextRequest,
