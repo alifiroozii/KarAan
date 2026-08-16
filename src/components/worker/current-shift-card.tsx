@@ -2,11 +2,21 @@
 
 import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Clock, MapPin, Navigation, Route, Loader2 } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  LocateFixed,
+  MapPin,
+  Navigation,
+  Route,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/domain-displays";
 import { useLocation } from "@/hooks/use-location";
 import { useRealtimeRoom } from "@/hooks/use-realtime-room";
+import { calculateDistanceKm } from "@/lib/maps/distance";
 
 interface EtaSnapshot {
   distanceMeters: number;
@@ -24,6 +34,7 @@ interface CurrentShift {
   locationName: string;
   latitude: number;
   longitude: number;
+  geofenceRadiusMeters: number;
   startAt: string;
   endAt: string;
   hourlyPayRials: string;
@@ -72,6 +83,34 @@ export function CurrentShiftCard() {
       return readJson<{ state: string; eta: EtaSnapshot }>(
         await fetch(`/api/assignments/${currentShift.assignmentId}/en-route`, {
           method: "POST",
+        })
+      );
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["worker", "current-shift"] });
+    },
+  });
+
+  const arriveMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentShift) throw new Error("شیفت فعالی وجود ندارد.");
+      if (
+        location.latitude == null ||
+        location.longitude == null ||
+        location.accuracy == null
+      ) {
+        throw new Error("برای ثبت رسیدن، GPS دقیق لازم است.");
+      }
+
+      return readJson<{ state: string; arrivedAt: string; distanceMeters: number }>(
+        await fetch(`/api/assignments/${currentShift.assignmentId}/arrive`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            latitude: location.latitude,
+            longitude: location.longitude,
+            accuracy: location.accuracy,
+          }),
         })
       );
     },
@@ -157,6 +196,22 @@ export function CurrentShiftCard() {
       })
     : null;
 
+  const distanceToShiftMeters =
+    location.latitude != null && location.longitude != null
+      ? Math.round(
+          calculateDistanceKm(
+            location.latitude,
+            location.longitude,
+            currentShift.latitude,
+            currentShift.longitude
+          ) * 1000
+        )
+      : null;
+
+  const insideArrivalGeofence =
+    distanceToShiftMeters != null &&
+    distanceToShiftMeters <= currentShift.geofenceRadiusMeters;
+
   return (
     <section className="rounded-3xl border border-indigo-500/30 bg-indigo-500/10 p-5 space-y-4">
       <div className="flex items-start justify-between gap-3">
@@ -208,10 +263,11 @@ export function CurrentShiftCard() {
             <Route className="h-4 w-4" />
             در مسیر محل کار
           </div>
+
           {currentShift.eta ? (
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
               <div>
-                <span className="block text-muted-foreground">فاصله</span>
+                <span className="block text-muted-foreground">فاصله مسیر</span>
                 <strong>{distanceKm} کیلومتر</strong>
               </div>
               <div>
@@ -232,6 +288,32 @@ export function CurrentShiftCard() {
             <p className="text-xs text-muted-foreground">در حال محاسبه ETA...</p>
           )}
 
+          <div className="rounded-xl border border-border/70 bg-background/70 p-3 text-xs space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-1.5 text-muted-foreground">
+                <LocateFixed className="h-4 w-4" />
+                فاصله مستقیم تا محل
+              </span>
+              <strong>
+                {distanceToShiftMeters == null
+                  ? "نامشخص"
+                  : `${distanceToShiftMeters.toLocaleString("fa-IR")} متر`}
+              </strong>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground">دقت فعلی GPS</span>
+              <strong>
+                {location.accuracy == null
+                  ? "نامشخص"
+                  : `±${Math.round(location.accuracy).toLocaleString("fa-IR")} متر`}
+              </strong>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground">شعاع مجاز رسیدن</span>
+              <strong>{currentShift.geofenceRadiusMeters.toLocaleString("fa-IR")} متر</strong>
+            </div>
+          </div>
+
           {currentShift.eta?.lateRisk !== "ON_TIME" && currentShift.eta && (
             <div className="flex items-center gap-2 rounded-xl bg-amber-500/10 p-2 text-xs text-amber-300">
               <AlertTriangle className="h-4 w-4" />
@@ -240,6 +322,46 @@ export function CurrentShiftCard() {
                 : "با ETA فعلی احتمال تأخیر وجود دارد."}
             </div>
           )}
+
+          <Button
+            className="w-full font-bold"
+            variant={insideArrivalGeofence ? "default" : "outline"}
+            disabled={
+              !insideArrivalGeofence ||
+              location.accuracy == null ||
+              arriveMutation.isPending
+            }
+            onClick={() => arriveMutation.mutate()}
+          >
+            {arriveMutation.isPending ? (
+              <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+            ) : (
+              <MapPin className="ml-2 h-4 w-4" />
+            )}
+            رسیدم
+          </Button>
+
+          {!insideArrivalGeofence && distanceToShiftMeters != null && (
+            <p className="text-center text-[11px] text-muted-foreground">
+              برای ثبت رسیدن باید وارد محدوده {currentShift.geofenceRadiusMeters.toLocaleString("fa-IR")} متری محل شوید.
+            </p>
+          )}
+
+          {arriveMutation.error && (
+            <p className="text-xs text-red-300">{arriveMutation.error.message}</p>
+          )}
+        </div>
+      )}
+
+      {currentShift.state === "ARRIVED" && (
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-bold text-emerald-300">
+            <CheckCircle2 className="h-5 w-5" />
+            رسیدن شما ثبت شد
+          </div>
+          <p className="text-xs leading-6 text-muted-foreground">
+            موقعیت و زمان رسیدن ثبت شده است. مرحله بعد «ثبت ورود» است که با QR امن در Prompt 21 تکمیل می‌شود.
+          </p>
         </div>
       )}
     </section>
