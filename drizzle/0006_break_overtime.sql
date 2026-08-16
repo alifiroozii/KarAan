@@ -22,6 +22,11 @@ ALTER TABLE "shift_assignments"
 CREATE INDEX IF NOT EXISTS "idx_assignments_effective_end_at"
   ON "shift_assignments" ("effective_end_at");
 
+-- There can never be two concurrent active breaks for one assignment.
+CREATE UNIQUE INDEX IF NOT EXISTS "uq_breaks_active_assignment"
+  ON "breaks" ("assignment_id")
+  WHERE "end_at" IS NULL;
+
 CREATE TABLE IF NOT EXISTS "overtime_requests" (
   "id" text PRIMARY KEY NOT NULL,
   "assignment_id" text NOT NULL REFERENCES "shift_assignments"("id") ON DELETE CASCADE,
