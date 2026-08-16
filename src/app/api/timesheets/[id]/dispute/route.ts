@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { requirePermission } from "@/modules/auth/auth.middleware";
-import { TimesheetEngineService } from "@/modules/timesheets/timesheet-engine.service";
+import { TimesheetService } from "@/modules/timesheets/timesheet.service";
 import { createErrorResponse, createSuccessResponse } from "@/lib/errors";
 
 const bodySchema = z.object({
@@ -9,7 +9,7 @@ const bodySchema = z.object({
   description: z.string().min(5).max(2000),
 });
 
-const timesheets = new TimesheetEngineService();
+const timesheets = new TimesheetService();
 
 export async function POST(
   req: NextRequest,
