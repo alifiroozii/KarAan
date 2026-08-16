@@ -14,7 +14,15 @@ export type RealtimeEventName =
   | "worker.arrived"
   | "worker.checked_in"
   | "worker.checked_out"
+  | "worker.break_started"
+  | "worker.break_ended"
+  | "worker.break_limit_warning"
   | "worker.late_risk"
+  | "overtime.requested"
+  | "overtime.accepted"
+  | "overtime.declined"
+  | "overtime.cancelled"
+  | "overtime.expired"
   | "no_show.detected"
   | "backfill.requested"
   | "timesheet.updated"
@@ -55,12 +63,67 @@ export interface RealtimeEventPayloads {
     shiftId?: string;
     checkedOutAt: string;
   };
+  "worker.break_started": {
+    assignmentId: string;
+    workerId: string;
+    shiftId: string;
+    breakId: string;
+    startedAt: string;
+  };
+  "worker.break_ended": {
+    assignmentId: string;
+    workerId: string;
+    shiftId: string;
+    breakId: string;
+    endedAt: string;
+    durationMinutes: number;
+  };
+  "worker.break_limit_warning": {
+    assignmentId: string;
+    workerId: string;
+    shiftId: string;
+    usedMinutes: number;
+    allowedMinutes: number;
+  };
   "worker.late_risk": {
     assignmentId: string;
     workerId: string;
     shiftId?: string;
     lateRisk: "RISK_OF_LATE" | "LATE";
     estimatedArrivalAt: string;
+  };
+  "overtime.requested": {
+    overtimeRequestId: string;
+    assignmentId: string;
+    shiftId: string;
+    workerId: string;
+    requestedEndAt: string;
+    expiresAt: string;
+  };
+  "overtime.accepted": {
+    overtimeRequestId: string;
+    assignmentId: string;
+    shiftId: string;
+    workerId: string;
+    requestedEndAt: string;
+  };
+  "overtime.declined": {
+    overtimeRequestId: string;
+    assignmentId: string;
+    shiftId: string;
+    workerId: string;
+  };
+  "overtime.cancelled": {
+    overtimeRequestId: string;
+    assignmentId: string;
+    shiftId: string;
+    workerId: string;
+  };
+  "overtime.expired": {
+    overtimeRequestId: string;
+    assignmentId: string;
+    shiftId: string;
+    workerId: string;
   };
   "no_show.detected": { assignmentId: string; workerId: string };
   "backfill.requested": { shiftId: string; neededSlots: number };
