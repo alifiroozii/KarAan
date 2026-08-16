@@ -1,4 +1,4 @@
-import { IMapAdapter, LocationPoint } from "./map-adapter.interface";
+import { EstimatedArrival, IMapAdapter, LocationPoint } from "./map-adapter.interface";
 import { MockMapAdapter } from "./mock-map.adapter";
 
 export class NeshanMapAdapter implements IMapAdapter {
@@ -23,12 +23,9 @@ export class NeshanMapAdapter implements IMapAdapter {
     try {
       const res = await fetch(
         `https://api.neshan.org/v2/reverse?lat=${point.latitude}&lng=${point.longitude}`,
-        {
-          headers: {
-            "Api-Key": this.apiKey,
-          },
-        }
+        { headers: { "Api-Key": this.apiKey } }
       );
+      if (!res.ok) return this.fallback.reverseGeocode(point);
       const data = await res.json();
       return data?.formatted_address || (await this.fallback.reverseGeocode(point));
     } catch (err) {
@@ -43,5 +40,14 @@ export class NeshanMapAdapter implements IMapAdapter {
     radiusMeters: number
   ): boolean {
     return this.fallback.isWithinGeofence(userLocation, targetLocation, radiusMeters);
+  }
+
+  async getEstimatedArrival(
+    origin: LocationPoint,
+    destination: LocationPoint
+  ): Promise<EstimatedArrival> {
+    // Keep ETA provider-safe for now. The Neshan routing adapter can later replace
+    // this fallback without changing assignment business logic.
+    return this.fallback.getEstimatedArrival(origin, destination);
   }
 }
