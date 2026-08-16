@@ -111,7 +111,11 @@ export const timesheets = pgTable(
     netWorkedMinutes: integer("net_worked_minutes").notNull(),
     regularMinutes: integer("regular_minutes").default(0).notNull(),
     overtimeMinutes: integer("overtime_minutes").default(0).notNull(),
+    unapprovedOvertimeMinutes: integer("unapproved_overtime_minutes").default(0).notNull(),
     hourlyRateRials: bigint("hourly_rate_rials", { mode: "bigint" })
+      .default(sql`0`)
+      .notNull(),
+    overtimePayRials: bigint("overtime_pay_rials", { mode: "bigint" })
       .default(sql`0`)
       .notNull(),
     calculatedPayRials: bigint("calculated_pay_rials", {
