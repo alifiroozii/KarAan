@@ -19,12 +19,7 @@ export function getQueryKeysToInvalidate(
     case "shift.filled":
       return [["shifts"], ["employer", "shifts"], ["worker", "radar"]];
     case "timesheet.updated":
-      return [
-        ["timesheets"],
-        ["employer", "timesheets"],
-        ["worker", "timesheets"],
-        ["worker", "earnings"],
-      ];
+      return [["timesheets"], ["employer", "timesheets"], ["worker", "earnings"]];
     case "worker.en_route":
     case "worker.arrived":
     case "worker.checked_in":
@@ -52,6 +47,7 @@ export function invalidateQueriesForRealtimeEvent(
   if (workerId) keys.push(["worker", workerId]);
   if (shiftId) keys.push(["shift", shiftId]);
   if (timesheetId) keys.push(["timesheet", timesheetId]);
+  if (event === "timesheet.updated") keys.push(["worker", "timesheets"]);
 
   const seen = new Set<string>();
   for (const queryKey of keys) {
