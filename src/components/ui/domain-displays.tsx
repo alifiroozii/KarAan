@@ -36,11 +36,22 @@ export function StatCard({
   );
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  SUBMITTED: "منتظر بررسی",
+  APPROVED: "تأییدشده",
+  READY_FOR_SETTLEMENT: "آماده تسویه",
+  SETTLED: "تسویه‌شده",
+  DISPUTED: "دارای اختلاف",
+  ADJUSTMENT_REQUIRED: "نیازمند اصلاح",
+  VOID: "باطل‌شده",
+};
+
 export function StatusBadge({ status }: { status: string }) {
   const getVariant = () => {
     switch (status) {
       case "SETTLED":
       case "APPROVED":
+      case "READY_FOR_SETTLEMENT":
       case "PUBLISHED":
         return "emerald";
       case "CHECKED_IN":
@@ -49,15 +60,18 @@ export function StatusBadge({ status }: { status: string }) {
         return "indigo";
       case "ON_BREAK":
       case "RECONFIRMED":
+      case "ADJUSTMENT_REQUIRED":
         return "amber";
       case "CANCELLED":
+      case "DISPUTED":
+      case "VOID":
         return "rose";
       default:
         return "secondary";
     }
   };
 
-  return <Badge variant={getVariant()}>{status}</Badge>;
+  return <Badge variant={getVariant()}>{STATUS_LABELS[status] ?? status}</Badge>;
 }
 
 export function RatingStars({ score }: { score: number }) {

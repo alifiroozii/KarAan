@@ -8,6 +8,7 @@ import {
   integer,
   boolean,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { shiftAssignments } from "./shifts";
@@ -24,6 +25,10 @@ export const timesheetStatusEnum = pgEnum("timesheet_status", [
   "SUBMITTED",
   "APPROVED",
   "DISPUTED",
+  "ADJUSTMENT_REQUIRED",
+  "READY_FOR_SETTLEMENT",
+  "SETTLED",
+  "VOID",
 ]);
 
 export const attendanceEvents = pgTable(
@@ -101,7 +106,14 @@ export const timesheets = pgTable(
       .references(() => shiftAssignments.id, { onDelete: "cascade" }),
     grossMinutes: integer("gross_minutes").notNull(),
     breakMinutes: integer("break_minutes").notNull(),
+    paidBreakMinutes: integer("paid_break_minutes").default(0).notNull(),
+    unpaidBreakMinutes: integer("unpaid_break_minutes").default(0).notNull(),
     netWorkedMinutes: integer("net_worked_minutes").notNull(),
+    regularMinutes: integer("regular_minutes").default(0).notNull(),
+    overtimeMinutes: integer("overtime_minutes").default(0).notNull(),
+    hourlyRateRials: bigint("hourly_rate_rials", { mode: "bigint" })
+      .default(sql`0`)
+      .notNull(),
     calculatedPayRials: bigint("calculated_pay_rials", {
       mode: "bigint",
     }).notNull(),
@@ -113,16 +125,25 @@ export const timesheets = pgTable(
       .notNull(),
     finalPayRials: bigint("final_pay_rials", { mode: "bigint" }).notNull(),
     status: timesheetStatusEnum("status").default("SUBMITTED").notNull(),
+    submittedAt: timestamp("submitted_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     approvedByUserId: text("approved_by_user_id").references(() => users.id, {
       onDelete: "set null",
     }),
     approvedAt: timestamp("approved_at", { withTimezone: true }),
+    readyForSettlementAt: timestamp("ready_for_settlement_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
   (table) => [
+    uniqueIndex("uq_timesheets_assignment_id").on(table.assignmentId),
     index("idx_timesheets_assignment_id").on(table.assignmentId),
     index("idx_timesheets_status").on(table.status),
+    index("idx_timesheets_created_at").on(table.createdAt),
   ]
 );

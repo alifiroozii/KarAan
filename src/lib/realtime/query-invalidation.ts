@@ -41,10 +41,13 @@ export function invalidateQueriesForRealtimeEvent(
   const assignmentId = payload.assignmentId as string | undefined;
   const workerId = payload.workerId as string | undefined;
   const shiftId = payload.shiftId as string | undefined;
+  const timesheetId = payload.timesheetId as string | undefined;
 
   if (assignmentId) keys.push(["assignment", assignmentId]);
   if (workerId) keys.push(["worker", workerId]);
   if (shiftId) keys.push(["shift", shiftId]);
+  if (timesheetId) keys.push(["timesheet", timesheetId]);
+  if (event === "timesheet.updated") keys.push(["worker", "timesheets"]);
 
   const seen = new Set<string>();
   for (const queryKey of keys) {

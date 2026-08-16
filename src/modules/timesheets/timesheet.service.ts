@@ -1,38 +1,9 @@
-import { AttendanceService } from "@/modules/attendance/attendance.service";
+import { TimesheetEngineService } from "./timesheet-engine.service";
 
 /**
- * @deprecated Attendance mutations now have a single source of truth in
- * AttendanceService. Prompt 22 will replace this compatibility facade with the
- * dedicated Timesheet calculation engine.
+ * Public Timesheet domain service.
+ *
+ * Attendance owns presence mutations only. All timesheet calculation, review,
+ * dispute and settlement-readiness behavior is exposed through this service.
  */
-export class TimesheetService {
-  private attendance = new AttendanceService();
-
-  async checkInWorker(
-    assignmentId: string,
-    workerUserId: string,
-    latitude: number,
-    longitude: number
-  ) {
-    return this.attendance.checkInWorker(
-      assignmentId,
-      workerUserId,
-      latitude,
-      longitude
-    );
-  }
-
-  async checkOutWorker(
-    assignmentId: string,
-    workerUserId: string,
-    latitude: number,
-    longitude: number
-  ) {
-    return this.attendance.checkOutWorker(
-      assignmentId,
-      workerUserId,
-      latitude,
-      longitude
-    );
-  }
-}
+export class TimesheetService extends TimesheetEngineService {}
