@@ -13,10 +13,6 @@ import { AssignmentStateMachine } from "@/modules/assignments/assignment.state-m
 export class AttendanceService {
   private mapAdapter = getMapAdapter();
 
-  /**
-   * Official attendance source of truth.
-   * Check-in is only valid for the worker who owns an ARRIVED assignment.
-   */
   async checkInWorker(
     assignmentId: string,
     workerUserId: string,
@@ -50,9 +46,8 @@ export class AttendanceService {
       { latitude: currentLat, longitude: currentLng },
       { latitude: row.shift.latitude, longitude: row.shift.longitude }
     );
-    const isWithinGeofence = distanceMeters <= row.shift.geofenceRadiusMeters;
 
-    if (!isWithinGeofence) {
+    if (distanceMeters > row.shift.geofenceRadiusMeters) {
       throw new AppError(
         `شما خارج از محدوده محل شیفت هستید (${Math.round(distanceMeters)} متر فاصله).`,
         "OUTSIDE_GEOFENCE",
@@ -108,24 +103,23 @@ export class AttendanceService {
     publishRealtimeEvent("assignment", assignmentId, "worker.checked_in", {
       assignmentId,
       workerId: workerUserId,
+      shiftId: row.shift.id,
       checkedInAt: now.toISOString(),
     });
     publishRealtimeEvent("assignment", assignmentId, "assignment.updated", {
       assignmentId,
       state: "CHECKED_IN",
+      shiftId: row.shift.id,
     });
     publishRealtimeEvent("shift", row.shift.id, "assignment.updated", {
       assignmentId,
       state: "CHECKED_IN",
+      shiftId: row.shift.id,
     });
 
     return { assignmentId, state: "CHECKED_IN" as const, checkedInAt: now, distanceMeters };
   }
 
-  /**
-   * Official checkout path. It preserves the existing automatic timesheet behavior
-   * until Prompt 22 replaces calculation with the dedicated Timesheet engine.
-   */
   async checkOutWorker(
     assignmentId: string,
     workerUserId: string,
@@ -260,15 +254,18 @@ export class AttendanceService {
     publishRealtimeEvent("assignment", assignmentId, "worker.checked_out", {
       assignmentId,
       workerId: workerUserId,
+      shiftId: row.shift.id,
       checkedOutAt: now.toISOString(),
     });
     publishRealtimeEvent("assignment", assignmentId, "assignment.updated", {
       assignmentId,
       state: "CHECKED_OUT",
+      shiftId: row.shift.id,
     });
     publishRealtimeEvent("shift", row.shift.id, "assignment.updated", {
       assignmentId,
       state: "CHECKED_OUT",
+      shiftId: row.shift.id,
     });
     publishRealtimeEvent("assignment", assignmentId, "timesheet.updated", {
       timesheetId: finalTimesheetId,
