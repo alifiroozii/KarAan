@@ -7,18 +7,11 @@ import {
 export type { AssignmentState };
 
 export class AssignmentStateMachine {
-  public static canTransition(
-    currentState: AssignmentState,
-    nextState: AssignmentState
-  ): boolean {
-    const service = new StateMachineService();
-    return service.canTransitionAssignment(currentState, nextState);
+  public static canTransition(currentState: AssignmentState, nextState: AssignmentState): boolean {
+    return new StateMachineService().canTransitionAssignment(currentState, nextState);
   }
 
-  public static assertCanTransition(
-    currentState: AssignmentState,
-    nextState: AssignmentState
-  ): void {
+  public static assertCanTransition(currentState: AssignmentState, nextState: AssignmentState): void {
     if (!this.canTransition(currentState, nextState)) {
       throw new AppError(
         `تغییر وضعیت نامعتبر از ${currentState} به ${nextState}`,
