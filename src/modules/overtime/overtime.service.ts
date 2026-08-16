@@ -1,32 +1,30 @@
 import crypto from "crypto";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { branches, businessMembers } from "@/db/schema/employers";
 import { overtimeRequests } from "@/db/schema/overtime";
 import { auditLogs, systemSettings } from "@/db/schema/system";
 import { shiftAssignments, shifts } from "@/db/schema/shifts";
 import { AppError } from "@/lib/errors";
+import { scheduleOvertimeExpiration } from "@/lib/queue/overtime.queue";
 import { publishRealtimeEvent } from "@/lib/realtime/socket-server";
 import type { UserRole } from "@/modules/auth/auth.service";
+import { expireOvertimeRequest } from "./overtime-expiration";
 
 export type OvertimeRateType = "NORMAL_RATE" | "MULTIPLIER" | "FIXED_BONUS";
 
 export class OvertimeService {
-  private async readNumericSetting(
-    key: string,
-    fallback: number,
-    property: "minutes"
-  ): Promise<number> {
+  private async readMinutesSetting(key: string, fallback: number): Promise<number> {
     const [setting] = await db
       .select({ value: systemSettings.value })
       .from(systemSettings)
       .where(eq(systemSettings.key, key))
       .limit(1);
     const raw = setting?.value;
-    if (typeof raw === "number" && Number.isFinite(raw)) return Math.max(1, raw);
-    if (raw && typeof raw === "object" && property in raw) {
-      const value = Number((raw as Record<string, unknown>)[property]);
-      if (Number.isFinite(value)) return Math.max(1, value);
+    if (typeof raw === "number" && Number.isFinite(raw)) return Math.max(1, Math.floor(raw));
+    if (raw && typeof raw === "object" && "minutes" in raw) {
+      const value = Number((raw as Record<string, unknown>).minutes);
+      if (Number.isFinite(value)) return Math.max(1, Math.floor(value));
     }
     return fallback;
   }
@@ -89,44 +87,67 @@ export class OvertimeService {
     if (!(await this.canManageShift(row.shift, input.actorUserId, input.actorRole))) {
       throw new AppError("دسترسی درخواست اضافه‌کاری ندارید.", "FORBIDDEN", 403);
     }
-    if (!inArray) {
-      // Keeps tree-shaking/type imports deterministic; real state check is below.
-    }
     if (!["CHECKED_IN", "ON_BREAK"].includes(row.assignment.state)) {
       throw new AppError("Worker باید ابتدا وارد شیفت شده باشد.", "INVALID_ASSIGNMENT_STATE", 400);
     }
 
-    const requestedMinutes = Math.floor(
-      (input.requestedEndAt.getTime() - row.shift.endAt.getTime()) / 60_000
-    );
-    if (requestedMinutes <= 0) {
-      throw new AppError("زمان پایان پیشنهادی باید بعد از پایان فعلی شیفت باشد.", "BAD_REQUEST", 400);
+    if (input.rateType === "MULTIPLIER") {
+      if (input.rateMultiplierBps < 10_000 || input.rateMultiplierBps > 30_000) {
+        throw new AppError("ضریب اضافه‌کاری معتبر نیست.", "BAD_REQUEST", 400);
+      }
+    } else if (input.rateMultiplierBps !== 10_000) {
+      throw new AppError("ضریب فقط برای نوع MULTIPLIER قابل استفاده است.", "BAD_REQUEST", 400);
     }
-    const maxMinutes = await this.readNumericSetting("overtime.max_minutes", 240, "minutes");
-    if (requestedMinutes > maxMinutes) {
-      throw new AppError("مدت اضافه‌کاری از سقف مجاز بیشتر است.", "BAD_REQUEST", 400, {
-        requestedMinutes,
-        maxMinutes,
-      });
+    if (input.fixedBonusRials < 0n) {
+      throw new AppError("پاداش ثابت نمی‌تواند منفی باشد.", "BAD_REQUEST", 400);
     }
-
-    if (input.rateType === "MULTIPLIER" && (input.rateMultiplierBps < 10000 || input.rateMultiplierBps > 30000)) {
-      throw new AppError("ضریب اضافه‌کاری معتبر نیست.", "BAD_REQUEST", 400);
+    if (input.rateType === "FIXED_BONUS" && input.fixedBonusRials <= 0n) {
+      throw new AppError("برای این نوع اضافه‌کاری پاداش ثابت لازم است.", "BAD_REQUEST", 400);
     }
 
-    const responseTtlMinutes = await this.readNumericSetting(
-      "overtime.response_ttl_minutes",
-      15,
-      "minutes"
-    );
+    const [maxMinutes, responseTtlMinutes] = await Promise.all([
+      this.readMinutesSetting("overtime.max_minutes", 240),
+      this.readMinutesSetting("overtime.response_ttl_minutes", 15),
+    ]);
+
     const now = new Date();
     const expiresAt = new Date(now.getTime() + responseTtlMinutes * 60_000);
     const id = `ot_${crypto.randomUUID()}`;
+    let originalEndAt: Date | null = null;
+    let requestedMinutes = 0;
 
     await db.transaction(async (tx) => {
       await tx.execute(
         sql`select pg_advisory_xact_lock(hashtext(${`overtime:${input.assignmentId}`}))`
       );
+
+      const [freshAssignment] = await tx
+        .select({
+          state: shiftAssignments.state,
+          effectiveEndAt: shiftAssignments.effectiveEndAt,
+          workerId: shiftAssignments.workerId,
+        })
+        .from(shiftAssignments)
+        .where(eq(shiftAssignments.id, input.assignmentId))
+        .limit(1);
+
+      if (!freshAssignment || !["CHECKED_IN", "ON_BREAK"].includes(freshAssignment.state)) {
+        throw new AppError("وضعیت Worker دیگر اجازه درخواست اضافه‌کاری نمی‌دهد.", "INVALID_ASSIGNMENT_STATE", 409);
+      }
+
+      originalEndAt = freshAssignment.effectiveEndAt ?? row.shift.endAt;
+      requestedMinutes = Math.floor(
+        (input.requestedEndAt.getTime() - originalEndAt.getTime()) / 60_000
+      );
+      if (requestedMinutes <= 0) {
+        throw new AppError("زمان پایان پیشنهادی باید بعد از پایان فعلی Worker باشد.", "BAD_REQUEST", 400);
+      }
+      if (requestedMinutes > maxMinutes) {
+        throw new AppError("مدت اضافه‌کاری از سقف مجاز بیشتر است.", "BAD_REQUEST", 400, {
+          requestedMinutes,
+          maxMinutes,
+        });
+      }
 
       const pending = await tx
         .select({ id: overtimeRequests.id, expiresAt: overtimeRequests.expiresAt })
@@ -143,7 +164,12 @@ export class OvertimeService {
           await tx
             .update(overtimeRequests)
             .set({ status: "EXPIRED", updatedAt: now })
-            .where(eq(overtimeRequests.id, item.id));
+            .where(
+              and(
+                eq(overtimeRequests.id, item.id),
+                eq(overtimeRequests.status, "PENDING")
+              )
+            );
         } else {
           throw new AppError("یک درخواست اضافه‌کاری فعال از قبل وجود دارد.", "CONFLICT", 409);
         }
@@ -153,14 +179,16 @@ export class OvertimeService {
         id,
         assignmentId: input.assignmentId,
         shiftId: row.shift.id,
-        workerId: row.assignment.workerId,
+        workerId: freshAssignment.workerId,
         requestedByUserId: input.actorUserId,
-        originalEndAt: row.shift.endAt,
+        originalEndAt,
         requestedEndAt: input.requestedEndAt,
         requestedMinutes,
         rateType: input.rateType,
-        rateMultiplierBps: input.rateMultiplierBps,
-        fixedBonusRials: input.fixedBonusRials,
+        rateMultiplierBps:
+          input.rateType === "MULTIPLIER" ? input.rateMultiplierBps : 10_000,
+        fixedBonusRials:
+          input.rateType === "FIXED_BONUS" ? input.fixedBonusRials : 0n,
         note: input.note,
         status: "PENDING",
         expiresAt,
@@ -174,15 +202,28 @@ export class OvertimeService {
         action: "OVERTIME_REQUESTED",
         details: {
           assignmentId: input.assignmentId,
+          originalEndAt: originalEndAt.toISOString(),
           requestedMinutes,
           requestedEndAt: input.requestedEndAt.toISOString(),
           rateType: input.rateType,
-          rateMultiplierBps: input.rateMultiplierBps,
-          fixedBonusRials: input.fixedBonusRials.toString(),
+          rateMultiplierBps:
+            input.rateType === "MULTIPLIER" ? input.rateMultiplierBps : 10_000,
+          fixedBonusRials:
+            input.rateType === "FIXED_BONUS" ? input.fixedBonusRials.toString() : "0",
           expiresAt: expiresAt.toISOString(),
         },
       });
     });
+
+    try {
+      await scheduleOvertimeExpiration(id, expiresAt);
+    } catch (error) {
+      // Lazy-expiration in respond/get paths remains authoritative if Redis is temporarily unavailable.
+      console.error("[Overtime Expiration Schedule Error]", {
+        overtimeRequestId: id,
+        message: error instanceof Error ? error.message : "unknown",
+      });
+    }
 
     const payload = {
       overtimeRequestId: id,
@@ -204,44 +245,94 @@ export class OvertimeService {
     workerUserId: string,
     response: "ACCEPTED" | "DECLINED"
   ) {
-    const [item] = await db
+    const [initial] = await db
       .select()
       .from(overtimeRequests)
       .where(eq(overtimeRequests.id, id))
       .limit(1);
-    if (!item) throw new AppError("درخواست اضافه‌کاری پیدا نشد.", "NOT_FOUND", 404);
-    if (item.workerId !== workerUserId) {
+    if (!initial) throw new AppError("درخواست اضافه‌کاری پیدا نشد.", "NOT_FOUND", 404);
+    if (initial.workerId !== workerUserId) {
       throw new AppError("این درخواست برای Worker دیگری است.", "FORBIDDEN", 403);
     }
-    if (item.status === response) return this.getById(id);
-    if (item.status !== "PENDING") {
+    if (initial.status === response) return this.getById(id);
+    if (initial.status !== "PENDING") {
       throw new AppError("این درخواست دیگر قابل پاسخ نیست.", "CONFLICT", 409);
     }
-    const now = new Date();
-    if (item.expiresAt <= now) {
-      await db
-        .update(overtimeRequests)
-        .set({ status: "EXPIRED", updatedAt: now })
-        .where(eq(overtimeRequests.id, id));
+    if (initial.expiresAt <= new Date()) {
+      await expireOvertimeRequest(id);
       throw new AppError("مهلت پاسخ به درخواست اضافه‌کاری تمام شده است.", "BAD_REQUEST", 410);
     }
 
+    let assignmentState = "";
     await db.transaction(async (tx) => {
-      const updated = await tx
-        .update(overtimeRequests)
-        .set({ status: response, respondedAt: now, updatedAt: now })
-        .where(and(eq(overtimeRequests.id, id), eq(overtimeRequests.status, "PENDING")))
-        .returning({ id: overtimeRequests.id });
-      if (updated.length !== 1) {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${`overtime:${initial.assignmentId}`}))`
+      );
+
+      const [item] = await tx
+        .select()
+        .from(overtimeRequests)
+        .where(eq(overtimeRequests.id, id))
+        .limit(1);
+      if (!item) throw new AppError("درخواست اضافه‌کاری پیدا نشد.", "NOT_FOUND", 404);
+      if (item.status !== "PENDING") {
+        if (item.status === response) return;
         throw new AppError("درخواست همزمان تغییر کرده است.", "CONFLICT", 409);
       }
+      const now = new Date();
+      if (item.expiresAt <= now) {
+        await tx
+          .update(overtimeRequests)
+          .set({ status: "EXPIRED", updatedAt: now })
+          .where(eq(overtimeRequests.id, id));
+        throw new AppError("مهلت پاسخ به درخواست اضافه‌کاری تمام شده است.", "BAD_REQUEST", 410);
+      }
+
+      const [assignment] = await tx
+        .select({ state: shiftAssignments.state, effectiveEndAt: shiftAssignments.effectiveEndAt })
+        .from(shiftAssignments)
+        .where(eq(shiftAssignments.id, item.assignmentId))
+        .limit(1);
+      if (!assignment || !["CHECKED_IN", "ON_BREAK"].includes(assignment.state)) {
+        throw new AppError("Worker دیگر در وضعیت قابل تمدید نیست.", "INVALID_ASSIGNMENT_STATE", 409);
+      }
+      assignmentState = assignment.state;
+
+      const [updated] = await tx
+        .update(overtimeRequests)
+        .set({ status: response, respondedAt: now, updatedAt: now })
+        .where(
+          and(
+            eq(overtimeRequests.id, id),
+            eq(overtimeRequests.status, "PENDING")
+          )
+        )
+        .returning({ id: overtimeRequests.id });
+      if (!updated) {
+        throw new AppError("درخواست همزمان تغییر کرده است.", "CONFLICT", 409);
+      }
+
+      if (response === "ACCEPTED") {
+        const nextEffectiveEndAt =
+          !assignment.effectiveEndAt || item.requestedEndAt > assignment.effectiveEndAt
+            ? item.requestedEndAt
+            : assignment.effectiveEndAt;
+        await tx
+          .update(shiftAssignments)
+          .set({ effectiveEndAt: nextEffectiveEndAt, updatedAt: now })
+          .where(eq(shiftAssignments.id, item.assignmentId));
+      }
+
       await tx.insert(auditLogs).values({
         id: `aud_${crypto.randomUUID()}`,
         actorId: workerUserId,
         entityName: "overtime_request",
         entityId: id,
         action: response === "ACCEPTED" ? "OVERTIME_ACCEPTED" : "OVERTIME_DECLINED",
-        details: { assignmentId: item.assignmentId },
+        details: {
+          assignmentId: item.assignmentId,
+          effectiveEndAt: response === "ACCEPTED" ? item.requestedEndAt.toISOString() : null,
+        },
       });
     });
 
@@ -249,55 +340,90 @@ export class OvertimeService {
     const payload = response === "ACCEPTED"
       ? {
           overtimeRequestId: id,
-          assignmentId: item.assignmentId,
-          shiftId: item.shiftId,
-          workerId,
-          requestedEndAt: item.requestedEndAt.toISOString(),
+          assignmentId: initial.assignmentId,
+          shiftId: initial.shiftId,
+          workerId: initial.workerId,
+          requestedEndAt: initial.requestedEndAt.toISOString(),
         }
       : {
           overtimeRequestId: id,
-          assignmentId: item.assignmentId,
-          shiftId: item.shiftId,
-          workerId,
+          assignmentId: initial.assignmentId,
+          shiftId: initial.shiftId,
+          workerId: initial.workerId,
         };
-    publishRealtimeEvent("assignment", item.assignmentId, event, payload as never);
-    publishRealtimeEvent("shift", item.shiftId, event, payload as never);
+    publishRealtimeEvent("assignment", initial.assignmentId, event, payload);
+    publishRealtimeEvent("shift", initial.shiftId, event, payload);
+    publishRealtimeEvent("user", initial.workerId, event, payload);
+    if (response === "ACCEPTED") {
+      publishRealtimeEvent("assignment", initial.assignmentId, "assignment.updated", {
+        assignmentId: initial.assignmentId,
+        shiftId: initial.shiftId,
+        state: assignmentState,
+      });
+    }
 
     return this.getById(id);
   }
 
   async cancel(id: string, actorUserId: string, actorRole: UserRole) {
-    const [item] = await db.select().from(overtimeRequests).where(eq(overtimeRequests.id, id)).limit(1);
-    if (!item) throw new AppError("درخواست اضافه‌کاری پیدا نشد.", "NOT_FOUND", 404);
-    const row = await this.loadAssignment(item.assignmentId);
+    const [initial] = await db
+      .select()
+      .from(overtimeRequests)
+      .where(eq(overtimeRequests.id, id))
+      .limit(1);
+    if (!initial) throw new AppError("درخواست اضافه‌کاری پیدا نشد.", "NOT_FOUND", 404);
+    const row = await this.loadAssignment(initial.assignmentId);
     if (!(await this.canManageShift(row.shift, actorUserId, actorRole))) {
       throw new AppError("دسترسی لغو درخواست را ندارید.", "FORBIDDEN", 403);
     }
-    if (item.status === "CANCELLED") return this.getById(id);
-    if (item.status !== "PENDING") {
+    if (initial.status === "CANCELLED") return this.getById(id);
+    if (initial.status !== "PENDING") {
       throw new AppError("فقط درخواست در انتظار را می‌توان لغو کرد.", "CONFLICT", 409);
     }
+
     const now = new Date();
-    await db
-      .update(overtimeRequests)
-      .set({ status: "CANCELLED", updatedAt: now })
-      .where(eq(overtimeRequests.id, id));
-    await db.insert(auditLogs).values({
-      id: `aud_${crypto.randomUUID()}`,
-      actorId: actorUserId,
-      entityName: "overtime_request",
-      entityId: id,
-      action: "OVERTIME_CANCELLED",
-      details: { assignmentId: item.assignmentId },
+    await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${`overtime:${initial.assignmentId}`}))`
+      );
+      const [updated] = await tx
+        .update(overtimeRequests)
+        .set({ status: "CANCELLED", updatedAt: now })
+        .where(
+          and(
+            eq(overtimeRequests.id, id),
+            eq(overtimeRequests.status, "PENDING")
+          )
+        )
+        .returning({ id: overtimeRequests.id });
+      if (!updated) {
+        const [current] = await tx
+          .select({ status: overtimeRequests.status })
+          .from(overtimeRequests)
+          .where(eq(overtimeRequests.id, id))
+          .limit(1);
+        if (current?.status === "CANCELLED") return;
+        throw new AppError("درخواست همزمان تغییر کرده است.", "CONFLICT", 409);
+      }
+      await tx.insert(auditLogs).values({
+        id: `aud_${crypto.randomUUID()}`,
+        actorId: actorUserId,
+        entityName: "overtime_request",
+        entityId: id,
+        action: "OVERTIME_CANCELLED",
+        details: { assignmentId: initial.assignmentId },
+      });
     });
+
     const payload = {
       overtimeRequestId: id,
-      assignmentId: item.assignmentId,
-      shiftId: item.shiftId,
-      workerId: item.workerId,
+      assignmentId: initial.assignmentId,
+      shiftId: initial.shiftId,
+      workerId: initial.workerId,
     };
-    publishRealtimeEvent("assignment", item.assignmentId, "overtime.cancelled", payload);
-    publishRealtimeEvent("shift", item.shiftId, "overtime.cancelled", payload);
+    publishRealtimeEvent("assignment", initial.assignmentId, "overtime.cancelled", payload);
+    publishRealtimeEvent("shift", initial.shiftId, "overtime.cancelled", payload);
+    publishRealtimeEvent("user", initial.workerId, "overtime.cancelled", payload);
     return this.getById(id);
   }
 
@@ -306,16 +432,31 @@ export class OvertimeService {
     if (workerUserId && row.assignment.workerId !== workerUserId) {
       throw new AppError("دسترسی به اضافه‌کاری این شیفت ندارید.", "FORBIDDEN", 403);
     }
+
+    const pending = await db
+      .select({ id: overtimeRequests.id, expiresAt: overtimeRequests.expiresAt })
+      .from(overtimeRequests)
+      .where(
+        and(
+          eq(overtimeRequests.assignmentId, assignmentId),
+          eq(overtimeRequests.status, "PENDING")
+        )
+      );
+    const now = new Date();
+    for (const item of pending) {
+      if (item.expiresAt <= now) await expireOvertimeRequest(item.id);
+    }
+
     const items = await db
       .select()
       .from(overtimeRequests)
       .where(eq(overtimeRequests.assignmentId, assignmentId))
       .orderBy(desc(overtimeRequests.createdAt));
-    return items.map(this.serialize);
+    return items.map((item) => this.serialize(item));
   }
 
   async getAcceptedForAssignment(assignmentId: string) {
-    const [item] = await db
+    return db
       .select()
       .from(overtimeRequests)
       .where(
@@ -324,13 +465,15 @@ export class OvertimeService {
           eq(overtimeRequests.status, "ACCEPTED")
         )
       )
-      .orderBy(desc(overtimeRequests.respondedAt))
-      .limit(1);
-    return item ?? null;
+      .orderBy(asc(overtimeRequests.originalEndAt));
   }
 
   private async getById(id: string) {
-    const [item] = await db.select().from(overtimeRequests).where(eq(overtimeRequests.id, id)).limit(1);
+    const [item] = await db
+      .select()
+      .from(overtimeRequests)
+      .where(eq(overtimeRequests.id, id))
+      .limit(1);
     if (!item) throw new AppError("درخواست اضافه‌کاری پیدا نشد.", "NOT_FOUND", 404);
     return this.serialize(item);
   }
