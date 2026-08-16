@@ -97,7 +97,7 @@ export function BranchAttendanceConsole({ branchId }: { branchId: string }) {
   }, [qrQuery.data?.token]);
 
   const qrDataUrl =
-    qrImage?.token === qrQuery.data?.token ? qrImage.dataUrl : null;
+    qrImage && qrImage.token === qrQuery.data?.token ? qrImage.dataUrl : null;
 
   const qrSecondsLeft = useMemo(() => {
     if (!qrQuery.data) return 0;
