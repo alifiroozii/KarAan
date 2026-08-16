@@ -1,16 +1,19 @@
 import crypto from "crypto";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
+import { locationEvents } from "@/db/schema/attendance";
 import { auditLogs, systemSettings } from "@/db/schema/system";
 import { shiftAssignments, shifts } from "@/db/schema/shifts";
 import { getMapAdapter } from "@/infrastructure/map";
 import {
   getAssignmentEta,
   setAssignmentEta,
+  updateWorkerOnlineLocation,
 } from "@/infrastructure/redis/redis-client";
 import { AppError } from "@/lib/errors";
 import { publishRealtimeEvent } from "@/lib/realtime/socket-server";
 import { LocationTrackingService } from "@/modules/location/location-tracking.service";
+import { evaluateArrivalEvidence } from "./arrival-policy";
 import { AssignmentStateMachine } from "./assignment.state-machine";
 
 export type LateRisk = "ON_TIME" | "RISK_OF_LATE" | "LATE";
@@ -23,24 +26,42 @@ export interface AssignmentEtaSnapshot {
   lateRisk: LateRisk;
 }
 
+export interface ArrivalInput {
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number;
+}
+
 export class AssignmentLifecycleService {
   private mapAdapter = getMapAdapter();
   private locationService = new LocationTrackingService();
 
-  private async getLateGraceMinutes(): Promise<number> {
+  private async readNumericSetting(
+    key: string,
+    fallback: number,
+    property: "minutes" | "meters"
+  ): Promise<number> {
     const [setting] = await db
       .select({ value: systemSettings.value })
       .from(systemSettings)
-      .where(eq(systemSettings.key, "shift.late_grace_minutes"))
+      .where(eq(systemSettings.key, key))
       .limit(1);
 
     const raw = setting?.value;
     if (typeof raw === "number" && Number.isFinite(raw)) return Math.max(0, raw);
-    if (raw && typeof raw === "object" && "minutes" in raw) {
-      const minutes = Number((raw as Record<string, unknown>).minutes);
-      if (Number.isFinite(minutes)) return Math.max(0, minutes);
+    if (raw && typeof raw === "object" && property in raw) {
+      const value = Number((raw as Record<string, unknown>)[property]);
+      if (Number.isFinite(value)) return Math.max(0, value);
     }
-    return 10;
+    return fallback;
+  }
+
+  private getLateGraceMinutes(): Promise<number> {
+    return this.readNumericSetting("shift.late_grace_minutes", 10, "minutes");
+  }
+
+  private getMaxLocationAccuracyMeters(): Promise<number> {
+    return this.readNumericSetting("location.max_accuracy_meters", 80, "meters");
   }
 
   private computeLateRisk(
@@ -213,5 +234,148 @@ export class AssignmentLifecycleService {
     this.publishEta(row.shift.id, assignmentId, workerUserId, eta);
 
     return { assignmentId, eta };
+  }
+
+  async markArrived(
+    assignmentId: string,
+    workerUserId: string,
+    input: ArrivalInput
+  ) {
+    const [row] = await db
+      .select({ assignment: shiftAssignments, shift: shifts })
+      .from(shiftAssignments)
+      .innerJoin(shifts, eq(shiftAssignments.shiftId, shifts.id))
+      .where(eq(shiftAssignments.id, assignmentId))
+      .limit(1);
+
+    if (!row) throw new AppError("انتصاب شیفت پیدا نشد.", "NOT_FOUND", 404);
+    if (row.assignment.workerId !== workerUserId) {
+      throw new AppError("شما مالک این شیفت نیستید.", "FORBIDDEN", 403);
+    }
+
+    const distanceMeters = this.mapAdapter.calculateDistanceMeters(
+      { latitude: input.latitude, longitude: input.longitude },
+      { latitude: row.shift.latitude, longitude: row.shift.longitude }
+    );
+    const maxAccuracyMeters = await this.getMaxLocationAccuracyMeters();
+
+    if (row.assignment.state === "ARRIVED") {
+      return {
+        assignmentId,
+        state: "ARRIVED" as const,
+        distanceMeters,
+        geofenceRadiusMeters: row.shift.geofenceRadiusMeters,
+        accuracyMeters: input.accuracyMeters,
+        idempotent: true,
+      };
+    }
+
+    AssignmentStateMachine.assertCanTransition(row.assignment.state, "ARRIVED");
+
+    const evaluation = evaluateArrivalEvidence({
+      accuracyMeters: input.accuracyMeters,
+      maxAccuracyMeters,
+      distanceMeters,
+      geofenceRadiusMeters: row.shift.geofenceRadiusMeters,
+    });
+
+    if (!evaluation.accepted && evaluation.reason === "LOW_LOCATION_ACCURACY") {
+      throw new AppError(
+        "دقت GPS برای ثبت رسیدن کافی نیست. چند لحظه در فضای باز تلاش کنید.",
+        "LOW_LOCATION_ACCURACY",
+        400,
+        { accuracyMeters: input.accuracyMeters, maxAccuracyMeters }
+      );
+    }
+
+    if (!evaluation.accepted) {
+      throw new AppError(
+        `هنوز ${Math.round(distanceMeters)} متر با محدوده محل شیفت فاصله دارید.`,
+        "OUTSIDE_GEOFENCE",
+        400,
+        {
+          distanceMeters,
+          geofenceRadiusMeters: row.shift.geofenceRadiusMeters,
+        }
+      );
+    }
+
+    const now = new Date();
+    const locationEventId = `loc_${crypto.randomUUID()}`;
+
+    await db.transaction(async (tx) => {
+      const updated = await tx
+        .update(shiftAssignments)
+        .set({ state: "ARRIVED", updatedAt: now })
+        .where(
+          and(
+            eq(shiftAssignments.id, assignmentId),
+            eq(shiftAssignments.state, "EN_ROUTE")
+          )
+        )
+        .returning({ id: shiftAssignments.id });
+
+      if (updated.length !== 1) {
+        throw new AppError(
+          "وضعیت شیفت تغییر کرده است. صفحه را به‌روزرسانی کنید.",
+          "INVALID_STATE_TRANSITION",
+          409
+        );
+      }
+
+      await tx.insert(locationEvents).values({
+        id: locationEventId,
+        workerId: workerUserId,
+        assignmentId,
+        latitude: input.latitude,
+        longitude: input.longitude,
+        timestamp: now,
+      });
+
+      await tx.insert(auditLogs).values({
+        id: `aud_${crypto.randomUUID()}`,
+        actorId: workerUserId,
+        entityName: "shift_assignment",
+        entityId: assignmentId,
+        action: "ARRIVED",
+        details: {
+          locationEventId,
+          latitude: input.latitude,
+          longitude: input.longitude,
+          accuracyMeters: input.accuracyMeters,
+          maxAccuracyMeters,
+          distanceMeters,
+          geofenceRadiusMeters: row.shift.geofenceRadiusMeters,
+        },
+      });
+    });
+
+    await updateWorkerOnlineLocation(workerUserId, input.latitude, input.longitude);
+
+    publishRealtimeEvent("assignment", assignmentId, "worker.arrived", {
+      assignmentId,
+      workerId: workerUserId,
+    });
+    publishRealtimeEvent("shift", row.shift.id, "worker.arrived", {
+      assignmentId,
+      workerId: workerUserId,
+    });
+    publishRealtimeEvent("assignment", assignmentId, "assignment.updated", {
+      assignmentId,
+      state: "ARRIVED",
+    });
+    publishRealtimeEvent("shift", row.shift.id, "assignment.updated", {
+      assignmentId,
+      state: "ARRIVED",
+    });
+
+    return {
+      assignmentId,
+      state: "ARRIVED" as const,
+      arrivedAt: now,
+      distanceMeters,
+      geofenceRadiusMeters: row.shift.geofenceRadiusMeters,
+      accuracyMeters: input.accuracyMeters,
+    };
   }
 }
