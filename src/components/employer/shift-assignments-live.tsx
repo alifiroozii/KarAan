@@ -9,6 +9,7 @@ import {
   Navigation,
   Users,
 } from "lucide-react";
+import { EmployerOvertimeControls } from "@/components/employer/overtime-controls";
 import { StatusBadge } from "@/components/ui/domain-displays";
 import { useRealtimeRoom } from "@/hooks/use-realtime-room";
 
@@ -27,6 +28,8 @@ interface AssignmentRow {
   workerAvatarUrl: string | null;
   checkedInAt: string | null;
   checkedOutAt: string | null;
+  scheduledEndAt: string;
+  effectiveEndAt: string;
   eta: EtaSnapshot | null;
 }
 
@@ -94,6 +97,9 @@ export function ShiftAssignmentsLive({ shiftId }: { shiftId: string }) {
                   maximumFractionDigits: 1,
                 })
               : null;
+            const extended =
+              new Date(assignment.effectiveEndAt).getTime() >
+              new Date(assignment.scheduledEndAt).getTime();
 
             return (
               <div key={assignment.assignmentId} className="py-4 space-y-3">
@@ -121,6 +127,7 @@ export function ShiftAssignmentsLive({ shiftId }: { shiftId: string }) {
                       رسیدن: {new Date(assignment.eta.estimatedArrivalAt).toLocaleTimeString("fa-IR", {
                         hour: "2-digit",
                         minute: "2-digit",
+                        timeZone: "Asia/Tehran",
                       })}
                     </div>
                   </div>
@@ -131,6 +138,24 @@ export function ShiftAssignmentsLive({ shiftId }: { shiftId: string }) {
                     <CheckCircle2 className="h-4 w-4 shrink-0" />
                     <span>نیرو به محدوده محل رسیده و منتظر ثبت ورود است.</span>
                   </div>
+                )}
+
+                {extended && (
+                  <div className="rounded-2xl border border-violet-500/25 bg-violet-500/5 p-3 text-xs text-violet-200">
+                    پایان مؤثر این نیرو تا {new Date(assignment.effectiveEndAt).toLocaleTimeString("fa-IR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      timeZone: "Asia/Tehran",
+                    })} تمدید شده است.
+                  </div>
+                )}
+
+                {(assignment.state === "CHECKED_IN" || assignment.state === "ON_BREAK") && (
+                  <EmployerOvertimeControls
+                    assignmentId={assignment.assignmentId}
+                    workerName={assignment.workerName}
+                    state={assignment.state}
+                  />
                 )}
 
                 {assignment.eta?.lateRisk !== "ON_TIME" && assignment.eta && (

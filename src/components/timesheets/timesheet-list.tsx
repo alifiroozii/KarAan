@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Clock3, Loader2, ReceiptText } from "lucide-react";
+import { AlertTriangle, Loader2, ReceiptText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CurrencyDisplay, StatusBadge } from "@/components/ui/domain-displays";
 
@@ -17,6 +17,8 @@ export interface TimesheetListItem {
   actualCheckOut: string | null;
   netWorkedMinutes: number;
   overtimeMinutes: number;
+  unapprovedOvertimeMinutes: number;
+  overtimePayRials: string;
   finalPayRials: string;
   status: string;
   requiresAdjustment: boolean;
@@ -104,7 +106,7 @@ export function TimesheetList({ mode }: { mode: "worker" | "employer" }) {
             <StatusBadge status={item.status} />
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-5">
             <div>
               <span className="block text-muted-foreground">تاریخ</span>
               <strong>
@@ -118,21 +120,27 @@ export function TimesheetList({ mode }: { mode: "worker" | "employer" }) {
               <strong>{formatDuration(item.netWorkedMinutes)}</strong>
             </div>
             <div>
-              <span className="block text-muted-foreground">اضافه‌کاری خام</span>
+              <span className="block text-muted-foreground">اضافه‌کاری پذیرفته‌شده</span>
               <strong>{item.overtimeMinutes.toLocaleString("fa-IR")} دقیقه</strong>
             </div>
             <div>
-              <span className="block text-muted-foreground">مبلغ</span>
+              <span className="block text-muted-foreground">مبلغ اضافه‌کاری</span>
+              <strong>
+                <CurrencyDisplay amountRials={BigInt(item.overtimePayRials)} />
+              </strong>
+            </div>
+            <div>
+              <span className="block text-muted-foreground">مبلغ نهایی</span>
               <strong className="text-emerald-400">
                 <CurrencyDisplay amountRials={BigInt(item.finalPayRials)} />
               </strong>
             </div>
           </div>
 
-          {item.requiresAdjustment && (
+          {item.unapprovedOvertimeMinutes > 0 && (
             <div className="mt-3 flex items-center gap-2 rounded-xl bg-amber-500/10 p-2 text-xs text-amber-300">
-              <Clock3 className="h-4 w-4" />
-              اضافه‌کاری این تایم‌شیت هنوز تأیید نشده و مبلغ آن خودکار پرداخت نشده است.
+              <AlertTriangle className="h-4 w-4" />
+              {item.unapprovedOvertimeMinutes.toLocaleString("fa-IR")} دقیقه کار بدون قرارداد اضافه‌کاری ثبت شده و خودکار پرداخت نشده است.
             </div>
           )}
         </Link>

@@ -15,6 +15,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyDisplay, StatusBadge } from "@/components/ui/domain-displays";
 
+interface OvertimeContract {
+  id: string;
+  originalEndAt: string;
+  requestedEndAt: string;
+  requestedMinutes: number;
+  rateType: "NORMAL_RATE" | "MULTIPLIER" | "FIXED_BONUS";
+  rateMultiplierBps: number;
+  fixedBonusRials: string;
+}
+
 interface TimesheetDetailModel {
   id: string;
   assignmentId: string;
@@ -25,6 +35,7 @@ interface TimesheetDetailModel {
   locationName: string;
   scheduledStart: string;
   scheduledEnd: string;
+  effectiveEndAt: string;
   actualCheckIn: string | null;
   actualCheckOut: string | null;
   grossMinutes: number;
@@ -34,7 +45,9 @@ interface TimesheetDetailModel {
   netWorkedMinutes: number;
   regularMinutes: number;
   overtimeMinutes: number;
+  unapprovedOvertimeMinutes: number;
   hourlyRateRials: string;
+  overtimePayRials: string;
   calculatedPayRials: string;
   bonusRials: string;
   deductionRials: string;
@@ -49,6 +62,7 @@ interface TimesheetDetailModel {
     endAt: string | null;
     durationMinutes: number;
   }>;
+  overtimeContracts: OvertimeContract[];
 }
 
 async function readResult<T>(response: Response): Promise<T> {
@@ -60,9 +74,7 @@ async function readResult<T>(response: Response): Promise<T> {
 }
 
 function durationLabel(minutes: number) {
-  return `${Math.floor(minutes / 60).toLocaleString("fa-IR")} ساعت و ${(
-    minutes % 60
-  ).toLocaleString("fa-IR")} دقیقه`;
+  return `${Math.floor(minutes / 60).toLocaleString("fa-IR")} ساعت و ${(minutes % 60).toLocaleString("fa-IR")} دقیقه`;
 }
 
 function timeLabel(value: string | null) {
@@ -72,6 +84,16 @@ function timeLabel(value: string | null) {
     minute: "2-digit",
     timeZone: "Asia/Tehran",
   });
+}
+
+function overtimeRateLabel(contract: OvertimeContract) {
+  if (contract.rateType === "MULTIPLIER") {
+    return `${(contract.rateMultiplierBps / 10_000).toLocaleString("fa-IR", {
+      maximumFractionDigits: 2,
+    })} برابر`;
+  }
+  if (contract.rateType === "FIXED_BONUS") return "نرخ عادی + پاداش ثابت";
+  return "نرخ عادی";
 }
 
 export function TimesheetDetail({
@@ -153,16 +175,16 @@ export function TimesheetDetail({
 
         <div className="mt-6 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
           <div className="rounded-2xl border border-border p-3">
-            <span className="text-muted-foreground">شروع برنامه</span>
-            <strong className="mt-1 block">{timeLabel(item.scheduledStart)}</strong>
+            <span className="text-muted-foreground">پایان برنامه</span>
+            <strong className="mt-1 block">{timeLabel(item.scheduledEnd)}</strong>
           </div>
           <div className="rounded-2xl border border-border p-3">
-            <span className="text-muted-foreground">ورود واقعی</span>
-            <strong className="mt-1 block">{timeLabel(item.actualCheckIn)}</strong>
+            <span className="text-muted-foreground">پایان مؤثر Worker</span>
+            <strong className="mt-1 block">{timeLabel(item.effectiveEndAt)}</strong>
           </div>
           <div className="rounded-2xl border border-border p-3">
-            <span className="text-muted-foreground">خروج واقعی</span>
-            <strong className="mt-1 block">{timeLabel(item.actualCheckOut)}</strong>
+            <span className="text-muted-foreground">ورود / خروج</span>
+            <strong className="mt-1 block">{timeLabel(item.actualCheckIn)} → {timeLabel(item.actualCheckOut)}</strong>
           </div>
           <div className="rounded-2xl border border-border p-3">
             <span className="text-muted-foreground">کارکرد قابل پرداخت</span>
@@ -177,82 +199,55 @@ export function TimesheetDetail({
           جزئیات محاسبه
         </h2>
         <div className="divide-y divide-border text-sm">
-          <div className="flex justify-between py-3">
-            <span className="text-muted-foreground">زمان حضور</span>
-            <strong>{durationLabel(item.grossMinutes)}</strong>
-          </div>
-          <div className="flex justify-between py-3">
-            <span className="text-muted-foreground">استراحت کل</span>
-            <strong>{item.breakMinutes.toLocaleString("fa-IR")} دقیقه</strong>
-          </div>
-          <div className="flex justify-between py-3">
-            <span className="text-muted-foreground">استراحت با حقوق</span>
-            <strong>{item.paidBreakMinutes.toLocaleString("fa-IR")} دقیقه</strong>
-          </div>
-          <div className="flex justify-between py-3">
-            <span className="text-muted-foreground">استراحت بدون حقوق</span>
-            <strong>{item.unpaidBreakMinutes.toLocaleString("fa-IR")} دقیقه</strong>
-          </div>
-          <div className="flex justify-between py-3">
-            <span className="text-muted-foreground">زمان عادی قابل پرداخت</span>
-            <strong>{durationLabel(item.regularMinutes)}</strong>
-          </div>
-          <div className="flex justify-between py-3">
-            <span className="text-muted-foreground">اضافه‌کاری خام</span>
-            <strong>{item.overtimeMinutes.toLocaleString("fa-IR")} دقیقه</strong>
-          </div>
-          <div className="flex justify-between py-3">
-            <span className="text-muted-foreground">نرخ ساعتی ثبت‌شده</span>
-            <strong><CurrencyDisplay amountRials={BigInt(item.hourlyRateRials)} /></strong>
-          </div>
-          <div className="flex justify-between py-3">
-            <span className="text-muted-foreground">حقوق محاسبه‌شده</span>
-            <strong><CurrencyDisplay amountRials={BigInt(item.calculatedPayRials)} /></strong>
-          </div>
-          <div className="flex justify-between py-3">
-            <span className="text-muted-foreground">پاداش</span>
-            <strong><CurrencyDisplay amountRials={BigInt(item.bonusRials)} /></strong>
-          </div>
-          <div className="flex justify-between py-3">
-            <span className="text-muted-foreground">کسورات</span>
-            <strong><CurrencyDisplay amountRials={BigInt(item.deductionRials)} /></strong>
-          </div>
-          <div className="flex justify-between py-4 text-base">
-            <span className="font-extrabold">مبلغ نهایی</span>
-            <strong className="text-emerald-400">
-              <CurrencyDisplay amountRials={BigInt(item.finalPayRials)} />
-            </strong>
-          </div>
+          <div className="flex justify-between py-3"><span className="text-muted-foreground">زمان حضور</span><strong>{durationLabel(item.grossMinutes)}</strong></div>
+          <div className="flex justify-between py-3"><span className="text-muted-foreground">استراحت کل</span><strong>{item.breakMinutes.toLocaleString("fa-IR")} دقیقه</strong></div>
+          <div className="flex justify-between py-3"><span className="text-muted-foreground">استراحت با حقوق</span><strong>{item.paidBreakMinutes.toLocaleString("fa-IR")} دقیقه</strong></div>
+          <div className="flex justify-between py-3"><span className="text-muted-foreground">استراحت بدون حقوق</span><strong>{item.unpaidBreakMinutes.toLocaleString("fa-IR")} دقیقه</strong></div>
+          <div className="flex justify-between py-3"><span className="text-muted-foreground">زمان عادی قابل پرداخت</span><strong>{durationLabel(item.regularMinutes)}</strong></div>
+          <div className="flex justify-between py-3"><span className="text-muted-foreground">اضافه‌کاری پذیرفته‌شده</span><strong>{item.overtimeMinutes.toLocaleString("fa-IR")} دقیقه</strong></div>
+          <div className="flex justify-between py-3"><span className="text-muted-foreground">اضافه‌کاری بدون قرارداد</span><strong>{item.unapprovedOvertimeMinutes.toLocaleString("fa-IR")} دقیقه</strong></div>
+          <div className="flex justify-between py-3"><span className="text-muted-foreground">نرخ ساعتی</span><strong><CurrencyDisplay amountRials={BigInt(item.hourlyRateRials)} /></strong></div>
+          <div className="flex justify-between py-3"><span className="text-muted-foreground">مبلغ اضافه‌کاری</span><strong><CurrencyDisplay amountRials={BigInt(item.overtimePayRials)} /></strong></div>
+          <div className="flex justify-between py-3"><span className="text-muted-foreground">حقوق محاسبه‌شده</span><strong><CurrencyDisplay amountRials={BigInt(item.calculatedPayRials)} /></strong></div>
+          <div className="flex justify-between py-3"><span className="text-muted-foreground">پاداش</span><strong><CurrencyDisplay amountRials={BigInt(item.bonusRials)} /></strong></div>
+          <div className="flex justify-between py-3"><span className="text-muted-foreground">کسورات</span><strong><CurrencyDisplay amountRials={BigInt(item.deductionRials)} /></strong></div>
+          <div className="flex justify-between py-4 text-base"><span className="font-extrabold">مبلغ نهایی</span><strong className="text-emerald-400"><CurrencyDisplay amountRials={BigInt(item.finalPayRials)} /></strong></div>
         </div>
 
-        {item.requiresAdjustment && (
+        {item.unapprovedOvertimeMinutes > 0 && (
           <div className="flex items-start gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs leading-6 text-amber-200">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            کارکرد بعد از پایان برنامه ثبت شده است. این زمان تا Prompt 23 و پذیرش رسمی اضافه‌کاری به مبلغ نهایی افزوده نمی‌شود و تایم‌شیت قابل تأیید نیست.
+            {item.unapprovedOvertimeMinutes.toLocaleString("fa-IR")} دقیقه کار بعد از پایان قراردادهای پذیرفته‌شده ثبت شده است. این زمان خودکار پرداخت نشده و باید تعیین تکلیف شود.
           </div>
         )}
 
         {item.status === "READY_FOR_SETTLEMENT" && (
           <div className="flex items-start gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs leading-6 text-emerald-200">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-            کارکرد تأیید شده و برای لایه تسویه آماده است. در این مرحله هنوز هیچ موجودی کیف پولی تغییر نکرده است.
+            کارکرد تأیید شده و آماده لایه تسویه است؛ هنوز هیچ موجودی کیف پولی تغییر نکرده است.
           </div>
         )}
       </section>
 
+      {item.overtimeContracts.length > 0 && (
+        <section className="rounded-3xl border border-violet-500/25 bg-violet-500/5 p-5 sm:p-6 space-y-3">
+          <h2 className="flex items-center gap-2 text-base font-extrabold"><Clock3 className="h-5 w-5 text-violet-400" />قراردادهای اضافه‌کاری پذیرفته‌شده</h2>
+          {item.overtimeContracts.map((contract) => (
+            <div key={contract.id} className="rounded-2xl border border-violet-500/20 bg-background/50 p-3 text-xs space-y-1">
+              <div className="flex justify-between gap-3"><strong>{timeLabel(contract.originalEndAt)} → {timeLabel(contract.requestedEndAt)}</strong><span>{contract.requestedMinutes.toLocaleString("fa-IR")} دقیقه</span></div>
+              <div className="text-muted-foreground">نرخ: {overtimeRateLabel(contract)}</div>
+              {BigInt(contract.fixedBonusRials) > 0n && <div>پاداش ثابت قرارداد: <CurrencyDisplay amountRials={BigInt(contract.fixedBonusRials)} /></div>}
+            </div>
+          ))}
+        </section>
+      )}
+
       {item.breaks.length > 0 && (
         <section className="rounded-3xl border border-border bg-card p-5 sm:p-6 space-y-3">
-          <h2 className="flex items-center gap-2 text-base font-extrabold">
-            <Coffee className="h-5 w-5 text-amber-400" />
-            استراحت‌ها
-          </h2>
+          <h2 className="flex items-center gap-2 text-base font-extrabold"><Coffee className="h-5 w-5 text-amber-400" />استراحت‌ها</h2>
           {item.breaks.map((brk) => (
             <div key={brk.id} className="flex justify-between rounded-2xl border border-border p-3 text-xs">
-              <span>
-                {timeLabel(brk.startAt)}
-                {" → "}
-                {timeLabel(brk.endAt)}
-              </span>
+              <span>{timeLabel(brk.startAt)} → {timeLabel(brk.endAt)}</span>
               <strong>{brk.durationMinutes.toLocaleString("fa-IR")} دقیقه</strong>
             </div>
           ))}
@@ -261,22 +256,13 @@ export function TimesheetDetail({
 
       {mode === "employer" && item.status === "SUBMITTED" && (
         <section className="rounded-3xl border border-border bg-card p-5 sm:p-6 space-y-3">
-          <div className="flex items-center gap-2 text-sm font-bold">
-            <ShieldCheck className="h-5 w-5 text-emerald-400" />
-            بررسی کارفرما
-          </div>
+          <div className="flex items-center gap-2 text-sm font-bold"><ShieldCheck className="h-5 w-5 text-emerald-400" />بررسی کارفرما</div>
           <div className="grid gap-2 sm:grid-cols-2">
             <Button disabled={approve.isPending} onClick={() => approve.mutate()}>
-              {approve.isPending ? (
-                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="ml-2 h-4 w-4" />
-              )}
+              {approve.isPending ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="ml-2 h-4 w-4" />}
               تأیید و آماده‌سازی برای تسویه
             </Button>
-            <Button variant="outline" onClick={() => setShowDispute((value) => !value)}>
-              ثبت اختلاف
-            </Button>
+            <Button variant="outline" onClick={() => setShowDispute((value) => !value)}>ثبت اختلاف</Button>
           </div>
           {approve.error && <p className="text-xs text-red-300">{approve.error.message}</p>}
         </section>
@@ -284,35 +270,17 @@ export function TimesheetDetail({
 
       {mode === "employer" && item.status === "ADJUSTMENT_REQUIRED" && (
         <section className="rounded-3xl border border-amber-500/30 bg-amber-500/10 p-5 text-xs leading-6 text-amber-200">
-          این تایم‌شیت تا تعیین تکلیف اضافه‌کاری در Prompt 23 قابل تأیید نیست. در صورت اختلاف می‌توانید پرونده اختلاف ثبت کنید.
-          <Button className="mt-3" variant="outline" onClick={() => setShowDispute((value) => !value)}>
-            ثبت اختلاف
-          </Button>
+          این تایم‌شیت تا تعیین تکلیف زمان بدون قرارداد قابل تأیید نیست.
+          <Button className="mt-3" variant="outline" onClick={() => setShowDispute((value) => !value)}>ثبت اختلاف</Button>
         </section>
       )}
 
       {(mode === "worker" || showDispute) && canDispute && (
         <section className="rounded-3xl border border-border bg-card p-5 sm:p-6 space-y-3">
-          <div className="flex items-center gap-2 text-sm font-bold">
-            <Clock3 className="h-5 w-5 text-amber-400" />
-            ثبت اختلاف تایم‌شیت
-          </div>
-          <Input
-            value={reasonCode}
-            onChange={(event) => setReasonCode(event.target.value)}
-            placeholder="کد دلیل، مثلاً TIME"
-          />
-          <textarea
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="شرح دقیق اختلاف..."
-            className="min-h-28 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-          />
-          <Button
-            variant="destructive"
-            disabled={description.trim().length < 5 || dispute.isPending}
-            onClick={() => dispute.mutate()}
-          >
+          <div className="flex items-center gap-2 text-sm font-bold"><Clock3 className="h-5 w-5 text-amber-400" />ثبت اختلاف تایم‌شیت</div>
+          <Input value={reasonCode} onChange={(event) => setReasonCode(event.target.value)} placeholder="کد دلیل، مثلاً TIME" />
+          <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="شرح دقیق اختلاف..." className="min-h-28 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+          <Button variant="destructive" disabled={description.trim().length < 5 || dispute.isPending} onClick={() => dispute.mutate()}>
             {dispute.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
             ثبت اختلاف
           </Button>

@@ -25,6 +25,7 @@ export class AssignmentQueryService {
         state: shiftAssignments.state,
         checkedInAt: shiftAssignments.checkedInAt,
         checkedOutAt: shiftAssignments.checkedOutAt,
+        effectiveEndAt: shiftAssignments.effectiveEndAt,
         totalBreakMinutes: shiftAssignments.totalBreakMinutes,
         shiftId: shifts.id,
         branchId: shifts.branchId,
@@ -54,6 +55,7 @@ export class AssignmentQueryService {
 
     return {
       ...row,
+      effectiveEndAt: row.effectiveEndAt ?? row.endAt,
       hourlyPayRials: row.hourlyPayRials.toString(),
       eta,
     };
@@ -117,14 +119,18 @@ export class AssignmentQueryService {
         workerAvatarUrl: users.avatarUrl,
         checkedInAt: shiftAssignments.checkedInAt,
         checkedOutAt: shiftAssignments.checkedOutAt,
+        effectiveEndAt: shiftAssignments.effectiveEndAt,
+        scheduledEndAt: shifts.endAt,
       })
       .from(shiftAssignments)
       .innerJoin(users, eq(users.id, shiftAssignments.workerId))
+      .innerJoin(shifts, eq(shifts.id, shiftAssignments.shiftId))
       .where(eq(shiftAssignments.shiftId, shiftId));
 
     return Promise.all(
       rows.map(async (row) => ({
         ...row,
+        effectiveEndAt: row.effectiveEndAt ?? row.scheduledEndAt,
         eta: row.state === "EN_ROUTE" ? await getAssignmentEta(row.assignmentId) : null,
       }))
     );
