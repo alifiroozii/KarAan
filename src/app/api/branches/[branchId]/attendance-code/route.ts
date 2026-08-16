@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { requirePermission } from "@/modules/auth/auth.middleware";
+import { requireRole } from "@/modules/auth/auth.middleware";
 import { AttendanceCredentialService } from "@/modules/attendance/attendance-credential.service";
 import { createErrorResponse, createSuccessResponse } from "@/lib/errors";
 
@@ -15,7 +15,7 @@ export async function POST(
   { params }: { params: Promise<{ branchId: string }> }
 ) {
   try {
-    const session = await requirePermission(req, "attendance.manage");
+    const session = await requireRole(req, ["EMPLOYER", "BRANCH_MANAGER", "SHIFT_SUPERVISOR", "ADMIN", "SUPER_ADMIN"]);
     const { branchId } = await params;
     const body = bodySchema.parse(await req.json());
 
