@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Clock3, Loader2, ReceiptText } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { CurrencyDisplay, StatusBadge } from "@/components/ui/domain-displays";
 
 export interface TimesheetListItem {
@@ -11,8 +13,8 @@ export interface TimesheetListItem {
   title: string;
   locationName: string;
   scheduledStart: string;
-  actualCheckIn: string;
-  actualCheckOut: string;
+  actualCheckIn: string | null;
+  actualCheckOut: string | null;
   netWorkedMinutes: number;
   overtimeMinutes: number;
   finalPayRials: string;
@@ -20,15 +22,23 @@ export interface TimesheetListItem {
   requiresAdjustment: boolean;
 }
 
-async function fetchTimesheets(mode: "worker" | "employer") {
-  const response = await fetch(
-    mode === "worker" ? "/api/worker/timesheets" : "/api/employer/timesheets"
-  );
+interface TimesheetPage {
+  items: TimesheetListItem[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+async function fetchTimesheets(mode: "worker" | "employer", page: number) {
+  const endpoint =
+    mode === "worker" ? "/api/worker/timesheets" : "/api/employer/timesheets";
+  const response = await fetch(`${endpoint}?page=${page}&pageSize=25`);
   const body = await response.json();
   if (!response.ok || !body.success) {
     throw new Error(body?.error?.message || "دریافت تایم‌شیت‌ها ناموفق بود.");
   }
-  return body.data as TimesheetListItem[];
+  return body.data as TimesheetPage;
 }
 
 function formatDuration(minutes: number) {
@@ -38,9 +48,10 @@ function formatDuration(minutes: number) {
 }
 
 export function TimesheetList({ mode }: { mode: "worker" | "employer" }) {
+  const [page, setPage] = useState(1);
   const query = useQuery({
-    queryKey: [mode, "timesheets"],
-    queryFn: () => fetchTimesheets(mode),
+    queryKey: [mode, "timesheets", page],
+    queryFn: () => fetchTimesheets(mode, page),
   });
 
   if (query.isLoading) {
@@ -60,8 +71,9 @@ export function TimesheetList({ mode }: { mode: "worker" | "employer" }) {
     );
   }
 
-  const items = query.data ?? [];
-  if (items.length === 0) {
+  const result = query.data;
+  const items = result?.items ?? [];
+  if (items.length === 0 && page === 1) {
     return (
       <div className="rounded-3xl border border-border bg-card p-10 text-center">
         <ReceiptText className="mx-auto h-9 w-9 text-muted-foreground" />
@@ -96,7 +108,9 @@ export function TimesheetList({ mode }: { mode: "worker" | "employer" }) {
             <div>
               <span className="block text-muted-foreground">تاریخ</span>
               <strong>
-                {new Date(item.scheduledStart).toLocaleDateString("fa-IR")}
+                {new Date(item.scheduledStart).toLocaleDateString("fa-IR", {
+                  timeZone: "Asia/Tehran",
+                })}
               </strong>
             </div>
             <div>
@@ -123,6 +137,32 @@ export function TimesheetList({ mode }: { mode: "worker" | "employer" }) {
           )}
         </Link>
       ))}
+
+      {result && result.totalPages > 1 && (
+        <div className="flex items-center justify-between gap-3 pt-2 text-xs text-muted-foreground">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={result.page <= 1}
+            onClick={() => setPage((value) => Math.max(1, value - 1))}
+          >
+            صفحه قبل
+          </Button>
+          <span>
+            صفحه {result.page.toLocaleString("fa-IR")} از {result.totalPages.toLocaleString("fa-IR")}
+            {" • "}
+            {result.total.toLocaleString("fa-IR")} تایم‌شیت
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={result.page >= result.totalPages}
+            onClick={() => setPage((value) => value + 1)}
+          >
+            صفحه بعد
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
