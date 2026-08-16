@@ -15,6 +15,25 @@ interface BreakLocation {
   accuracyMeters?: number;
 }
 
+type StartBreakResult = {
+  breakId: string;
+  state: "ON_BREAK";
+  startedAt: Date;
+  idempotent?: boolean;
+  paid?: boolean;
+  allowedMinutes?: number;
+};
+
+type EndBreakResult = {
+  breakId: string | null;
+  state: "CHECKED_IN";
+  endedAt?: Date;
+  durationMinutes?: number;
+  totalBreakMinutes?: number;
+  exceededAllowedMinutes?: boolean;
+  idempotent?: boolean;
+};
+
 export class BreakService {
   private mapAdapter = getMapAdapter();
 
@@ -69,16 +88,7 @@ export class BreakService {
       ),
     ]);
 
-    let result:
-      | {
-          breakId: string;
-          state: "ON_BREAK";
-          startedAt: Date;
-          idempotent?: boolean;
-          paid?: boolean;
-          allowedMinutes?: number;
-        }
-      | null = null;
+    let result: StartBreakResult | null = null;
     let shouldPublish = false;
     let distanceMeters = 0;
     let withinGeofence = false;
@@ -204,14 +214,17 @@ export class BreakService {
       shouldPublish = true;
     });
 
-    if (!result) throw new AppError("شروع استراحت ثبت نشد.", "INTERNAL_SERVER_ERROR", 500);
+    const finalResult = result as StartBreakResult | null;
+    if (!finalResult) {
+      throw new AppError("شروع استراحت ثبت نشد.", "INTERNAL_SERVER_ERROR", 500);
+    }
     if (shouldPublish) {
       const payload = {
         assignmentId,
         workerId: workerUserId,
         shiftId: row.shift.id,
-        breakId: result.breakId,
-        startedAt: result.startedAt.toISOString(),
+        breakId: finalResult.breakId,
+        startedAt: finalResult.startedAt.toISOString(),
       };
       publishRealtimeEvent("assignment", assignmentId, "worker.break_started", payload);
       publishRealtimeEvent("shift", row.shift.id, "worker.break_started", payload);
@@ -222,7 +235,7 @@ export class BreakService {
       });
     }
 
-    return result;
+    return finalResult;
   }
 
   async endBreak(
@@ -241,17 +254,7 @@ export class BreakService {
       Math.max(1, row.shift.breakDurationMinutes)
     );
 
-    let result:
-      | {
-          breakId: string | null;
-          state: "CHECKED_IN";
-          endedAt?: Date;
-          durationMinutes?: number;
-          totalBreakMinutes?: number;
-          exceededAllowedMinutes?: boolean;
-          idempotent?: boolean;
-        }
-      | null = null;
+    let result: EndBreakResult | null = null;
     let eventPayload:
       | {
           assignmentId: string;
@@ -383,7 +386,10 @@ export class BreakService {
       };
     });
 
-    if (!result) throw new AppError("پایان استراحت ثبت نشد.", "INTERNAL_SERVER_ERROR", 500);
+    const finalResult = result as EndBreakResult | null;
+    if (!finalResult) {
+      throw new AppError("پایان استراحت ثبت نشد.", "INTERNAL_SERVER_ERROR", 500);
+    }
     if (eventPayload) {
       publishRealtimeEvent("assignment", assignmentId, "worker.break_ended", eventPayload);
       publishRealtimeEvent("shift", row.shift.id, "worker.break_ended", eventPayload);
@@ -392,12 +398,12 @@ export class BreakService {
         shiftId: row.shift.id,
         state: "CHECKED_IN",
       });
-      if (result.exceededAllowedMinutes) {
+      if (finalResult.exceededAllowedMinutes) {
         const warning = {
           assignmentId,
           workerId: workerUserId,
           shiftId: row.shift.id,
-          usedMinutes: result.totalBreakMinutes ?? 0,
+          usedMinutes: finalResult.totalBreakMinutes ?? 0,
           allowedMinutes: maxTotalBreakMinutes,
         };
         publishRealtimeEvent("assignment", assignmentId, "worker.break_limit_warning", warning);
@@ -405,6 +411,6 @@ export class BreakService {
       }
     }
 
-    return result;
+    return finalResult;
   }
 }
