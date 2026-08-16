@@ -1,8 +1,17 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { requireRole } from "@/modules/auth/auth.middleware";
+import { OvertimeManagementQueryService } from "@/modules/overtime/overtime-management-query.service";
 import { OvertimeService } from "@/modules/overtime/overtime.service";
 import { createErrorResponse, createSuccessResponse } from "@/lib/errors";
+
+const allowedRoles = [
+  "EMPLOYER",
+  "BRANCH_MANAGER",
+  "SHIFT_SUPERVISOR",
+  "ADMIN",
+  "SUPER_ADMIN",
+] as const;
 
 const bodySchema = z.object({
   requestedEndAt: z.coerce.date(),
@@ -13,19 +22,29 @@ const bodySchema = z.object({
 });
 
 const overtime = new OvertimeService();
+const overtimeQuery = new OvertimeManagementQueryService();
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await requireRole(req, [...allowedRoles]);
+    const { id } = await params;
+    return createSuccessResponse(
+      await overtimeQuery.listForManager(id, session.userId, session.role)
+    );
+  } catch (error) {
+    return createErrorResponse(error);
+  }
+}
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireRole(req, [
-      "EMPLOYER",
-      "BRANCH_MANAGER",
-      "SHIFT_SUPERVISOR",
-      "ADMIN",
-      "SUPER_ADMIN",
-    ]);
+    const session = await requireRole(req, [...allowedRoles]);
     const { id } = await params;
     const body = bodySchema.parse(await req.json());
 
