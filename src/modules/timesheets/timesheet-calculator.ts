@@ -139,14 +139,18 @@ export function calculateTimesheet(
   const regularEnd = new Date(Math.min(checkOutMs, scheduledEndMs));
   const rawRegularMinutes = Math.max(
     0,
-    Math.floor((regularEnd.getTime() - checkInMs) / 60_000)
+    (regularEnd.getTime() - checkInMs) / 60_000
+  );
+  const roundedRegularMinutes = Math.min(
+    grossMinutes,
+    roundMinutes(rawRegularMinutes, roundingIncrement)
   );
   const regularBreakMinutes = input.paidBreak
     ? 0
     : breakIntervals.length > 0
       ? breakOverlapMinutes(breakIntervals, input.actualCheckIn, regularEnd)
-      : Math.min(unpaidBreakMinutes, rawRegularMinutes);
-  const regularMinutes = Math.max(0, rawRegularMinutes - regularBreakMinutes);
+      : Math.min(unpaidBreakMinutes, roundedRegularMinutes);
+  const regularMinutes = Math.max(0, roundedRegularMinutes - regularBreakMinutes);
 
   let overtimeMinutes = 0;
   let overtimePayRials = 0n;
