@@ -2,12 +2,10 @@ import { UserRole } from "./auth.service";
 import { AppError } from "@/lib/errors";
 
 export type Permission =
-  // Worker Permissions
   | "worker.profile.read"
   | "worker.profile.update"
   | "worker.availability.update"
   | "worker.documents.upload"
-  // Employer & Business Permissions
   | "employer.profile.read"
   | "employer.profile.update"
   | "business.create"
@@ -18,7 +16,7 @@ export type Permission =
   | "branch.read"
   | "branch.update"
   | "branch.delete"
-  // Shift Operations
+  | "attendance.manage"
   | "shift.create"
   | "shift.view"
   | "shift.publish"
@@ -28,25 +26,19 @@ export type Permission =
   | "shift.accept"
   | "shift.checkin"
   | "shift.checkout"
-  // Timesheets & Finance
   | "timesheet.view"
   | "timesheet.approve"
   | "timesheet.dispute"
   | "payment.view"
   | "payment.topup"
   | "payment.payout"
-  // Disputes & Support
   | "dispute.create"
   | "dispute.view"
   | "dispute.manage"
-  // Admin & System
   | "admin.users.manage"
   | "admin.audit.view"
   | "admin.system.manage";
 
-/**
- * Role to Granular Permissions Mapping Matrix (RBAC)
- */
 export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
   WORKER: [
     "worker.profile.read",
@@ -75,6 +67,7 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
     "branch.read",
     "branch.update",
     "branch.delete",
+    "attendance.manage",
     "shift.create",
     "shift.view",
     "shift.publish",
@@ -94,6 +87,7 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
     "business.read",
     "branch.read",
     "branch.update",
+    "attendance.manage",
     "shift.create",
     "shift.view",
     "shift.publish",
@@ -108,6 +102,7 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
   SHIFT_SUPERVISOR: [
     "business.read",
     "branch.read",
+    "attendance.manage",
     "shift.view",
     "timesheet.view",
     "timesheet.approve",
@@ -150,6 +145,7 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
     "business.update",
     "branch.read",
     "branch.update",
+    "attendance.manage",
     "shift.create",
     "shift.view",
     "shift.publish",
@@ -178,6 +174,7 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
     "branch.read",
     "branch.update",
     "branch.delete",
+    "attendance.manage",
     "shift.create",
     "shift.view",
     "shift.publish",
@@ -202,17 +199,11 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
   ],
 };
 
-/**
- * Check if a role possesses a specific granular permission.
- */
 export function hasPermission(role: UserRole, permission: Permission): boolean {
   const permissions = ROLE_PERMISSIONS_MAP[role] || [];
   return permissions.includes(permission);
 }
 
-/**
- * Asserts that a role possesses a specific permission or throws 403 Forbidden.
- */
 export function assertPermission(role: UserRole, permission: Permission): void {
   if (!hasPermission(role, permission)) {
     throw new AppError(
@@ -224,18 +215,12 @@ export function assertPermission(role: UserRole, permission: Permission): void {
   }
 }
 
-/**
- * Object-level Authorization Check (Ownership Enforcement).
- * Ensures a user only accesses resources they own unless they are an ADMIN/SUPER_ADMIN.
- */
 export function assertOwnership(
   actorUserId: string,
   resourceOwnerId: string,
   actorRole?: UserRole
 ): void {
-  if (actorRole === "SUPER_ADMIN" || actorRole === "ADMIN") {
-    return; // System Administrators override ownership
-  }
+  if (actorRole === "SUPER_ADMIN" || actorRole === "ADMIN") return;
 
   if (actorUserId !== resourceOwnerId) {
     throw new AppError(
