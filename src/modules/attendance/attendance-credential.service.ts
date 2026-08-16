@@ -26,8 +26,16 @@ export interface AttendanceCredentialMetadata {
   singleUse: boolean;
 }
 
+export interface SupervisorCodeClaim {
+  metadata: AttendanceCredentialMetadata;
+  codeHash: string;
+  claimToken: string;
+}
+
 const QR_PREFIX = "karaan:attendance:qr:";
 const CODE_PREFIX = "karaan:attendance:code:";
+const CODE_CLAIM_PREFIX = "karaan:attendance:code-claim:";
+const SUPERVISOR_CODE_CLAIM_TTL_SECONDS = 15;
 
 export function hashAttendanceCredential(value: string): string {
   return crypto.createHash("sha256").update(value).digest("hex");
@@ -51,6 +59,21 @@ async function ensureRedis(): Promise<void> {
       "سرویس اعتبارسنجی حضور در دسترس نیست. دوباره تلاش کنید.",
       "INTERNAL_SERVER_ERROR",
       503
+    );
+  }
+}
+
+function parseCredential(
+  raw: string,
+  invalidCode: "QR_INVALID" | "ATTENDANCE_CODE_INVALID"
+): AttendanceCredentialMetadata {
+  try {
+    return JSON.parse(raw) as AttendanceCredentialMetadata;
+  } catch {
+    throw new AppError(
+      invalidCode === "QR_INVALID" ? "QR معتبر نیست." : "کد مسئول معتبر نیست.",
+      invalidCode,
+      400
     );
   }
 }
@@ -213,12 +236,16 @@ export class AttendanceCredentialService {
       singleUse: true,
     };
 
-    await redis.set(
+    const saved = await redis.set(
       `${CODE_PREFIX}${codeHash}`,
       JSON.stringify(metadata),
       "EX",
-      ttlSeconds
+      ttlSeconds,
+      "NX"
     );
+    if (saved !== "OK") {
+      throw new AppError("ایجاد کد مسئول ناموفق بود.", "INTERNAL_SERVER_ERROR", 503);
+    }
 
     await db.insert(auditLogs).values({
       id: `aud_${crypto.randomUUID()}`,
@@ -250,22 +277,20 @@ export class AttendanceCredentialService {
     if (!raw) {
       throw new AppError("QR نامعتبر یا منقضی شده است.", "QR_EXPIRED", 400);
     }
-
-    try {
-      return JSON.parse(raw) as AttendanceCredentialMetadata;
-    } catch {
-      throw new AppError("QR معتبر نیست.", "QR_INVALID", 400);
-    }
+    return parseCredential(raw, "QR_INVALID");
   }
 
-  async resolveSupervisorCode(input: {
+  async claimSupervisorCode(input: {
     branchId: string;
     purpose: AttendancePurpose;
     code: string;
-  }): Promise<AttendanceCredentialMetadata> {
+  }): Promise<SupervisorCodeClaim> {
     await ensureRedis();
     const codeHash = buildSupervisorCodeHash(input.branchId, input.purpose, input.code);
-    const raw = await redis.get(`${CODE_PREFIX}${codeHash}`);
+    const codeKey = `${CODE_PREFIX}${codeHash}`;
+    const claimKey = `${CODE_CLAIM_PREFIX}${codeHash}`;
+    const raw = await redis.get(codeKey);
+
     if (!raw) {
       throw new AppError(
         "کد مسئول نامعتبر یا منقضی شده است.",
@@ -274,20 +299,86 @@ export class AttendanceCredentialService {
       );
     }
 
-    try {
-      return JSON.parse(raw) as AttendanceCredentialMetadata;
-    } catch {
-      throw new AppError("کد مسئول معتبر نیست.", "ATTENDANCE_CODE_INVALID", 400);
+    const claimToken = crypto.randomUUID();
+    const claimed = await redis.set(
+      claimKey,
+      claimToken,
+      "EX",
+      SUPERVISOR_CODE_CLAIM_TTL_SECONDS,
+      "NX"
+    );
+
+    if (claimed !== "OK") {
+      throw new AppError(
+        "این کد هم‌اکنون در حال استفاده است. دوباره تلاش کنید.",
+        "ATTENDANCE_CODE_INVALID",
+        409
+      );
+    }
+
+    const rawAfterClaim = await redis.get(codeKey);
+    if (!rawAfterClaim) {
+      await this.releaseSupervisorCodeClaim({
+        metadata: parseCredential(raw, "ATTENDANCE_CODE_INVALID"),
+        codeHash,
+        claimToken,
+      });
+      throw new AppError(
+        "کد مسئول منقضی شده است.",
+        "ATTENDANCE_CODE_EXPIRED",
+        400
+      );
+    }
+
+    return {
+      metadata: parseCredential(rawAfterClaim, "ATTENDANCE_CODE_INVALID"),
+      codeHash,
+      claimToken,
+    };
+  }
+
+  async consumeSupervisorCodeClaim(claim: SupervisorCodeClaim): Promise<void> {
+    await ensureRedis();
+    const codeKey = `${CODE_PREFIX}${claim.codeHash}`;
+    const claimKey = `${CODE_CLAIM_PREFIX}${claim.codeHash}`;
+
+    const consumed = await redis.eval(
+      `
+        if redis.call('GET', KEYS[2]) == ARGV[1] then
+          redis.call('DEL', KEYS[1])
+          redis.call('DEL', KEYS[2])
+          return 1
+        end
+        return 0
+      `,
+      2,
+      codeKey,
+      claimKey,
+      claim.claimToken
+    );
+
+    if (Number(consumed) !== 1) {
+      throw new AppError(
+        "اعتبار کد مسئول در حین عملیات از بین رفت.",
+        "ATTENDANCE_CODE_INVALID",
+        409
+      );
     }
   }
 
-  async revokeSupervisorCode(input: {
-    branchId: string;
-    purpose: AttendancePurpose;
-    code: string;
-  }): Promise<void> {
+  async releaseSupervisorCodeClaim(claim: SupervisorCodeClaim): Promise<void> {
     await ensureRedis();
-    const codeHash = buildSupervisorCodeHash(input.branchId, input.purpose, input.code);
-    await redis.del(`${CODE_PREFIX}${codeHash}`);
+    const claimKey = `${CODE_CLAIM_PREFIX}${claim.codeHash}`;
+    await redis.eval(
+      `
+        if redis.call('GET', KEYS[1]) == ARGV[1] then
+          return redis.call('DEL', KEYS[1])
+        end
+        return 0
+      `,
+      1,
+      claimKey,
+      claim.claimToken
+    );
   }
 }
