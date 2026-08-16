@@ -1,164 +1,275 @@
+import crypto from "crypto";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { shiftAssignments, shifts } from "@/db/schema/shifts";
 import { attendanceEvents, timesheets } from "@/db/schema/attendance";
-import { eq } from "drizzle-orm";
-import { calculateDistanceKm } from "@/lib/maps/distance";
+import { auditLogs } from "@/db/schema/system";
+import { shiftAssignments, shifts } from "@/db/schema/shifts";
+import { getMapAdapter } from "@/infrastructure/map";
 import { AppError } from "@/lib/errors";
+import { calculateHourlyShiftPay } from "@/lib/money";
+import { publishRealtimeEvent } from "@/lib/realtime/socket-server";
+import { AssignmentStateMachine } from "@/modules/assignments/assignment.state-machine";
 
 export class AttendanceService {
+  private mapAdapter = getMapAdapter();
+
   /**
-   * Geofenced Check-in for assigned Shift Worker
+   * Official attendance source of truth.
+   * Check-in is only valid for the worker who owns an ARRIVED assignment.
    */
-  async checkInWorker(assignmentId: string, currentLat: number, currentLng: number) {
-    const [assignment] = await db
-      .select()
+  async checkInWorker(
+    assignmentId: string,
+    workerUserId: string,
+    currentLat: number,
+    currentLng: number
+  ) {
+    const [row] = await db
+      .select({ assignment: shiftAssignments, shift: shifts })
       .from(shiftAssignments)
+      .innerJoin(shifts, eq(shiftAssignments.shiftId, shifts.id))
       .where(eq(shiftAssignments.id, assignmentId))
       .limit(1);
 
-    if (!assignment) {
-      throw new AppError("انتصاب شیفت پیدا نشد.", "NOT_FOUND", 404);
+    if (!row) throw new AppError("انتصاب شیفت پیدا نشد.", "NOT_FOUND", 404);
+    if (row.assignment.workerId !== workerUserId) {
+      throw new AppError("شما مجوز ثبت ورود این شیفت را ندارید.", "FORBIDDEN", 403);
     }
 
-    const [shift] = await db
-      .select()
-      .from(shifts)
-      .where(eq(shifts.id, assignment.shiftId))
-      .limit(1);
-
-    if (!shift) {
-      throw new AppError("اطلاعات شیفت پیدا نشد.", "NOT_FOUND", 404);
+    if (row.assignment.state === "CHECKED_IN") {
+      return {
+        assignmentId,
+        state: "CHECKED_IN" as const,
+        checkedInAt: row.assignment.checkedInAt,
+        idempotent: true,
+      };
     }
 
-    // Geofence Radius Verification
-    const distanceKm = calculateDistanceKm(
-      shift.latitude,
-      shift.longitude,
-      currentLat,
-      currentLng
+    AssignmentStateMachine.assertCanTransition(row.assignment.state, "CHECKED_IN");
+
+    const distanceMeters = this.mapAdapter.calculateDistanceMeters(
+      { latitude: currentLat, longitude: currentLng },
+      { latitude: row.shift.latitude, longitude: row.shift.longitude }
     );
-    const maxRadiusKm = (shift.geofenceRadiusMeters || 100) / 1000;
+    const isWithinGeofence = distanceMeters <= row.shift.geofenceRadiusMeters;
 
-    if (distanceKm > maxRadiusKm) {
+    if (!isWithinGeofence) {
       throw new AppError(
-        `شما خارج از شعبه محل شیفت هستید (${Math.round(distanceKm * 1000)} متر فاصله). ورود ثبت نشد.`,
-        "FORBIDDEN",
+        `شما خارج از محدوده محل شیفت هستید (${Math.round(distanceMeters)} متر فاصله).`,
+        "OUTSIDE_GEOFENCE",
         400,
-        { distanceMeters: Math.round(distanceKm * 1000), maxRadiusMeters: shift.geofenceRadiusMeters }
+        { distanceMeters, maxRadiusMeters: row.shift.geofenceRadiusMeters }
       );
     }
 
     const now = new Date();
+    const eventId = `att_${crypto.randomUUID()}`;
 
-    // Insert Attendance Event
-    const eventId = `att_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    await db.insert(attendanceEvents).values({
-      id: eventId,
-      assignmentId: assignment.id,
-      eventType: "CHECK_IN",
-      timestamp: now,
-      latitude: currentLat,
-      longitude: currentLng,
-      isWithinGeofence: true,
+    await db.transaction(async (tx) => {
+      await tx.insert(attendanceEvents).values({
+        id: eventId,
+        assignmentId,
+        eventType: "CHECK_IN",
+        timestamp: now,
+        latitude: currentLat,
+        longitude: currentLng,
+        isWithinGeofence: true,
+        distanceFromTargetMeters: distanceMeters,
+      });
+
+      const updated = await tx
+        .update(shiftAssignments)
+        .set({ state: "CHECKED_IN", checkedInAt: now, updatedAt: now })
+        .where(
+          and(
+            eq(shiftAssignments.id, assignmentId),
+            eq(shiftAssignments.state, "ARRIVED")
+          )
+        )
+        .returning({ id: shiftAssignments.id });
+
+      if (updated.length !== 1) {
+        throw new AppError("وضعیت شیفت تغییر کرده است. دوباره تلاش کنید.", "INVALID_STATE_TRANSITION", 409);
+      }
+
+      await tx.insert(auditLogs).values({
+        id: `aud_${crypto.randomUUID()}`,
+        actorId: workerUserId,
+        entityName: "shift_assignment",
+        entityId: assignmentId,
+        action: "CHECK_IN",
+        details: { eventId, latitude: currentLat, longitude: currentLng, distanceMeters },
+      });
     });
 
-    // Update assignment state to CHECKED_IN
-    await db
-      .update(shiftAssignments)
-      .set({
-        state: "CHECKED_IN",
-        checkedInAt: now,
-        updatedAt: now,
-      })
-      .where(eq(shiftAssignments.id, assignment.id));
-
-    return {
-      assignmentId: assignment.id,
+    // Publish only after the DB transaction succeeds.
+    publishRealtimeEvent("assignment", assignmentId, "worker.checked_in", {
+      assignmentId,
+      workerId: workerUserId,
+      checkedInAt: now.toISOString(),
+    });
+    publishRealtimeEvent("assignment", assignmentId, "assignment.updated", {
+      assignmentId,
       state: "CHECKED_IN",
-      checkedInAt: now,
-      distanceMeters: Math.round(distanceKm * 1000),
-    };
+    });
+    publishRealtimeEvent("shift", row.shift.id, "assignment.updated", {
+      assignmentId,
+      state: "CHECKED_IN",
+    });
+
+    return { assignmentId, state: "CHECKED_IN" as const, checkedInAt: now, distanceMeters };
   }
 
   /**
-   * Geofenced Check-out & Automated Timesheet Generation
+   * Official checkout path. It preserves the existing automatic timesheet behavior
+   * until Prompt 22 replaces calculation with the dedicated Timesheet engine.
    */
-  async checkOutWorker(assignmentId: string, currentLat: number, currentLng: number) {
-    const [assignment] = await db
-      .select()
+  async checkOutWorker(
+    assignmentId: string,
+    workerUserId: string,
+    currentLat: number,
+    currentLng: number
+  ) {
+    const [row] = await db
+      .select({ assignment: shiftAssignments, shift: shifts })
       .from(shiftAssignments)
+      .innerJoin(shifts, eq(shiftAssignments.shiftId, shifts.id))
       .where(eq(shiftAssignments.id, assignmentId))
       .limit(1);
 
-    if (!assignment) {
-      throw new AppError("انتصاب شیفت پیدا نشد.", "NOT_FOUND", 404);
+    if (!row) throw new AppError("انتصاب شیفت پیدا نشد.", "NOT_FOUND", 404);
+    if (row.assignment.workerId !== workerUserId) {
+      throw new AppError("شما مجوز ثبت خروج این شیفت را ندارید.", "FORBIDDEN", 403);
     }
 
-    const [shift] = await db
-      .select()
-      .from(shifts)
-      .where(eq(shifts.id, assignment.shiftId))
-      .limit(1);
+    if (row.assignment.state === "CHECKED_OUT" || row.assignment.state === "COMPLETED") {
+      const [existingTimesheet] = await db
+        .select()
+        .from(timesheets)
+        .where(eq(timesheets.assignmentId, assignmentId))
+        .limit(1);
+      return {
+        assignmentId,
+        state: row.assignment.state,
+        checkedOutAt: row.assignment.checkedOutAt,
+        timesheetId: existingTimesheet?.id ?? null,
+        idempotent: true,
+      };
+    }
+
+    AssignmentStateMachine.assertCanTransition(row.assignment.state, "CHECKED_OUT");
+    if (!row.assignment.checkedInAt) {
+      throw new AppError("زمان ورود ثبت نشده است.", "MISSING_CHECK_IN", 400);
+    }
+
+    const distanceMeters = this.mapAdapter.calculateDistanceMeters(
+      { latitude: currentLat, longitude: currentLng },
+      { latitude: row.shift.latitude, longitude: row.shift.longitude }
+    );
+    if (distanceMeters > row.shift.geofenceRadiusMeters) {
+      throw new AppError("ثبت خروج خارج از محدوده مجاز است.", "OUTSIDE_GEOFENCE", 400, {
+        distanceMeters,
+        maxRadiusMeters: row.shift.geofenceRadiusMeters,
+      });
+    }
 
     const now = new Date();
-    const checkedInAt = assignment.checkedInAt || new Date(now.getTime() - 4 * 3600 * 1000);
-
-    // Calculate worked duration in hours
-    const workedDurationMs = now.getTime() - checkedInAt.getTime();
-    const breakMinutes = assignment.totalBreakMinutes || 0;
-    const netWorkedHours = Math.max(
-      0.5,
-      (workedDurationMs - breakMinutes * 60 * 1000) / (3600 * 1000)
+    const grossMinutes = Math.max(
+      0,
+      Math.floor((now.getTime() - new Date(row.assignment.checkedInAt).getTime()) / 60000)
     );
+    const breakMinutes = row.assignment.totalBreakMinutes || 0;
+    const netWorkedMinutes = Math.max(0, grossMinutes - breakMinutes);
+    const calculatedPayRials = calculateHourlyShiftPay(row.shift.hourlyPayRials, netWorkedMinutes);
+    const eventId = `att_${crypto.randomUUID()}`;
+    const timesheetId = `ts_${crypto.randomUUID()}`;
 
-    const hourlyRateRials = shift ? shift.hourlyPayRials : BigInt(1500000);
-    const calculatedPayRials = BigInt(Math.round(netWorkedHours)) * hourlyRateRials;
+    await db.transaction(async (tx) => {
+      await tx.insert(attendanceEvents).values({
+        id: eventId,
+        assignmentId,
+        eventType: "CHECK_OUT",
+        timestamp: now,
+        latitude: currentLat,
+        longitude: currentLng,
+        isWithinGeofence: true,
+        distanceFromTargetMeters: distanceMeters,
+      });
 
-    // Insert Attendance Check-out Event
-    const eventId = `att_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    await db.insert(attendanceEvents).values({
-      id: eventId,
-      assignmentId: assignment.id,
-      eventType: "CHECK_OUT",
-      timestamp: now,
-      latitude: currentLat,
-      longitude: currentLng,
-      isWithinGeofence: true,
+      const updated = await tx
+        .update(shiftAssignments)
+        .set({
+          state: "CHECKED_OUT",
+          checkedOutAt: now,
+          actualPayRials: calculatedPayRials,
+          updatedAt: now,
+        })
+        .where(eq(shiftAssignments.id, assignmentId))
+        .returning({ id: shiftAssignments.id });
+
+      if (updated.length !== 1) {
+        throw new AppError("ثبت خروج انجام نشد.", "CHECK_OUT_FAILED", 409);
+      }
+
+      const [existingTimesheet] = await tx
+        .select({ id: timesheets.id })
+        .from(timesheets)
+        .where(eq(timesheets.assignmentId, assignmentId))
+        .limit(1);
+
+      if (!existingTimesheet) {
+        await tx.insert(timesheets).values({
+          id: timesheetId,
+          assignmentId,
+          grossMinutes,
+          breakMinutes,
+          netWorkedMinutes,
+          calculatedPayRials,
+          finalPayRials: calculatedPayRials,
+          status: "SUBMITTED",
+        });
+      }
+
+      await tx.insert(auditLogs).values({
+        id: `aud_${crypto.randomUUID()}`,
+        actorId: workerUserId,
+        entityName: "shift_assignment",
+        entityId: assignmentId,
+        action: "CHECK_OUT",
+        details: {
+          eventId,
+          latitude: currentLat,
+          longitude: currentLng,
+          distanceMeters,
+          netWorkedMinutes,
+          calculatedPayRials: calculatedPayRials.toString(),
+        },
+      });
     });
 
-    // Create Timesheet Record for Employer Approval
-    const timesheetId = `ts_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const grossMinutes = Math.round((workedDurationMs) / (60 * 1000));
-    const netWorkedMinutes = Math.max(30, grossMinutes - breakMinutes);
-
-    await db.insert(timesheets).values({
-      id: timesheetId,
-      assignmentId: assignment.id,
-      grossMinutes,
-      breakMinutes,
-      netWorkedMinutes,
-      calculatedPayRials,
-      finalPayRials: calculatedPayRials,
+    publishRealtimeEvent("assignment", assignmentId, "worker.checked_out", {
+      assignmentId,
+      workerId: workerUserId,
+      checkedOutAt: now.toISOString(),
+    });
+    publishRealtimeEvent("assignment", assignmentId, "assignment.updated", {
+      assignmentId,
+      state: "CHECKED_OUT",
+    });
+    publishRealtimeEvent("shift", row.shift.id, "assignment.updated", {
+      assignmentId,
+      state: "CHECKED_OUT",
+    });
+    publishRealtimeEvent("assignment", assignmentId, "timesheet.updated", {
+      timesheetId,
       status: "SUBMITTED",
     });
 
-    // Update Assignment state to COMPLETED
-    await db
-      .update(shiftAssignments)
-      .set({
-        state: "COMPLETED",
-        checkedOutAt: now,
-        actualPayRials: calculatedPayRials,
-        updatedAt: now,
-      })
-      .where(eq(shiftAssignments.id, assignment.id));
-
     return {
-      assignmentId: assignment.id,
-      timesheetId,
-      state: "COMPLETED",
+      assignmentId,
+      state: "CHECKED_OUT" as const,
       checkedOutAt: now,
-      netWorkedHours,
+      timesheetId,
+      netWorkedMinutes,
       calculatedPayRials,
     };
   }
