@@ -25,13 +25,16 @@ interface TimesheetDetailModel {
   locationName: string;
   scheduledStart: string;
   scheduledEnd: string;
-  actualCheckIn: string;
-  actualCheckOut: string;
+  actualCheckIn: string | null;
+  actualCheckOut: string | null;
   grossMinutes: number;
   breakMinutes: number;
+  paidBreakMinutes: number;
+  unpaidBreakMinutes: number;
   netWorkedMinutes: number;
   regularMinutes: number;
   overtimeMinutes: number;
+  hourlyRateRials: string;
   calculatedPayRials: string;
   bonusRials: string;
   deductionRials: string;
@@ -39,6 +42,7 @@ interface TimesheetDetailModel {
   requiresAdjustment: boolean;
   status: string;
   approvedAt: string | null;
+  readyForSettlementAt: string | null;
   breaks: Array<{
     id: string;
     startAt: string;
@@ -59,6 +63,15 @@ function durationLabel(minutes: number) {
   return `${Math.floor(minutes / 60).toLocaleString("fa-IR")} ساعت و ${(
     minutes % 60
   ).toLocaleString("fa-IR")} دقیقه`;
+}
+
+function timeLabel(value: string | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleTimeString("fa-IR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Tehran",
+  });
 }
 
 export function TimesheetDetail({
@@ -124,6 +137,7 @@ export function TimesheetDetail({
   }
 
   const item = query.data;
+  const canDispute = item.status === "SUBMITTED" || item.status === "ADJUSTMENT_REQUIRED";
 
   return (
     <div className="space-y-5">
@@ -140,30 +154,15 @@ export function TimesheetDetail({
         <div className="mt-6 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
           <div className="rounded-2xl border border-border p-3">
             <span className="text-muted-foreground">شروع برنامه</span>
-            <strong className="mt-1 block">
-              {new Date(item.scheduledStart).toLocaleTimeString("fa-IR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </strong>
+            <strong className="mt-1 block">{timeLabel(item.scheduledStart)}</strong>
           </div>
           <div className="rounded-2xl border border-border p-3">
             <span className="text-muted-foreground">ورود واقعی</span>
-            <strong className="mt-1 block">
-              {new Date(item.actualCheckIn).toLocaleTimeString("fa-IR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </strong>
+            <strong className="mt-1 block">{timeLabel(item.actualCheckIn)}</strong>
           </div>
           <div className="rounded-2xl border border-border p-3">
             <span className="text-muted-foreground">خروج واقعی</span>
-            <strong className="mt-1 block">
-              {new Date(item.actualCheckOut).toLocaleTimeString("fa-IR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </strong>
+            <strong className="mt-1 block">{timeLabel(item.actualCheckOut)}</strong>
           </div>
           <div className="rounded-2xl border border-border p-3">
             <span className="text-muted-foreground">کارکرد قابل پرداخت</span>
@@ -183,8 +182,16 @@ export function TimesheetDetail({
             <strong>{durationLabel(item.grossMinutes)}</strong>
           </div>
           <div className="flex justify-between py-3">
-            <span className="text-muted-foreground">استراحت</span>
+            <span className="text-muted-foreground">استراحت کل</span>
             <strong>{item.breakMinutes.toLocaleString("fa-IR")} دقیقه</strong>
+          </div>
+          <div className="flex justify-between py-3">
+            <span className="text-muted-foreground">استراحت با حقوق</span>
+            <strong>{item.paidBreakMinutes.toLocaleString("fa-IR")} دقیقه</strong>
+          </div>
+          <div className="flex justify-between py-3">
+            <span className="text-muted-foreground">استراحت بدون حقوق</span>
+            <strong>{item.unpaidBreakMinutes.toLocaleString("fa-IR")} دقیقه</strong>
           </div>
           <div className="flex justify-between py-3">
             <span className="text-muted-foreground">زمان عادی قابل پرداخت</span>
@@ -193,6 +200,10 @@ export function TimesheetDetail({
           <div className="flex justify-between py-3">
             <span className="text-muted-foreground">اضافه‌کاری خام</span>
             <strong>{item.overtimeMinutes.toLocaleString("fa-IR")} دقیقه</strong>
+          </div>
+          <div className="flex justify-between py-3">
+            <span className="text-muted-foreground">نرخ ساعتی ثبت‌شده</span>
+            <strong><CurrencyDisplay amountRials={BigInt(item.hourlyRateRials)} /></strong>
           </div>
           <div className="flex justify-between py-3">
             <span className="text-muted-foreground">حقوق محاسبه‌شده</span>
@@ -217,7 +228,14 @@ export function TimesheetDetail({
         {item.requiresAdjustment && (
           <div className="flex items-start gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs leading-6 text-amber-200">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            کارکرد بعد از پایان برنامه ثبت شده است. تا Prompt 23 و تأیید رسمی اضافه‌کاری، این زمان خودکار به مبلغ نهایی اضافه نمی‌شود.
+            کارکرد بعد از پایان برنامه ثبت شده است. این زمان تا Prompt 23 و پذیرش رسمی اضافه‌کاری به مبلغ نهایی افزوده نمی‌شود و تایم‌شیت قابل تأیید نیست.
+          </div>
+        )}
+
+        {item.status === "READY_FOR_SETTLEMENT" && (
+          <div className="flex items-start gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs leading-6 text-emerald-200">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+            کارکرد تأیید شده و برای لایه تسویه آماده است. در این مرحله هنوز هیچ موجودی کیف پولی تغییر نکرده است.
           </div>
         )}
       </section>
@@ -231,11 +249,9 @@ export function TimesheetDetail({
           {item.breaks.map((brk) => (
             <div key={brk.id} className="flex justify-between rounded-2xl border border-border p-3 text-xs">
               <span>
-                {new Date(brk.startAt).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })}
+                {timeLabel(brk.startAt)}
                 {" → "}
-                {brk.endAt
-                  ? new Date(brk.endAt).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })
-                  : "فعال"}
+                {timeLabel(brk.endAt)}
               </span>
               <strong>{brk.durationMinutes.toLocaleString("fa-IR")} دقیقه</strong>
             </div>
@@ -250,12 +266,13 @@ export function TimesheetDetail({
             بررسی کارفرما
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
-            <Button
-              disabled={approve.isPending || item.requiresAdjustment}
-              onClick={() => approve.mutate()}
-            >
-              {approve.isPending ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="ml-2 h-4 w-4" />}
-              تأیید تایم‌شیت
+            <Button disabled={approve.isPending} onClick={() => approve.mutate()}>
+              {approve.isPending ? (
+                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="ml-2 h-4 w-4" />
+              )}
+              تأیید و آماده‌سازی برای تسویه
             </Button>
             <Button variant="outline" onClick={() => setShowDispute((value) => !value)}>
               ثبت اختلاف
@@ -265,13 +282,26 @@ export function TimesheetDetail({
         </section>
       )}
 
-      {(mode === "worker" || showDispute) && item.status === "SUBMITTED" && (
+      {mode === "employer" && item.status === "ADJUSTMENT_REQUIRED" && (
+        <section className="rounded-3xl border border-amber-500/30 bg-amber-500/10 p-5 text-xs leading-6 text-amber-200">
+          این تایم‌شیت تا تعیین تکلیف اضافه‌کاری در Prompt 23 قابل تأیید نیست. در صورت اختلاف می‌توانید پرونده اختلاف ثبت کنید.
+          <Button className="mt-3" variant="outline" onClick={() => setShowDispute((value) => !value)}>
+            ثبت اختلاف
+          </Button>
+        </section>
+      )}
+
+      {(mode === "worker" || showDispute) && canDispute && (
         <section className="rounded-3xl border border-border bg-card p-5 sm:p-6 space-y-3">
           <div className="flex items-center gap-2 text-sm font-bold">
             <Clock3 className="h-5 w-5 text-amber-400" />
             ثبت اختلاف تایم‌شیت
           </div>
-          <Input value={reasonCode} onChange={(event) => setReasonCode(event.target.value)} placeholder="کد دلیل، مثلاً TIME" />
+          <Input
+            value={reasonCode}
+            onChange={(event) => setReasonCode(event.target.value)}
+            placeholder="کد دلیل، مثلاً TIME"
+          />
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
