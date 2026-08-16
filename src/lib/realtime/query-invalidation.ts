@@ -20,6 +20,14 @@ export function getQueryKeysToInvalidate(
       return [["shifts"], ["employer", "shifts"], ["worker", "radar"]];
     case "timesheet.updated":
       return [["timesheets"], ["employer", "timesheets"], ["worker", "earnings"]];
+    case "worker.break_started":
+    case "worker.break_ended":
+    case "worker.break_limit_warning":
+    case "overtime.requested":
+    case "overtime.accepted":
+    case "overtime.declined":
+    case "overtime.cancelled":
+    case "overtime.expired":
     case "worker.en_route":
     case "worker.arrived":
     case "worker.checked_in":
@@ -43,7 +51,11 @@ export function invalidateQueriesForRealtimeEvent(
   const shiftId = payload.shiftId as string | undefined;
   const timesheetId = payload.timesheetId as string | undefined;
 
-  if (assignmentId) keys.push(["assignment", assignmentId]);
+  if (assignmentId) {
+    keys.push(["assignment", assignmentId]);
+    if (event.startsWith("overtime.")) keys.push(["worker", "overtime", assignmentId]);
+    if (event.startsWith("worker.break_")) keys.push(["worker", "break", assignmentId]);
+  }
   if (workerId) keys.push(["worker", workerId]);
   if (shiftId) keys.push(["shift", shiftId]);
   if (timesheetId) keys.push(["timesheet", timesheetId]);
