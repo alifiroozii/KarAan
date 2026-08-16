@@ -4,6 +4,7 @@ export * from "./workers";
 export * from "./employers";
 export * from "./shifts";
 export * from "./attendance";
+export * from "./overtime";
 export * from "./reliability";
 export * from "./reviews";
 export * from "./finance";
