@@ -87,6 +87,36 @@ export class AssignmentLifecycleService {
     };
   }
 
+  private publishEta(
+    shiftId: string,
+    assignmentId: string,
+    workerId: string,
+    eta: AssignmentEtaSnapshot
+  ) {
+    const payload = {
+      assignmentId,
+      workerId,
+      distanceMeters: eta.distanceMeters,
+      durationSeconds: eta.durationSeconds,
+      estimatedArrivalAt: eta.estimatedArrivalAt,
+      lateRisk: eta.lateRisk,
+    };
+
+    publishRealtimeEvent("assignment", assignmentId, "worker.en_route", payload);
+    publishRealtimeEvent("shift", shiftId, "worker.en_route", payload);
+
+    if (eta.lateRisk !== "ON_TIME") {
+      const latePayload = {
+        assignmentId,
+        workerId,
+        lateRisk: eta.lateRisk,
+        estimatedArrivalAt: eta.estimatedArrivalAt,
+      } as const;
+      publishRealtimeEvent("assignment", assignmentId, "worker.late_risk", latePayload);
+      publishRealtimeEvent("shift", shiftId, "worker.late_risk", latePayload);
+    }
+  }
+
   async markEnRoute(assignmentId: string, workerUserId: string) {
     const [row] = await db
       .select({ assignment: shiftAssignments, shift: shifts })
@@ -145,15 +175,7 @@ export class AssignmentLifecycleService {
     });
 
     await setAssignmentEta(assignmentId, eta);
-
-    publishRealtimeEvent("assignment", assignmentId, "worker.en_route", {
-      assignmentId,
-      workerId: workerUserId,
-      distanceMeters: eta.distanceMeters,
-      durationSeconds: eta.durationSeconds,
-      estimatedArrivalAt: eta.estimatedArrivalAt,
-      lateRisk: eta.lateRisk,
-    });
+    this.publishEta(row.shift.id, assignmentId, workerUserId, eta);
     publishRealtimeEvent("assignment", assignmentId, "assignment.updated", {
       assignmentId,
       state: "EN_ROUTE",
@@ -162,21 +184,6 @@ export class AssignmentLifecycleService {
       assignmentId,
       state: "EN_ROUTE",
     });
-
-    if (eta.lateRisk !== "ON_TIME") {
-      publishRealtimeEvent("assignment", assignmentId, "worker.late_risk", {
-        assignmentId,
-        workerId: workerUserId,
-        lateRisk: eta.lateRisk,
-        estimatedArrivalAt: eta.estimatedArrivalAt,
-      });
-      publishRealtimeEvent("shift", row.shift.id, "worker.late_risk", {
-        assignmentId,
-        workerId: workerUserId,
-        lateRisk: eta.lateRisk,
-        estimatedArrivalAt: eta.estimatedArrivalAt,
-      });
-    }
 
     return { assignmentId, state: "EN_ROUTE" as const, eta };
   }
@@ -203,15 +210,7 @@ export class AssignmentLifecycleService {
 
     const eta = await this.calculateEta(row.assignment.workerId, row.shift);
     await setAssignmentEta(assignmentId, eta);
-
-    if (eta.lateRisk !== "ON_TIME") {
-      publishRealtimeEvent("shift", row.shift.id, "worker.late_risk", {
-        assignmentId,
-        workerId: workerUserId,
-        lateRisk: eta.lateRisk,
-        estimatedArrivalAt: eta.estimatedArrivalAt,
-      });
-    }
+    this.publishEta(row.shift.id, assignmentId, workerUserId, eta);
 
     return { assignmentId, eta };
   }
