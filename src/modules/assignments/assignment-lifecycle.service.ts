@@ -170,7 +170,7 @@ export class AssignmentLifecycleService {
         entityName: "shift_assignment",
         entityId: assignmentId,
         action: "EN_ROUTE",
-        details: eta,
+        details: { ...eta },
       });
     });
 
