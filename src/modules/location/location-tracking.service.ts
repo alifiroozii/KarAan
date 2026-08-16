@@ -2,11 +2,14 @@ import { db } from "@/db";
 import { locationEvents } from "@/db/schema/attendance";
 import { shiftAssignments, shifts } from "@/db/schema/shifts";
 import { eq, and, inArray } from "drizzle-orm";
+import {
+  getWorkerOnlineLocation,
+  updateWorkerOnlineLocation,
+} from "@/infrastructure/redis/redis-client";
 import { maskExactLocationToApproximate, isSignificantLocationChange } from "@/lib/location/privacy";
 import { Coordinates } from "@/lib/maps/types";
 import { AppError } from "@/lib/errors";
 
-// In-memory memory tracking cache for last worker position
 const lastWorkerPositions = new Map<
   string,
   { latitude: number; longitude: number; timestamp: number }
@@ -22,15 +25,45 @@ export interface LocationUpdateOptions {
 }
 
 export class LocationTrackingService {
-  /**
-   * Record worker live location update with threshold filtering
-   */
+  private async assertTrackingAssignment(workerId: string, assignmentId?: string) {
+    if (!assignmentId) return;
+
+    const [assignment] = await db
+      .select({ id: shiftAssignments.id, state: shiftAssignments.state })
+      .from(shiftAssignments)
+      .where(
+        and(
+          eq(shiftAssignments.id, assignmentId),
+          eq(shiftAssignments.workerId, workerId)
+        )
+      )
+      .limit(1);
+
+    if (!assignment) {
+      throw new AppError(
+        "این انتساب متعلق به حساب شما نیست.",
+        "FORBIDDEN",
+        403
+      );
+    }
+
+    if (!["EN_ROUTE", "ARRIVED", "CHECKED_IN", "ON_BREAK"].includes(assignment.state)) {
+      throw new AppError(
+        "ردیابی دقیق برای وضعیت فعلی شیفت مجاز نیست.",
+        "INVALID_ASSIGNMENT_STATE",
+        400,
+        { state: assignment.state }
+      );
+    }
+  }
+
   async updateWorkerLocation(options: LocationUpdateOptions) {
     const { workerId, latitude, longitude, speed, batteryLevel, assignmentId } = options;
+    await this.assertTrackingAssignment(workerId, assignmentId);
+
     const now = Date.now();
     const lastPos = lastWorkerPositions.get(workerId);
 
-    // Determine thresholds based on whether worker is EN_ROUTE
     const isEnRoute = Boolean(assignmentId);
     const minDistanceMeters = isEnRoute ? 10 : 30;
     const maxAgeSeconds = isEnRoute ? 15 : 60;
@@ -46,14 +79,14 @@ export class LocationTrackingService {
       maxAgeSeconds
     );
 
+    await updateWorkerOnlineLocation(workerId, latitude, longitude);
+
     if (!isSignificant) {
       return { status: "SKIPPED_BELOW_THRESHOLD", latitude, longitude };
     }
 
-    // Update in-memory last position
     lastWorkerPositions.set(workerId, { latitude, longitude, timestamp: now });
 
-    // Store in PostgreSQL/PostGIS historical log
     const eventId = `loc_${now}_${Math.random().toString(36).substring(2, 7)}`;
     await db.insert(locationEvents).values({
       id: eventId,
@@ -69,22 +102,35 @@ export class LocationTrackingService {
     return { status: "RECORDED", latitude, longitude, isEnRoute };
   }
 
-  /**
-   * Retrieve worker location for an employer with strict privacy masking.
-   * If assignment is active and EN_ROUTE -> Return exact coordinates.
-   * Otherwise -> Return masked approximate coordinates (~1 km grid).
-   */
+  async getCurrentWorkerLocation(workerId: string): Promise<Coordinates | null> {
+    const redisLocation = await getWorkerOnlineLocation(workerId);
+    if (redisLocation) {
+      return {
+        latitude: redisLocation.latitude,
+        longitude: redisLocation.longitude,
+      };
+    }
+
+    const memoryLocation = lastWorkerPositions.get(workerId);
+    if (memoryLocation) {
+      return {
+        latitude: memoryLocation.latitude,
+        longitude: memoryLocation.longitude,
+      };
+    }
+
+    return null;
+  }
+
   async getWorkerLocationForEmployer(
     targetWorkerId: string,
     requestingEmployerId: string
   ): Promise<{ coordinates: Coordinates; isExact: boolean }> {
-    const lastPos = lastWorkerPositions.get(targetWorkerId);
-    const defaultCoords: Coordinates = { latitude: 35.7000, longitude: 51.3500 };
-    const rawCoords: Coordinates = lastPos
-      ? { latitude: lastPos.latitude, longitude: lastPos.longitude }
-      : defaultCoords;
+    const current = await this.getCurrentWorkerLocation(targetWorkerId);
+    if (!current) {
+      throw new AppError("موقعیت به‌روز نیروی کار در دسترس نیست.", "LOCATION_UNAVAILABLE", 404);
+    }
 
-    // Check if worker has an active EN_ROUTE assignment with this employer
     const activeAssignments = await db
       .select({
         assignmentId: shiftAssignments.id,
@@ -102,14 +148,10 @@ export class LocationTrackingService {
       )
       .limit(1);
 
-    const hasActiveAssignment = activeAssignments.length > 0;
-
-    if (hasActiveAssignment) {
-      // Employer is allowed to see exact real-time coordinates during active shift navigation
-      return { coordinates: rawCoords, isExact: true };
+    if (activeAssignments.length > 0) {
+      return { coordinates: current, isExact: true };
     }
 
-    // Pre-match / unassigned -> Mask exact location for privacy
-    return { coordinates: maskExactLocationToApproximate(rawCoords), isExact: false };
+    return { coordinates: maskExactLocationToApproximate(current), isExact: false };
   }
 }

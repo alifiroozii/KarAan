@@ -14,6 +14,7 @@ export type RealtimeEventName =
   | "worker.arrived"
   | "worker.checked_in"
   | "worker.checked_out"
+  | "worker.late_risk"
   | "no_show.detected"
   | "backfill.requested"
   | "timesheet.updated"
@@ -31,11 +32,36 @@ export interface RealtimeEventPayloads {
   "offer.created": { offerId: string; shiftSlotId: string; workerId: string };
   "offer.accepted": { offerId: string; assignmentId: string };
   "offer.expired": { offerId: string };
-  "assignment.updated": { assignmentId: string; state: string };
-  "worker.en_route": { assignmentId: string; workerId: string };
-  "worker.arrived": { assignmentId: string; workerId: string };
-  "worker.checked_in": { assignmentId: string; workerId: string; checkedInAt: string };
-  "worker.checked_out": { assignmentId: string; workerId: string; checkedOutAt: string };
+  "assignment.updated": { assignmentId: string; state: string; shiftId?: string };
+  "worker.en_route": {
+    assignmentId: string;
+    workerId: string;
+    shiftId?: string;
+    distanceMeters: number;
+    durationSeconds: number;
+    estimatedArrivalAt: string;
+    lateRisk: "ON_TIME" | "RISK_OF_LATE" | "LATE";
+  };
+  "worker.arrived": { assignmentId: string; workerId: string; shiftId?: string };
+  "worker.checked_in": {
+    assignmentId: string;
+    workerId: string;
+    shiftId?: string;
+    checkedInAt: string;
+  };
+  "worker.checked_out": {
+    assignmentId: string;
+    workerId: string;
+    shiftId?: string;
+    checkedOutAt: string;
+  };
+  "worker.late_risk": {
+    assignmentId: string;
+    workerId: string;
+    shiftId?: string;
+    lateRisk: "RISK_OF_LATE" | "LATE";
+    estimatedArrivalAt: string;
+  };
   "no_show.detected": { assignmentId: string; workerId: string };
   "backfill.requested": { shiftId: string; neededSlots: number };
   "timesheet.updated": { timesheetId: string; status: string };

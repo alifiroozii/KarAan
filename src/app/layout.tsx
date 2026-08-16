@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Vazirmatn } from "next/font/google";
 import { ThemeProvider } from "@/components/common/theme-provider";
+import { QueryProvider } from "@/components/common/query-provider";
 import "./globals.css";
 
 const vazirmatn = Vazirmatn({
@@ -37,7 +38,7 @@ export default function RootLayout({
     <html lang="fa" dir="rtl" className={vazirmatn.variable} suppressHydrationWarning>
       <body className="font-sans antialiased min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          {children}
+          <QueryProvider>{children}</QueryProvider>
         </ThemeProvider>
       </body>
     </html>
