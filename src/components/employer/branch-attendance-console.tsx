@@ -45,7 +45,7 @@ async function readResult<T>(response: Response): Promise<T> {
 
 export function BranchAttendanceConsole({ branchId }: { branchId: string }) {
   const [purpose, setPurpose] = useState<Purpose>("CHECK_IN");
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrImage, setQrImage] = useState<{ token: string; dataUrl: string } | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   const qrQuery = useQuery({
@@ -79,22 +79,25 @@ export function BranchAttendanceConsole({ branchId }: { branchId: string }) {
   }, []);
 
   useEffect(() => {
-    if (!qrQuery.data?.token) {
-      setQrDataUrl(null);
-      return;
-    }
+    const token = qrQuery.data?.token;
+    if (!token) return;
+
     let cancelled = false;
-    void QRCode.toDataURL(qrQuery.data.token, {
+    void QRCode.toDataURL(token, {
       width: 320,
       margin: 2,
       errorCorrectionLevel: "M",
-    }).then((url) => {
-      if (!cancelled) setQrDataUrl(url);
+    }).then((dataUrl) => {
+      if (!cancelled) setQrImage({ token, dataUrl });
     });
+
     return () => {
       cancelled = true;
     };
   }, [qrQuery.data?.token]);
+
+  const qrDataUrl =
+    qrImage?.token === qrQuery.data?.token ? qrImage.dataUrl : null;
 
   const qrSecondsLeft = useMemo(() => {
     if (!qrQuery.data) return 0;
