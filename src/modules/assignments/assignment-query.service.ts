@@ -31,6 +31,7 @@ export class AssignmentQueryService {
         locationName: shifts.locationName,
         latitude: shifts.latitude,
         longitude: shifts.longitude,
+        geofenceRadiusMeters: shifts.geofenceRadiusMeters,
         startAt: shifts.startAt,
         endAt: shifts.endAt,
         hourlyPayRials: shifts.hourlyPayRials,
