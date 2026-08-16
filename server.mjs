@@ -3,7 +3,10 @@ import next from "next";
 import { Server } from "socket.io";
 import postgres from "postgres";
 
-const dev = process.env.NODE_ENV !== "production";
+const productionFlag = process.argv.includes("--production");
+const dev = !productionFlag && process.env.NODE_ENV !== "production";
+if (!dev) process.env.NODE_ENV = "production";
+
 const hostname = process.env.HOSTNAME || "0.0.0.0";
 const port = Number(process.env.PORT || 3000);
 
@@ -153,7 +156,6 @@ const io = new Server(httpServer, {
   transports: ["websocket", "polling"],
 });
 
-// Domain services run in the same Node process and publish through this handle.
 globalThis.__karaanSocketIO = io;
 
 io.use(async (socket, nextSocket) => {
