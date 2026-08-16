@@ -43,6 +43,13 @@
       "when": 1786912100000,
       "tag": "0005_timesheet_engine",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786913500000,
+      "tag": "0006_break_overtime",
+      "breakpoints": true
     }
   ]
 }
