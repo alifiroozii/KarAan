@@ -18,11 +18,27 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        id: install
+        shell: bash
+        run: |
+          set +e
+          npm ci --no-audit --no-fund --verbose 2>&1 | tee npm-ci.log
+          status=${PIPESTATUS[0]}
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Upload npm install diagnostics
+        if: failure() && steps.install.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-ci-diagnostics
+          path: npm-ci.log
+          if-no-files-found: error
+          retention-days: 3
 
       - name: Typecheck
         run: npm run typecheck
