@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, or } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { branches, businessMembers } from "@/db/schema/employers";
 import { shiftAssignments, shifts } from "@/db/schema/shifts";
@@ -77,13 +77,6 @@ export class AssignmentQueryService {
     if (!shift) throw new AppError("شیفت پیدا نشد.", "NOT_FOUND", 404);
     if (shift.employerId === userId) return;
 
-    const accessConditions = [];
-    if (shift.businessId) {
-      accessConditions.push(
-        and(eq(businessMembers.businessId, shift.businessId), eq(businessMembers.userId, userId))
-      );
-    }
-
     if (shift.branchId) {
       const [managedBranch] = await db
         .select({ id: branches.id })
@@ -93,11 +86,16 @@ export class AssignmentQueryService {
       if (managedBranch) return;
     }
 
-    if (accessConditions.length > 0) {
+    if (shift.businessId) {
       const [member] = await db
         .select({ id: businessMembers.id })
         .from(businessMembers)
-        .where(or(...accessConditions))
+        .where(
+          and(
+            eq(businessMembers.businessId, shift.businessId),
+            eq(businessMembers.userId, userId)
+          )
+        )
         .limit(1);
       if (member) return;
     }
