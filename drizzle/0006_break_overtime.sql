@@ -22,6 +22,10 @@ ALTER TABLE "shift_assignments"
 CREATE INDEX IF NOT EXISTS "idx_assignments_effective_end_at"
   ON "shift_assignments" ("effective_end_at");
 
+ALTER TABLE "timesheets"
+  ADD COLUMN IF NOT EXISTS "unapproved_overtime_minutes" integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS "overtime_pay_rials" bigint NOT NULL DEFAULT 0;
+
 -- There can never be two concurrent active breaks for one assignment.
 CREATE UNIQUE INDEX IF NOT EXISTS "uq_breaks_active_assignment"
   ON "breaks" ("assignment_id")
