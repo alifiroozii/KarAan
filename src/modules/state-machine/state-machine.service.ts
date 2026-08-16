@@ -110,46 +110,27 @@ export const ASSIGNMENT_TRANSITION_MAP: Record<
 };
 
 export class StateMachineService {
-  /**
-   * Validates if a transition from currentShiftStatus to nextShiftStatus is allowed.
-   */
   canTransitionShift(from: ShiftStatus, to: ShiftStatus): boolean {
-    const allowed = SHIFT_TRANSITION_MAP[from] || [];
-    return allowed.includes(to);
+    return (SHIFT_TRANSITION_MAP[from] || []).includes(to);
   }
 
-  /**
-   * Validates if a transition from currentAssignmentState to nextAssignmentState is allowed.
-   */
   canTransitionAssignment(
     from: ShiftAssignmentState,
     to: ShiftAssignmentState
   ): boolean {
-    const allowed = ASSIGNMENT_TRANSITION_MAP[from] || [];
-    return allowed.includes(to);
+    return (ASSIGNMENT_TRANSITION_MAP[from] || []).includes(to);
   }
 
-  /**
-   * Executes a Shift status transition, throws AppError if invalid, updates DB & creates AuditLog.
-   */
   async transitionShift(
     shiftId: string,
     nextStatus: ShiftStatus,
     actorId: string,
     reason?: string
   ): Promise<{ previousStatus: ShiftStatus; newStatus: ShiftStatus }> {
-    const shiftList = await db
-      .select()
-      .from(shifts)
-      .where(eq(shifts.id, shiftId))
-      .limit(1);
-
-    if (shiftList.length === 0) {
-      throw new AppError("شیفت کاری یافت نشد.", "NOT_FOUND", 404);
-    }
+    const shiftList = await db.select().from(shifts).where(eq(shifts.id, shiftId)).limit(1);
+    if (shiftList.length === 0) throw new AppError("شیفت کاری یافت نشد.", "NOT_FOUND", 404);
 
     const currentStatus = shiftList[0].status as ShiftStatus;
-
     if (!this.canTransitionShift(currentStatus, nextStatus)) {
       throw new AppError(
         `تغییر وضعیت نامعتبر شیفت از ${currentStatus} به ${nextStatus}`,
@@ -159,11 +140,7 @@ export class StateMachineService {
     }
 
     await db.transaction(async (tx) => {
-      await tx
-        .update(shifts)
-        .set({ status: nextStatus, updatedAt: new Date() })
-        .where(eq(shifts.id, shiftId));
-
+      await tx.update(shifts).set({ status: nextStatus, updatedAt: new Date() }).where(eq(shifts.id, shiftId));
       await tx.insert(auditLogs).values({
         id: `aud_${crypto.randomUUID()}`,
         actorId,
@@ -177,9 +154,6 @@ export class StateMachineService {
     return { previousStatus: currentStatus, newStatus: nextStatus };
   }
 
-  /**
-   * Executes a ShiftAssignment state transition, throws AppError if invalid, updates DB & creates AuditLog.
-   */
   async transitionAssignment(
     assignmentId: string,
     nextState: ShiftAssignmentState,
@@ -197,7 +171,6 @@ export class StateMachineService {
     }
 
     const currentState = assignmentList[0].state as ShiftAssignmentState;
-
     if (!this.canTransitionAssignment(currentState, nextState)) {
       throw new AppError(
         `تغییر وضعیت نامعتبر اختصاص شیفت از ${currentState} به ${nextState}`,
@@ -207,22 +180,11 @@ export class StateMachineService {
     }
 
     await db.transaction(async (tx) => {
-      const updateData: Record<string, unknown> = {
-        state: nextState,
-        updatedAt: new Date(),
-      };
+      const updateData: Record<string, unknown> = { state: nextState, updatedAt: new Date() };
+      if (nextState === "CHECKED_IN") updateData.checkedInAt = new Date();
+      else if (nextState === "CHECKED_OUT" || nextState === "COMPLETED") updateData.checkedOutAt = new Date();
 
-      if (nextState === "CHECKED_IN") {
-        updateData.checkedInAt = new Date();
-      } else if (nextState === "CHECKED_OUT" || nextState === "COMPLETED") {
-        updateData.checkedOutAt = new Date();
-      }
-
-      await tx
-        .update(shiftAssignments)
-        .set(updateData)
-        .where(eq(shiftAssignments.id, assignmentId));
-
+      await tx.update(shiftAssignments).set(updateData).where(eq(shiftAssignments.id, assignmentId));
       await tx.insert(auditLogs).values({
         id: `aud_${crypto.randomUUID()}`,
         actorId,
