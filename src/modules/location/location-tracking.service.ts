@@ -25,8 +25,42 @@ export interface LocationUpdateOptions {
 }
 
 export class LocationTrackingService {
+  private async assertTrackingAssignment(workerId: string, assignmentId?: string) {
+    if (!assignmentId) return;
+
+    const [assignment] = await db
+      .select({ id: shiftAssignments.id, state: shiftAssignments.state })
+      .from(shiftAssignments)
+      .where(
+        and(
+          eq(shiftAssignments.id, assignmentId),
+          eq(shiftAssignments.workerId, workerId)
+        )
+      )
+      .limit(1);
+
+    if (!assignment) {
+      throw new AppError(
+        "این انتساب متعلق به حساب شما نیست.",
+        "FORBIDDEN",
+        403
+      );
+    }
+
+    if (!["EN_ROUTE", "ARRIVED", "CHECKED_IN", "ON_BREAK"].includes(assignment.state)) {
+      throw new AppError(
+        "ردیابی دقیق برای وضعیت فعلی شیفت مجاز نیست.",
+        "INVALID_ASSIGNMENT_STATE",
+        400,
+        { state: assignment.state }
+      );
+    }
+  }
+
   async updateWorkerLocation(options: LocationUpdateOptions) {
     const { workerId, latitude, longitude, speed, batteryLevel, assignmentId } = options;
+    await this.assertTrackingAssignment(workerId, assignmentId);
+
     const now = Date.now();
     const lastPos = lastWorkerPositions.get(workerId);
 
@@ -45,7 +79,6 @@ export class LocationTrackingService {
       maxAgeSeconds
     );
 
-    // Keep Redis as the current live position even when historical persistence is skipped.
     await updateWorkerOnlineLocation(workerId, latitude, longitude);
 
     if (!isSignificant) {
