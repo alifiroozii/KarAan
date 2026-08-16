@@ -8,7 +8,7 @@ export type TimesheetLifecycleStatus =
   | "VOID";
 
 const TRANSITIONS: Record<TimesheetLifecycleStatus, readonly TimesheetLifecycleStatus[]> = {
-  SUBMITTED: ["DISPUTED", "READY_FOR_SETTLEMENT", "VOID"],
+  SUBMITTED: ["ADJUSTMENT_REQUIRED", "DISPUTED", "READY_FOR_SETTLEMENT", "VOID"],
   APPROVED: ["READY_FOR_SETTLEMENT", "VOID"],
   DISPUTED: ["SUBMITTED", "ADJUSTMENT_REQUIRED", "VOID"],
   ADJUSTMENT_REQUIRED: ["SUBMITTED", "DISPUTED", "VOID"],
