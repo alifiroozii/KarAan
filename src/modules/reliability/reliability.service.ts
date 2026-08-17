@@ -317,7 +317,16 @@ export class ReliabilityService {
     });
 
     if (!output) throw new AppError("Reliability mutation تکمیل نشد.", "INTERNAL_SERVER_ERROR", 500);
-    const finalOutput = output as NonNullable<typeof output>;
+    const finalOutput = output as {
+      eventId: string;
+      previousScore: number;
+      resultingScore: number;
+      scoreDelta: number;
+      idempotent: boolean;
+      strikeId: string | null;
+      sanctionId: string | null;
+      sanctionType: string | null;
+    };
 
     if (!finalOutput.idempotent) {
       publishRealtimeEvent("user", input.workerId, "reliability.updated", {
