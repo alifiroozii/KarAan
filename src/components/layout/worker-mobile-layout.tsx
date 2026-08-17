@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Briefcase, Wallet, User, Smartphone } from "lucide-react";
+import { Bell, Briefcase, Wallet, User, Smartphone, Scale } from "lucide-react";
 import { ReliabilityBadge } from "../ui/domain-displays";
 
 export function WorkerMobileLayout({ children }: { children: React.ReactNode }) {
@@ -12,9 +12,11 @@ export function WorkerMobileLayout({ children }: { children: React.ReactNode }) 
     ? "NOTIFICATIONS"
     : pathname.startsWith("/worker/wallet")
       ? "WALLET"
-      : pathname.startsWith("/worker/profile")
-        ? "PROFILE"
-        : "ACTIVE";
+      : pathname.startsWith("/worker/disputes")
+        ? "DISPUTES"
+        : pathname.startsWith("/worker/profile")
+          ? "PROFILE"
+          : "ACTIVE";
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col justify-between max-w-md mx-auto border-x border-border shadow-2xl relative pb-20 selection:bg-indigo-500 selection:text-white">
@@ -36,16 +38,16 @@ export function WorkerMobileLayout({ children }: { children: React.ReactNode }) 
       <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-card/90 backdrop-blur-lg border-t border-border p-2 flex items-center justify-around z-50">
         <Link
           href="/worker"
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-xs font-medium transition-colors ${
+          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[11px] font-medium transition-colors ${
             activeNav === "ACTIVE" ? "text-indigo-400" : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <Briefcase className="w-5 h-5" />
-          <span>شیفت فعال</span>
+          <span>شیفت</span>
         </Link>
         <Link
           href="/worker/notifications"
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-xs font-medium transition-colors ${
+          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[11px] font-medium transition-colors ${
             activeNav === "NOTIFICATIONS" ? "text-indigo-400" : "text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -53,23 +55,32 @@ export function WorkerMobileLayout({ children }: { children: React.ReactNode }) 
           <span>اعلان‌ها</span>
         </Link>
         <Link
+          href="/worker/disputes"
+          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[11px] font-medium transition-colors ${
+            activeNav === "DISPUTES" ? "text-indigo-400" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Scale className="w-5 h-5" />
+          <span>اختلافات</span>
+        </Link>
+        <Link
           href="/worker/wallet"
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-xs font-medium transition-colors ${
+          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[11px] font-medium transition-colors ${
             activeNav === "WALLET" ? "text-indigo-400" : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <Wallet className="w-5 h-5" />
           <span>کیف پول</span>
         </Link>
-        <button
-          type="button"
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-xs font-medium transition-colors ${
+        <Link
+          href="/worker/profile"
+          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[11px] font-medium transition-colors ${
             activeNav === "PROFILE" ? "text-indigo-400" : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <User className="w-5 h-5" />
           <span>پروفایل</span>
-        </button>
+        </Link>
       </nav>
     </div>
   );

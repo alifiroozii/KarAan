@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
-import { requireRole } from "@/modules/auth/auth.middleware";
+import { eq, inArray, or } from "drizzle-orm";
+import { requirePermission, requireRole } from "@/modules/auth/auth.middleware";
 import { db } from "@/db";
-import { shifts } from "@/db/schema";
+import { branches, shifts } from "@/db/schema";
 import { EscrowService } from "@/modules/settlement/escrow.service";
 import { MatchingService } from "@/modules/matching/matching.service";
 import { createSuccessResponse, createErrorResponse, AppError } from "@/lib/errors";
@@ -66,8 +67,6 @@ export async function POST(req: NextRequest) {
         await matchingService.dispatchOffersForShift(result.shiftId);
         matchingDispatched = true;
       } catch {
-        // Shift + escrow are already committed. Returning success avoids a
-        // dangerous financial retry; matching can be retried operationally.
         matchingDispatched = false;
       }
     }
@@ -90,9 +89,27 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const shiftList = await db.select().from(shifts).limit(50);
+    const session = await requirePermission(req, "shift.view");
+    let shiftList;
+
+    if (session.role === "EMPLOYER") {
+      shiftList = await db.select().from(shifts).where(eq(shifts.employerId, session.userId)).limit(50);
+    } else if (session.role === "WORKER") {
+      shiftList = await db
+        .select()
+        .from(shifts)
+        .where(or(eq(shifts.status, "PUBLISHED"), eq(shifts.status, "MATCHING"), eq(shifts.status, "PARTIALLY_FILLED")))
+        .limit(50);
+    } else if (session.role === "BRANCH_MANAGER") {
+      const managed = await db.select({ id: branches.id }).from(branches).where(eq(branches.managerUserId, session.userId));
+      const ids = managed.map((item) => item.id);
+      shiftList = ids.length ? await db.select().from(shifts).where(inArray(shifts.branchId, ids)).limit(50) : [];
+    } else {
+      shiftList = await db.select().from(shifts).limit(50);
+    }
+
     const serialized = shiftList.map((shift) => ({
       ...shift,
       hourlyPayRials: shift.hourlyPayRials.toString(),
