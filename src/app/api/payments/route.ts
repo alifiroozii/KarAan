@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { requirePermission } from "@/modules/auth/auth.middleware";
 import { PaymentService } from "@/modules/payments/payment.service";
-import { createErrorResponse, createSuccessResponse } from "@/lib/errors";
+import { AppError, createErrorResponse, createSuccessResponse } from "@/lib/errors";
 
 const paymentService = new PaymentService();
 
@@ -16,8 +16,10 @@ export async function POST(req: NextRequest) {
     const session = await requirePermission(req, "payment.topup");
     const idempotencyKey = req.headers.get("idempotency-key")?.trim();
     if (!idempotencyKey) {
-      return createErrorResponse(
-        new Error("Idempotency-Key header is required for payment creation")
+      throw new AppError(
+        "برای ایجاد پرداخت ارسال Idempotency-Key الزامی است.",
+        "VALIDATION_ERROR",
+        422
       );
     }
 
