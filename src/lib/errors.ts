@@ -39,6 +39,9 @@ export type ErrorCode =
   | "MAX_ATTEMPTS_EXCEEDED"
   | "INVALID_OTP"
   | "ACCOUNT_BLOCKED"
+  | "DEMO_ACCESS_DISABLED"
+  | "INVALID_DEMO_ROLE"
+  | "DEMO_ACCOUNT_ROLE_CONFLICT"
   | "INTERNAL_SERVER_ERROR";
 
 export class AppError extends Error {
