@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   ArrowDownLeft,
@@ -130,9 +131,9 @@ export function WalletDashboard({ showTopup = false }: { showTopup?: boolean }) 
           </div>
 
           {showTopup && (
-            <a href="/employer/payments/new" className={cn(buttonVariants(), "shrink-0")}>
+            <Link href="/employer/payments/new" className={cn(buttonVariants(), "shrink-0")}>
               <Plus className="h-4 w-4" /> افزایش موجودی
-            </a>
+            </Link>
           )}
         </div>
 
