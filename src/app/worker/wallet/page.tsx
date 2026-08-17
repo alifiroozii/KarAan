@@ -1,5 +1,6 @@
 import { WorkerMobileLayout } from "@/components/layout/worker-mobile-layout";
 import { WalletDashboard } from "@/components/wallet/wallet-dashboard";
+import { PayoutRequestCard } from "@/components/wallet/payout-request-card";
 
 export default function WorkerWalletPage() {
   return (
@@ -8,10 +9,11 @@ export default function WorkerWalletPage() {
         <div>
           <h1 className="text-xl font-black">کیف پول من</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            مانده و گردش مالی ثبت‌شده در Ledger کارآن.
+            مانده، درآمد شیفت‌ها و درخواست‌های برداشت ثبت‌شده در Ledger کارآن.
           </p>
         </div>
         <WalletDashboard />
+        <PayoutRequestCard />
       </div>
     </WorkerMobileLayout>
   );
