@@ -19,6 +19,10 @@ const EVENTS: RealtimeEventName[] = [
   "no_show.overridden",
   "no_show.detected",
   "backfill.requested",
+  "backfill.offers_dispatched",
+  "backfill.filled",
+  "backfill.exhausted",
+  "backfill.cancelled",
   "timesheet.updated",
 ];
 
