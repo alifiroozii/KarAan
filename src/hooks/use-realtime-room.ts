@@ -23,6 +23,10 @@ const EVENTS: RealtimeEventName[] = [
   "backfill.filled",
   "backfill.exhausted",
   "backfill.cancelled",
+  "reliability.updated",
+  "strike.created",
+  "sanction.created",
+  "sanction.revoked",
   "timesheet.updated",
 ];
 
