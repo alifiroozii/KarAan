@@ -120,6 +120,7 @@ export class SettlementService {
           assignmentChanged: false,
           shiftId: record.shift.id,
           workerId: record.assignment.workerId,
+          employerUserId: record.shift.employerId,
         };
       }
 
@@ -292,6 +293,7 @@ export class SettlementService {
           timesheetId,
           assignmentId: record.assignment.id,
           shiftId: record.shift.id,
+          employerUserId: record.shift.employerId,
           workerGrossRials: amounts.workerGrossRials.toString(),
           workerCommissionBps,
           workerCommissionRials: amounts.workerCommissionRials.toString(),
@@ -315,13 +317,14 @@ export class SettlementService {
         assignmentChanged,
         shiftId: record.shift.id,
         workerId: record.assignment.workerId,
+        employerUserId: record.shift.employerId,
       };
     });
 
     if (outcome.kind === "settled") {
-      publishRealtimeEvent("user", outcome.settlement.employerWalletId, "wallet.updated", {
+      publishRealtimeEvent("user", outcome.employerUserId, "wallet.updated", {
         walletId: outcome.employerWalletMutation.walletId,
-        userId: actorUserId,
+        userId: outcome.employerUserId,
         availableRials: outcome.employerWalletMutation.availableRials.toString(),
         lockedEscrowRials: outcome.employerWalletMutation.lockedEscrowRials.toString(),
         transactionId: outcome.employerWalletMutation.transactionId,
@@ -351,8 +354,15 @@ export class SettlementService {
     return serializeSettlement(outcome.settlement, outcome.kind === "existing");
   }
 
-  /** Compatibility name retained, but now routes to the real ledger-safe settlement. */
-  async approveTimesheet(timesheetId: string, employerUserId: string) {
-    return this.settleTimesheet(timesheetId, employerUserId, "EMPLOYER");
+  /**
+   * Keep the legacy method fail-closed: approving work and settling money are
+   * intentionally separate permissions/actions.
+   */
+  async approveTimesheet(_timesheetId: string, _employerUserId: string): Promise<never> {
+    throw new AppError(
+      "ابتدا تایم‌شیت را تأیید کنید و سپس از مسیر مستقل Settlement استفاده کنید.",
+      "CONFLICT",
+      409
+    );
   }
 }
