@@ -3,9 +3,10 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { WorkerMobileLayout } from "@/components/layout/worker-mobile-layout";
-import { RatingStars, ReliabilityBadge } from "@/components/ui/domain-displays";
+import { RatingStars } from "@/components/ui/domain-displays";
 import { CurrentShiftCard } from "@/components/worker/current-shift-card";
 import { WorkerCancellationPanel } from "@/components/worker/worker-cancellation-panel";
+import { WorkerReliabilitySummary } from "@/components/worker/reliability-summary";
 import { WorkerShiftOffers } from "@/components/worker/shift-offers";
 import { AlertCircle, ArrowUpRight, Navigation, Wallet } from "lucide-react";
 import { useLocation } from "@/hooks/use-location";
@@ -18,10 +19,10 @@ export default function WorkerMobileDashboard() {
     <WorkerMobileLayout>
       <div className="p-4 sm:p-6 space-y-6 max-w-lg mx-auto selection:bg-indigo-500 selection:text-white">
         <div className="bg-card border border-border rounded-3xl p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-2">
               <RatingStars score={4.9} />
-              <ReliabilityBadge score={98.5} />
+              <WorkerReliabilitySummary />
             </div>
 
             <div className="flex items-center gap-2">
