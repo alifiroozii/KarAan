@@ -1,32 +1,25 @@
-# Wallet Ledger — Prompt 31
+# Wallet Ledger — Prompt 31/32
 
 ## Principle
 
-`wallet_transactions` is KarAan's financial source of truth. The `wallets` table is a read-optimized projection of available and locked balances. Business code must never mutate a balance without producing the corresponding immutable Ledger entry in the same database transaction.
+`wallet_transactions` is KarAan's financial source of truth. `wallets` is only a read-optimized balance projection. Business code must never mutate a Wallet balance without producing the corresponding immutable Ledger entry in the same database transaction.
 
 Legacy balance fields on domain profiles are deprecated financial data and are not authoritative.
 
-## Current scope
+## Balance buckets
 
-Prompt 31 implements:
+Prompt 32 makes the two Wallet projections explicit Ledger buckets:
 
-- one Wallet per user,
-- immutable posted Ledger entries,
-- exactly-once `WALLET_TOPUP` credit from a verified Payment,
-- Wallet balance projection,
-- authenticated Wallet summary and paginated history APIs,
-- realtime `wallet.updated`,
-- employer and worker Wallet UI,
-- projection reconciliation read check,
-- fail-closed legacy finance writers.
+- `AVAILABLE`: spendable/withdrawable balance.
+- `LOCKED_ESCROW`: money reserved for Shift obligations.
 
-Prompt 31 does not implement shift settlement, escrow locking/release, platform fees, worker earnings settlement or payouts. Those are Prompt 32.
+Each Ledger entry records its bucket and `balanceAfterRials` is the balance of that bucket after posting.
 
-## Exactly-once top-up
+`WalletLedgerService.reconcileProjection(userId)` independently reconciles both buckets and reports drift; it never silently rewrites financial history.
 
-A successful Payment credit is identified by the Payment id.
+## Exactly-once Payment top-up
 
-Deterministic Ledger key:
+A successful `WALLET_TOPUP` Payment is identified by Payment id.
 
 ```text
 wallet:payment-credit:<paymentId>
@@ -34,121 +27,161 @@ wallet:payment-credit:<paymentId>
 
 Protection layers:
 
-1. `wallet_transactions.idempotency_key` is globally unique.
-2. A partial unique index permits at most one successful `TOPUP/CREDIT` row per Payment `reference_id`.
-3. Callback processing is serialized per Payment with a PostgreSQL advisory transaction lock.
-4. Wallet creation is serialized per user.
-5. The Wallet row is locked before calculating the next balance.
+1. globally unique Ledger idempotency key,
+2. partial unique index permitting only one successful `TOPUP/CREDIT/AVAILABLE` entry per Payment reference,
+3. callback advisory lock,
+4. serialized Wallet creation,
+5. Wallet row lock before posting.
 
-Exact duplicate retries return the existing Ledger entry. A duplicate key that does not match the same wallet, Payment, direction and amount fails with `409 CONFLICT` instead of silently reusing unrelated money.
-
-## Payment transaction boundary
-
-For `WALLET_TOPUP`, Payment verification and Wallet posting are one local database transaction:
+Payment verification and Wallet credit remain one local database transaction:
 
 ```text
 Provider verify succeeds
   -> Payment SUCCESS
-  -> Ledger CREDIT/TOPUP
-  -> Wallet projection increment
+  -> Ledger CREDIT / AVAILABLE / TOPUP
+  -> Wallet AVAILABLE projection
   -> Payment.walletId linkage
   -> AuditLog
   -> callback receipt processed
 COMMIT
 ```
 
-Realtime events are emitted after commit.
+## Generic Ledger posting
 
-Provider calls are external and cannot participate in the DB transaction. If provider verification succeeds but the local transaction fails, the local transaction rolls back. A retry can receive the provider's already-verified result and post the Ledger entry safely. Idempotency prevents a second credit.
+All financial mutations now pass through `WalletLedgerService.postEntryInTransaction()` or a domain-specific wrapper around it.
 
-## Ledger entry rules
+Posted amounts are always positive `bigint` Rials. Direction determines the sign:
 
-Posted entries use positive `amountRials`; direction determines the sign of the financial effect.
+- `CREDIT`: increases the selected bucket.
+- `DEBIT`: decreases the selected bucket.
 
-- `CREDIT`: adds to available balance when applicable.
-- `DEBIT`: subtracts from available balance when applicable.
+A DEBIT that would make the selected bucket negative fails with `INSUFFICIENT_FUNDS` and the surrounding transaction rolls back.
 
-Prompt 31 creates only `CREDIT / TOPUP` entries. Future reference types already present in the schema are reserved for Prompt 32+ workflows and must use authoritative Ledger methods rather than direct table writes.
+## Prompt 32 transaction types
 
-Database constraints currently enforce:
+### Escrow lock
 
-- Wallet available balance >= 0.
-- Wallet locked balance >= 0.
-- Ledger amount > 0.
-- Ledger balance-after >= 0.
-- At most one successful TOPUP credit per Payment reference.
+```text
+DEBIT AVAILABLE / ESCROW_LOCK
+CREDIT LOCKED_ESCROW / ESCROW_LOCK
+```
 
-## Balance projection
+### Escrow release
 
-`wallets.availableRials` is updated in the same transaction as a Ledger mutation for fast UI/API reads.
+```text
+DEBIT LOCKED_ESCROW / ESCROW_RELEASE
+CREDIT AVAILABLE / ESCROW_RELEASE
+```
 
-`WalletLedgerService.reconcileProjection(userId)` independently sums successful Ledger CREDIT minus DEBIT entries and compares that total with the projection. It is read-only in Prompt 31; it reports drift rather than silently rewriting financial data.
+### Timesheet settlement
 
-Locked escrow reconciliation will be expanded in Prompt 32 when escrow Ledger semantics are implemented.
+Employer:
 
-## API
+```text
+DEBIT LOCKED_ESCROW / SETTLEMENT
+DEBIT LOCKED_ESCROW / PLATFORM_FEE
+```
 
-### Wallet summary
+Worker:
+
+```text
+CREDIT AVAILABLE / SETTLEMENT
+```
+
+Exactly one successful Worker Settlement credit is allowed per Timesheet reference.
+
+### Payout preparation
+
+```text
+DEBIT AVAILABLE / WITHDRAWAL
+```
+
+The debit reserves the requested money while the Payout row is `PENDING`. It does not mean a bank transfer has completed.
+
+## Database constraints
+
+The schema enforces:
+
+- Wallet AVAILABLE >= 0,
+- Wallet LOCKED_ESCROW >= 0,
+- Ledger amount > 0,
+- Ledger balance-after >= 0,
+- one successful TOPUP credit per Payment,
+- one successful Worker Settlement credit per Timesheet,
+- one Shift Escrow per Shift,
+- one Settlement per Timesheet and Assignment,
+- payout idempotency and one Ledger reservation per Payout.
+
+## APIs
+
+Wallet summary:
 
 ```text
 GET /api/wallet
 ```
 
-Requires `payment.view`. The authenticated session user is the Wallet owner; no user id is accepted from the client.
-
-Money is serialized as decimal strings.
-
-### Wallet transactions
+Wallet history:
 
 ```text
 GET /api/wallet/transactions?limit=25&cursor=...
 ```
 
-Uses keyset pagination ordered by `(createdAt DESC, id DESC)`. Cursor is an opaque base64url value representing the last row. Invalid cursors return validation error rather than falling back to another account or offset.
+History now exposes `bucket` so UI can distinguish AVAILABLE movement from Escrow movement.
+
+Shift Escrow:
+
+```text
+GET /api/shifts/:id/escrow
+POST /api/shifts/:id/escrow/release
+```
+
+Settlement:
+
+```text
+POST /api/timesheets/:id/settle
+```
+
+Payout preparation:
+
+```text
+POST /api/payouts
+GET /api/payouts
+```
+
+All user-owned routes derive ownership from the authenticated session; they do not accept a client-selected Wallet owner.
 
 ## Realtime
 
-A new posted Ledger mutation emits:
+Committed Wallet changes emit `wallet.updated` with:
 
-```text
-wallet.updated
-```
+- Wallet id,
+- actual user id,
+- AVAILABLE and LOCKED_ESCROW projections,
+- Ledger transaction id,
+- typed reason.
 
-Payload contains Wallet id, user id, available/locked amounts, transaction id and a typed reason. The event is published only after DB commit and invalidates Wallet summary/history queries.
+Events are published only after the database transaction commits.
 
 ## Legacy finance paths
 
-`FinanceService.lockEscrow()` and `FinanceService.settleAssignment()` intentionally fail closed with `409 CONFLICT` in Prompt 31. Their previous direct balance mutations could create divergence and incorrect settlement Ledger entries.
+`FinanceService.lockEscrow()` and `FinanceService.settleAssignment()` remain fail-closed. They are not re-enabled because they bypass the authoritative Ledger design.
 
-`SettlementService` also remains fail closed until the Prompt 32 financial workflow is implemented.
+`SettlementService.approveTimesheet()` also remains fail-closed. Operational Timesheet approval and financial Settlement are deliberately separate actions and permissions.
 
 ## UI
 
 Employer:
 
-- `/employer/wallet`
-- real balance in employer header
-- Ledger history
-- link to create a new top-up Payment
+- real Wallet balance and bucket-aware history,
+- Shift publication locks Escrow atomically,
+- `READY_FOR_SETTLEMENT` Timesheet exposes a separate Settlement action.
 
 Worker:
 
-- `/worker/wallet`
-- real Wallet balance/history
-- bottom navigation links to the Wallet route
+- real Wallet balance and history,
+- settled Shift earnings appear as Ledger credit,
+- Payout request UI reserves balance and explicitly reports that bank execution is still pending.
 
 There is no client-side fake financial success state.
 
-## Prompt 32 requirements
-
-Prompt 32 must extend the same Ledger for:
-
-- employer prefunding/escrow,
-- release/refund,
-- approved Timesheet settlement,
-- employer service fee,
-- worker commission policy (currently 0%),
-- worker Wallet credit,
-- payout preparation/execution.
-
-It must keep financial operations idempotent, auditable and transactionally consistent, and must not reintroduce direct profile balance mutations.
+For detailed Prompt 32 rules, see `docs/settlement-escrow.md`.
