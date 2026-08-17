@@ -67,16 +67,16 @@ export function AssignmentCancellationControl({
 
   const previewQuery = useQuery({
     queryKey: ["assignment", assignmentId, "cancellation-preview"],
-    queryFn: () =>
-      readJson<CancellationPreview>(fetch(`/api/assignments/${assignmentId}/cancel`)),
+    queryFn: async () =>
+      readJson<CancellationPreview>(await fetch(`/api/assignments/${assignmentId}/cancel`)),
     enabled: open,
     staleTime: 15_000,
   });
 
   const cancelMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: async () =>
       readJson<unknown>(
-        fetch(`/api/assignments/${assignmentId}/cancel`, {
+        await fetch(`/api/assignments/${assignmentId}/cancel`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ reasonCode, description: description.trim() || undefined }),
@@ -162,7 +162,7 @@ export function AssignmentCancellationControl({
         </div>
       )}
 
-      {preview?.scoreImpact !== 0 && (
+      {preview && preview.scoreImpact !== 0 && (
         <p className="rounded-xl bg-amber-500/10 p-2 text-xs text-amber-300">
           اثر پیشنهادی روی امتیاز اعتماد: {preview.scoreImpact.toLocaleString("fa-IR")} امتیاز. اعمال
           واقعی امتیاز در Reliability Engine انجام خواهد شد.
