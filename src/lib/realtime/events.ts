@@ -23,6 +23,9 @@ export type RealtimeEventName =
   | "overtime.declined"
   | "overtime.cancelled"
   | "overtime.expired"
+  | "no_show.potential"
+  | "no_show.finalized"
+  | "no_show.overridden"
   | "no_show.detected"
   | "backfill.requested"
   | "timesheet.updated"
@@ -124,6 +127,27 @@ export interface RealtimeEventPayloads {
     assignmentId: string;
     shiftId: string;
     workerId: string;
+  };
+  "no_show.potential": {
+    noShowEventId: string;
+    assignmentId: string;
+    workerId: string;
+    shiftId: string;
+    finalizesAt: string;
+  };
+  "no_show.finalized": {
+    noShowEventId: string;
+    assignmentId: string;
+    workerId: string;
+    shiftId: string;
+    previousState: string;
+  };
+  "no_show.overridden": {
+    noShowEventId: string;
+    assignmentId: string;
+    workerId: string;
+    shiftId: string;
+    reason: string;
   };
   "no_show.detected": { assignmentId: string; workerId: string };
   "backfill.requested": { shiftId: string; neededSlots: number };
