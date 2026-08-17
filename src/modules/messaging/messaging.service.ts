@@ -32,7 +32,6 @@ import { NotificationService } from "@/modules/notifications/notification.servic
 const CHAT_SEND_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_MESSAGES_PER_MINUTE = 20;
 const CLOSED_FOR_CHAT_STATES = new Set(["OFFERED", "VIEWED", "DECLINED", "REMOVED"]);
-
 const notifications = new NotificationService();
 
 type AssignmentContext = {
@@ -77,7 +76,6 @@ export class MessagingService {
       .innerJoin(users, eq(users.id, shiftAssignments.workerId))
       .where(eq(shiftAssignments.id, assignmentId))
       .limit(1);
-
     if (!row) throw new AppError("Assignment پیدا نشد.", "NOT_FOUND", 404);
     return row;
   }
@@ -104,7 +102,6 @@ export class MessagingService {
       .innerJoin(users, eq(users.id, shiftAssignments.workerId))
       .where(eq(conversations.id, conversationId))
       .limit(1);
-
     if (!row) throw new AppError("گفتگو پیدا نشد.", "NOT_FOUND", 404);
     return row;
   }
@@ -135,7 +132,6 @@ export class MessagingService {
         .limit(1);
       if (member) return true;
     }
-
     return false;
   }
 
@@ -173,33 +169,22 @@ export class MessagingService {
 
     const conversation = await db.transaction(async (tx) => {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`conversation:${assignmentId}`}))`);
-      const [existing] = await tx
-        .select()
-        .from(conversations)
-        .where(eq(conversations.assignmentId, assignmentId))
-        .limit(1);
+      const [existing] = await tx.select().from(conversations).where(eq(conversations.assignmentId, assignmentId)).limit(1);
       if (existing) return existing;
 
       const now = new Date();
       const [inserted] = await tx
         .insert(conversations)
-        .values({
-          id: deterministicConversationId,
-          assignmentId,
-          shiftId: context.shiftId,
-          createdAt: now,
-        })
+        .values({ id: deterministicConversationId, assignmentId, shiftId: context.shiftId, createdAt: now })
         .onConflictDoNothing()
         .returning();
 
       const [resolved] = inserted
         ? [inserted]
-        : await tx
-            .select()
-            .from(conversations)
-            .where(eq(conversations.assignmentId, assignmentId))
-            .limit(1);
-      if (!resolved) throw new AppError("ایجاد گفتگو انجام نشد.", "INTERNAL_ERROR", 500);
+        : await tx.select().from(conversations).where(eq(conversations.assignmentId, assignmentId)).limit(1);
+      if (!resolved) {
+        throw new AppError("ایجاد گفتگو انجام نشد.", "INTERNAL_SERVER_ERROR", 500);
+      }
 
       if (inserted) {
         created = true;
@@ -257,41 +242,53 @@ export class MessagingService {
     for (const row of rows) {
       if (await this.hasObjectAccess(row, actorUserId, role)) accessible.push(row);
     }
-
     if (accessible.length === 0) return { items: [] };
+
     const ids = accessible.map((row) => row.conversationId);
-    const summaries = await db
+    const activitySummaries = await db
       .select({
         conversationId: messages.conversationId,
-        unreadCount: count(messages.id),
-        lastMessageAt: sql<Date | null>`max(${messages.createdAt})`,
+        lastMessageAt: sql<string | null>`max(${messages.createdAt})::text`,
       })
+      .from(messages)
+      .where(inArray(messages.conversationId, ids))
+      .groupBy(messages.conversationId);
+
+    const unreadSummaries = await db
+      .select({ conversationId: messages.conversationId, unreadCount: count(messages.id) })
       .from(messages)
       .where(
         and(
           inArray(messages.conversationId, ids),
-          or(eq(messages.senderId, actorUserId), and(ne(messages.senderId, actorUserId), isNull(messages.readAt)))
+          ne(messages.senderId, actorUserId),
+          isNull(messages.readAt)
         )
       )
       .groupBy(messages.conversationId);
 
-    const summaryByConversation = new Map(summaries.map((summary) => [summary.conversationId, summary]));
-    const items = accessible.map((row) => {
-      const summary = summaryByConversation.get(row.conversationId);
-      return {
-        id: row.conversationId,
-        assignmentId: row.assignmentId,
-        assignmentState: row.assignmentState,
-        shiftId: row.shiftId,
-        shiftTitle: row.shiftTitle,
-        workerName: row.workerName,
-        counterpartLabel: row.workerId === actorUserId ? "کارفرما" : row.workerName,
-        canSend: hasPermission(role, "message.send") && !CLOSED_FOR_CHAT_STATES.has(row.assignmentState) && Date.now() <= row.shiftEndAt.getTime() + CHAT_SEND_GRACE_MS,
-        unreadCount: summary?.unreadCount ?? 0,
-        lastMessageAt: summary?.lastMessageAt?.toISOString() ?? null,
-        createdAt: row.conversationCreatedAt.toISOString(),
-      };
-    });
+    const activityByConversation = new Map(
+      activitySummaries.map((summary) => [summary.conversationId, summary.lastMessageAt])
+    );
+    const unreadByConversation = new Map(
+      unreadSummaries.map((summary) => [summary.conversationId, summary.unreadCount])
+    );
+
+    const items = accessible.map((row) => ({
+      id: row.conversationId,
+      assignmentId: row.assignmentId,
+      assignmentState: row.assignmentState,
+      shiftId: row.shiftId,
+      shiftTitle: row.shiftTitle,
+      workerName: row.workerName,
+      counterpartLabel: row.workerId === actorUserId ? "کارفرما" : row.workerName,
+      canSend:
+        hasPermission(role, "message.send") &&
+        !CLOSED_FOR_CHAT_STATES.has(row.assignmentState) &&
+        Date.now() <= row.shiftEndAt.getTime() + CHAT_SEND_GRACE_MS,
+      unreadCount: unreadByConversation.get(row.conversationId) ?? 0,
+      lastMessageAt: activityByConversation.get(row.conversationId) ?? null,
+      createdAt: row.conversationCreatedAt.toISOString(),
+    }));
 
     items.sort((a, b) => {
       const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : new Date(a.createdAt).getTime();
@@ -319,7 +316,9 @@ export class MessagingService {
         .from(messages)
         .where(and(eq(messages.id, cursor), eq(messages.conversationId, conversationId)))
         .limit(1);
-      if (!cursorMessage) throw new AppError("Cursor پیام‌ها معتبر نیست.", "VALIDATION_ERROR", 422);
+      if (!cursorMessage) {
+        throw new AppError("Cursor پیام‌ها معتبر نیست.", "VALIDATION_ERROR", 422);
+      }
       cursorCondition = or(
         lt(messages.createdAt, cursorMessage.createdAt),
         and(eq(messages.createdAt, cursorMessage.createdAt), lt(messages.id, cursorMessage.id))
@@ -364,7 +363,10 @@ export class MessagingService {
         assignmentId: context.assignmentId,
         shiftTitle: context.shiftTitle,
         workerName: context.workerName,
-        canSend: hasPermission(role, "message.send") && !CLOSED_FOR_CHAT_STATES.has(context.assignmentState) && Date.now() <= context.shiftEndAt.getTime() + CHAT_SEND_GRACE_MS,
+        canSend:
+          hasPermission(role, "message.send") &&
+          !CLOSED_FOR_CHAT_STATES.has(context.assignmentState) &&
+          Date.now() <= context.shiftEndAt.getTime() + CHAT_SEND_GRACE_MS,
       },
       items,
       nextCursor,
@@ -418,10 +420,16 @@ export class MessagingService {
     const messageId = deterministicId("msg", `${conversationId}:${actorUserId}:${safeKey}`);
     let created = false;
     const message = await db.transaction(async (tx) => {
-      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`message:${conversationId}:${actorUserId}`}))`);
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${`message:${conversationId}:${actorUserId}`}))`
+      );
       const [existing] = await tx.select().from(messages).where(eq(messages.id, messageId)).limit(1);
       if (existing) {
-        if (existing.conversationId !== conversationId || existing.senderId !== actorUserId || existing.content !== safeContent) {
+        if (
+          existing.conversationId !== conversationId ||
+          existing.senderId !== actorUserId ||
+          existing.content !== safeContent
+        ) {
           throw new AppError("این Idempotency-Key برای پیام دیگری استفاده شده است.", "CONFLICT", 409);
         }
         return existing;
@@ -439,10 +447,13 @@ export class MessagingService {
           )
         );
       if (recentCount >= MAX_MESSAGES_PER_MINUTE) {
-        throw new AppError("تعداد پیام‌های ارسالی بیش از حد مجاز است؛ کمی بعد دوباره تلاش کنید.", "RATE_LIMITED", 429);
+        throw new AppError(
+          "تعداد پیام‌های ارسالی بیش از حد مجاز است؛ کمی بعد دوباره تلاش کنید.",
+          "RATE_LIMITED",
+          429
+        );
       }
 
-      const now = new Date();
       const [inserted] = await tx
         .insert(messages)
         .values({
@@ -450,7 +461,7 @@ export class MessagingService {
           conversationId,
           senderId: actorUserId,
           content: safeContent,
-          createdAt: now,
+          createdAt: new Date(),
         })
         .returning();
       created = true;
