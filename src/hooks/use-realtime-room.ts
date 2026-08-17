@@ -30,6 +30,11 @@ const EVENTS: RealtimeEventName[] = [
   "timesheet.updated",
   "payment.updated",
   "wallet.updated",
+  "notification.created",
+  "notification.delivery.updated",
+  "dispute.updated",
+  "chat.message",
+  "chat.read",
 ];
 
 export function useRealtimeRoom(type: RoomType, id?: string | null) {

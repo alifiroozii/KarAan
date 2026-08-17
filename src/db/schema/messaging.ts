@@ -48,7 +48,7 @@ export const conversations = pgTable(
   },
   (table) => [
     index("idx_conversations_shift_id").on(table.shiftId),
-    index("idx_conversations_assignment_id").on(table.assignmentId),
+    uniqueIndex("uq_conversations_assignment_id").on(table.assignmentId),
   ]
 );
 
@@ -72,6 +72,7 @@ export const messages = pgTable(
   (table) => [
     index("idx_messages_conversation_id").on(table.conversationId),
     index("idx_messages_sender_id").on(table.senderId),
+    index("idx_messages_conversation_created_at").on(table.conversationId, table.createdAt),
   ]
 );
 

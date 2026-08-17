@@ -42,7 +42,8 @@ export type RealtimeEventName =
   | "wallet.updated"
   | "notification.created"
   | "notification.delivery.updated"
-  | "chat.message";
+  | "chat.message"
+  | "chat.read";
 
 export interface RealtimeEventPayloads {
   "worker.online": { workerId: string; timestamp: number };
@@ -227,5 +228,17 @@ export interface RealtimeEventPayloads {
     channel: "IN_APP" | "SMS" | "PUSH";
     status: "PENDING" | "PROCESSING" | "SENT" | "FAILED" | "SKIPPED";
   };
-  "chat.message": { conversationId: string; senderId: string; content: string };
+  "chat.message": {
+    conversationId: string;
+    messageId: string;
+    assignmentId: string;
+    senderId: string;
+    content: string;
+    createdAt: string;
+  };
+  "chat.read": {
+    conversationId: string;
+    readerId: string;
+    readAt: string;
+  };
 }

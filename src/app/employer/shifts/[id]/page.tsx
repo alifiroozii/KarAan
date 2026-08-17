@@ -5,6 +5,7 @@ import Link from "next/link";
 import { EmployerDashboardLayout } from "@/components/layout/employer-dashboard-layout";
 import { StatusBadge, CurrencyDisplay } from "@/components/ui/domain-displays";
 import { ShiftAssignmentsLive } from "@/components/employer/shift-assignments-live";
+import { EmployerAssignmentChatLauncher } from "@/components/messaging/employer-assignment-chat-launcher";
 import { Button } from "@/components/ui/button";
 import { Clock, Users, ShieldCheck, ArrowRight } from "lucide-react";
 
@@ -67,6 +68,7 @@ export default function ShiftDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
+        <EmployerAssignmentChatLauncher shiftId={shiftId} />
         <ShiftAssignmentsLive shiftId={shiftId} />
       </div>
     </EmployerDashboardLayout>

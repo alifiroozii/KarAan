@@ -3,20 +3,27 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Briefcase, Wallet, User, Smartphone, Scale } from "lucide-react";
+import { Bell, Briefcase, MessageCircle, Wallet, User, Smartphone, Scale } from "lucide-react";
 import { ReliabilityBadge } from "../ui/domain-displays";
 
 export function WorkerMobileLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const activeNav = pathname.startsWith("/worker/notifications")
-    ? "NOTIFICATIONS"
-    : pathname.startsWith("/worker/wallet")
-      ? "WALLET"
-      : pathname.startsWith("/worker/disputes")
-        ? "DISPUTES"
-        : pathname.startsWith("/worker/profile")
-          ? "PROFILE"
-          : "ACTIVE";
+  const activeNav = pathname.startsWith("/worker/messages")
+    ? "MESSAGES"
+    : pathname.startsWith("/worker/notifications")
+      ? "NOTIFICATIONS"
+      : pathname.startsWith("/worker/wallet")
+        ? "WALLET"
+        : pathname.startsWith("/worker/disputes")
+          ? "DISPUTES"
+          : pathname.startsWith("/worker/profile")
+            ? "PROFILE"
+            : "ACTIVE";
+
+  const itemClass = (active: boolean) =>
+    `flex flex-col items-center gap-1 p-1.5 rounded-xl text-[10px] font-medium transition-colors ${
+      active ? "text-indigo-400" : "text-muted-foreground hover:text-foreground"
+    }`;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col justify-between max-w-md mx-auto border-x border-border shadow-2xl relative pb-20 selection:bg-indigo-500 selection:text-white">
@@ -36,50 +43,23 @@ export function WorkerMobileLayout({ children }: { children: React.ReactNode }) 
       <main className="p-4 flex-1">{children}</main>
 
       <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-card/90 backdrop-blur-lg border-t border-border p-2 flex items-center justify-around z-50">
-        <Link
-          href="/worker"
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[11px] font-medium transition-colors ${
-            activeNav === "ACTIVE" ? "text-indigo-400" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Briefcase className="w-5 h-5" />
-          <span>شیفت</span>
+        <Link href="/worker" className={itemClass(activeNav === "ACTIVE")}>
+          <Briefcase className="w-5 h-5" /><span>شیفت</span>
         </Link>
-        <Link
-          href="/worker/notifications"
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[11px] font-medium transition-colors ${
-            activeNav === "NOTIFICATIONS" ? "text-indigo-400" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Bell className="w-5 h-5" />
-          <span>اعلان‌ها</span>
+        <Link href="/worker/messages" className={itemClass(activeNav === "MESSAGES")}>
+          <MessageCircle className="w-5 h-5" /><span>پیام</span>
         </Link>
-        <Link
-          href="/worker/disputes"
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[11px] font-medium transition-colors ${
-            activeNav === "DISPUTES" ? "text-indigo-400" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Scale className="w-5 h-5" />
-          <span>اختلافات</span>
+        <Link href="/worker/notifications" className={itemClass(activeNav === "NOTIFICATIONS")}>
+          <Bell className="w-5 h-5" /><span>اعلان</span>
         </Link>
-        <Link
-          href="/worker/wallet"
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[11px] font-medium transition-colors ${
-            activeNav === "WALLET" ? "text-indigo-400" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Wallet className="w-5 h-5" />
-          <span>کیف پول</span>
+        <Link href="/worker/disputes" className={itemClass(activeNav === "DISPUTES")}>
+          <Scale className="w-5 h-5" /><span>اختلاف</span>
         </Link>
-        <Link
-          href="/worker/profile"
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[11px] font-medium transition-colors ${
-            activeNav === "PROFILE" ? "text-indigo-400" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <User className="w-5 h-5" />
-          <span>پروفایل</span>
+        <Link href="/worker/wallet" className={itemClass(activeNav === "WALLET")}>
+          <Wallet className="w-5 h-5" /><span>کیف پول</span>
+        </Link>
+        <Link href="/worker/profile" className={itemClass(activeNav === "PROFILE")}>
+          <User className="w-5 h-5" /><span>پروفایل</span>
         </Link>
       </nav>
     </div>
