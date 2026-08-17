@@ -1,7 +1,15 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, CircleX, Clock3, ExternalLink, Loader2, ShieldCheck } from "lucide-react";
+import {
+  CheckCircle2,
+  CircleX,
+  Clock3,
+  ExternalLink,
+  Loader2,
+  ShieldCheck,
+  WalletCards,
+} from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { CurrencyDisplay } from "@/components/ui/domain-displays";
 import { useRealtimeRoom } from "@/hooks/use-realtime-room";
@@ -10,6 +18,7 @@ import { cn } from "@/lib/utils";
 interface PaymentView {
   paymentId: string;
   payerUserId: string;
+  walletId: string | null;
   amountRials: string;
   purpose: "WALLET_TOPUP" | "SHIFT_PREFUND";
   description: string;
@@ -18,9 +27,13 @@ interface PaymentView {
   refId: string | null;
   providerMessage: string | null;
   status: "PENDING" | "SUCCESS" | "FAILED";
+  walletPostingStatus:
+    | "NOT_APPLICABLE"
+    | "AWAITING_PAYMENT"
+    | "POSTED"
+    | "PENDING_LEDGER";
   verifiedAt: string | null;
   idempotent: boolean;
-  walletMutationDeferred: true;
 }
 
 async function fetchPayment(paymentId: string): Promise<PaymentView> {
@@ -36,14 +49,18 @@ export function PaymentStatusCard({ paymentId }: { paymentId: string }) {
   const query = useQuery({
     queryKey: ["payment", paymentId],
     queryFn: () => fetchPayment(paymentId),
-    refetchInterval: (state) => state.state.data?.status === "PENDING" ? 15_000 : false,
+    refetchInterval: (state) =>
+      state.state.data?.status === "PENDING" ||
+      state.state.data?.walletPostingStatus === "PENDING_LEDGER"
+        ? 15_000
+        : false,
   });
 
   useRealtimeRoom("user", query.data?.payerUserId);
 
   if (query.isLoading) {
     return (
-      <div className="rounded-3xl border border-border bg-card p-6 text-sm text-muted-foreground flex items-center gap-2">
+      <div className="flex items-center gap-2 rounded-3xl border border-border bg-card p-6 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" /> در حال بررسی وضعیت پرداخت...
       </div>
     );
@@ -57,11 +74,26 @@ export function PaymentStatusCard({ paymentId }: { paymentId: string }) {
   }
 
   const payment = query.data;
-  const statusMeta = payment.status === "SUCCESS"
-    ? { icon: CheckCircle2, title: "پرداخت تایید شد", className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200" }
-    : payment.status === "FAILED"
-      ? { icon: CircleX, title: "پرداخت ناموفق بود", className: "border-red-500/30 bg-red-500/10 text-red-200" }
-      : { icon: Clock3, title: "پرداخت در انتظار تایید", className: "border-amber-500/30 bg-amber-500/10 text-amber-200" };
+  const isWalletTopupPosted =
+    payment.purpose === "WALLET_TOPUP" && payment.walletPostingStatus === "POSTED";
+  const statusMeta =
+    payment.status === "SUCCESS"
+      ? {
+          icon: CheckCircle2,
+          title: isWalletTopupPosted ? "پرداخت و شارژ کیف پول انجام شد" : "پرداخت تایید شد",
+          className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+        }
+      : payment.status === "FAILED"
+        ? {
+            icon: CircleX,
+            title: "پرداخت ناموفق بود",
+            className: "border-red-500/30 bg-red-500/10 text-red-200",
+          }
+        : {
+            icon: Clock3,
+            title: "پرداخت در انتظار تایید",
+            className: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+          };
   const Icon = statusMeta.icon;
 
   return (
@@ -78,7 +110,9 @@ export function PaymentStatusCard({ paymentId }: { paymentId: string }) {
       <div className="grid gap-3 text-sm sm:grid-cols-2">
         <div className="rounded-2xl border border-border p-4">
           <div className="text-xs text-muted-foreground">مبلغ</div>
-          <div className="mt-2 font-bold"><CurrencyDisplay amountRials={BigInt(payment.amountRials)} /></div>
+          <div className="mt-2 font-bold">
+            <CurrencyDisplay amountRials={BigInt(payment.amountRials)} />
+          </div>
         </div>
         <div className="rounded-2xl border border-border p-4">
           <div className="text-xs text-muted-foreground">درگاه</div>
@@ -91,24 +125,38 @@ export function PaymentStatusCard({ paymentId }: { paymentId: string }) {
         {payment.refId && (
           <div className="rounded-2xl border border-border p-4 sm:col-span-2">
             <div className="text-xs text-muted-foreground">شماره مرجع درگاه</div>
-            <div className="mt-2 font-mono font-bold" dir="ltr">{payment.refId}</div>
+            <div className="mt-2 font-mono font-bold" dir="ltr">
+              {payment.refId}
+            </div>
           </div>
         )}
       </div>
 
       {payment.status === "PENDING" && payment.paymentUrl && (
-        <a
-          href={payment.paymentUrl}
-          rel="noreferrer"
-          className={cn(buttonVariants(), "w-full")}
-        >
+        <a href={payment.paymentUrl} rel="noreferrer" className={cn(buttonVariants(), "w-full")}>
           ادامه پرداخت در درگاه <ExternalLink className="mr-2 h-4 w-4" />
         </a>
       )}
 
+      {isWalletTopupPosted && (
+        <a
+          href="/employer/wallet"
+          className={cn(buttonVariants({ variant: "outline" }), "w-full")}
+        >
+          مشاهده کیف پول <WalletCards className="mr-2 h-4 w-4" />
+        </a>
+      )}
+
+      {payment.walletPostingStatus === "PENDING_LEDGER" && (
+        <div className="flex items-start gap-2 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-xs leading-6 text-amber-200">
+          <Clock3 className="mt-0.5 h-4 w-4 shrink-0" />
+          پرداخت درگاه تایید شده اما ثبت Ledger هنوز کامل نشده است. موجودی تا ثبت تراکنش مالی تغییر داده نمی‌شود.
+        </div>
+      )}
+
       <div className="flex items-start gap-2 rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4 text-xs leading-6 text-sky-200">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
-        این مرحله فقط نتیجه درگاه را ثبت می‌کند. افزایش موجودی کیف پول و ثبت Ledger در Prompt 31 انجام می‌شود و این Callback مستقیماً موجودی را تغییر نمی‌دهد.
+        شارژ کیف پول فقط با یک Ledger Entry یکتا برای همین Payment انجام می‌شود؛ Callback تکراری نمی‌تواند موجودی را دوباره افزایش دهد.
       </div>
     </section>
   );
