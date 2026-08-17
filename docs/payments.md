@@ -1,8 +1,8 @@
-# Payment Gateway — Prompt 30
+# Payment Gateway — Prompt 30 + Wallet handoff in Prompt 31
 
 ## Scope
 
-Prompt 30 owns only the external payment-gateway lifecycle:
+Prompt 30 owns the external payment-gateway lifecycle:
 
 1. create a Payment request,
 2. persist the selected provider and Authority,
@@ -12,23 +12,30 @@ Prompt 30 owns only the external payment-gateway lifecycle:
 6. persist the terminal Payment status and provider reference,
 7. expose the result to the authorized payer/finance staff.
 
-It does **not** credit a Wallet, create Wallet ledger entries, lock Shift escrow, settle a Timesheet, or create a Payout. Those mutations belong to Prompt 31/32 and must consume a verified Payment idempotently.
+Prompt 31 adds exactly one financial side effect for `WALLET_TOPUP`: after provider verification succeeds, the verified Payment is posted exactly once to the authoritative Wallet Ledger and the Wallet balance projection is updated in the same database transaction.
+
+Prompt 31 still does **not** settle a shift, calculate employer fees, pay a worker, execute a payout, or activate escrow operations. Those belong to Prompt 32.
 
 ## Source of truth
 
 - Gateway orchestration: `src/modules/payments/payment.service.ts`
+- Wallet posting: `src/modules/wallet/wallet-ledger.service.ts`
 - Provider contract: `src/infrastructure/payment/payment-adapter.interface.ts`
 - Mock provider: `src/infrastructure/payment/mock-payment.adapter.ts`
 - ZarinPal provider: `src/infrastructure/payment/zarinpal-payment.adapter.ts`
-- Persistent records: `payments`, `payment_attempts`, `payment_callbacks`
+- Persistent payment records: `payments`, `payment_attempts`, `payment_callbacks`
+- Financial ledger: `wallet_transactions`
+- Fast wallet projection: `wallets`
 
-The older `FinanceService.lockEscrow()` / `settleAssignment()` implementation is not part of the Prompt 30 callback path and must not be wired to a provider callback.
+`wallet_transactions` is the financial source of truth. `wallets.available_rials` and `wallets.locked_escrow_rials` are projections for fast reads and may only be changed together with the corresponding ledger mutation in an authoritative transaction.
+
+The old `FinanceService.lockEscrow()` / `settleAssignment()` paths fail closed so legacy code cannot bypass the Ledger. The legacy balance columns on employer profiles are not an authoritative financial source and must not be used for new reads/writes.
 
 ## Money model
 
 KarAan stores money as integer Rials (`bigint`). No JavaScript floating point value is used for persisted money.
 
-The current ZarinPal adapter converts the internal Rial amount to Toman immediately before the provider request/verification. Therefore gateway amounts must be multiples of 10 Rials. The Payment service also enforces minimum and maximum amounts before calling a provider.
+The current ZarinPal adapter converts the internal Rial amount to Toman immediately before provider request/verification. Gateway amounts therefore must be multiples of 10 Rials. PaymentService also enforces minimum and maximum amounts before calling a provider.
 
 ## Provider contract
 
@@ -41,7 +48,7 @@ Every provider implements:
 
 Provider selection is persisted on the Payment. Callback verification resolves the adapter from that persisted provider instead of blindly using the provider currently configured in the environment.
 
-Supported in Prompt 30:
+Supported now:
 
 - `MOCK`
 - `ZARINPAL`
@@ -87,7 +94,7 @@ Example body:
 }
 ```
 
-The public Prompt 30 route currently creates only `WALLET_TOPUP` Payment records. A successful gateway payment still does not mutate Wallet state.
+The public route currently creates `WALLET_TOPUP` Payment records. No Wallet mutation occurs when the request is created; wallet posting happens only after server-to-server verification succeeds.
 
 ### Creation idempotency
 
@@ -95,7 +102,7 @@ The key is scoped to the authenticated payer. A PostgreSQL advisory transaction 
 
 - Same key + exact same request -> existing Payment is returned.
 - Same key + different amount/purpose/reference/description/provider -> `409 CONFLICT`.
-- The generated gateway `paymentUrl` and Authority are persisted, so a retry does not request a second Authority from the provider.
+- The generated gateway `paymentUrl` and Authority are persisted, so retrying creation does not request a second Authority.
 
 ## Callback and verification
 
@@ -105,13 +112,11 @@ Endpoint:
 GET /api/payments/callback
 ```
 
-The callback route receives the internal `paymentId` and persisted provider identity through the server-generated callback URL. Provider callback parameters are parsed by the adapter.
-
-Before verification, PaymentService validates:
+Before verification PaymentService validates:
 
 - Payment exists,
-- callback provider matches the persisted Payment provider,
-- callback Authority exactly matches the persisted Payment Authority,
+- callback provider matches persisted provider,
+- callback Authority exactly matches persisted Authority,
 - callback status is present.
 
 A mismatched provider or Authority is rejected and never verified.
@@ -124,44 +129,61 @@ Callback receipts are persisted in `payment_callbacks` with a unique key derived
 paymentId + provider + authority + providerStatus
 ```
 
-A PostgreSQL advisory lock serializes processing per Payment.
+A PostgreSQL advisory lock serializes callback processing per Payment.
 
-If a callback receipt is already processed, the result is returned without invoking provider verification again. If the Payment is already `SUCCESS`, subsequent callbacks cannot repeat any business side effect.
+For a verified `WALLET_TOPUP`, Prompt 31 adds two independent exactly-once walls:
+
+1. deterministic ledger idempotency key `wallet:payment-credit:<paymentId>`,
+2. partial unique DB index allowing at most one successful `TOPUP/CREDIT` ledger entry for a Payment reference.
+
+A duplicate callback therefore returns the existing posted transaction rather than increasing balance again.
+
+### Verification and atomic Wallet posting
+
+On successful provider verification:
+
+1. Payment is updated to `SUCCESS`,
+2. `verifiedAt` and provider reference are persisted,
+3. for `WALLET_TOPUP`, WalletLedgerService posts a `TOPUP/CREDIT` entry,
+4. `wallets.availableRials` projection is updated,
+5. `payments.walletId` is linked,
+6. AuditLog is written,
+7. callback receipt is completed.
+
+Steps 1–6 run in the **same database transaction**. A ledger/database failure therefore rolls back the local Payment success transition instead of leaving a successful Payment with an uncredited Wallet.
+
+If the provider already accepted the payment but the local transaction rolled back, a later verification may return an already-verified provider response (for ZarinPal, code `101`). The same callback can retry; the ledger idempotency constraints still guarantee one credit.
+
+A Prompt-30-era Payment that is already `SUCCESS` but has no Wallet Ledger posting can also be safely repaired by replaying the callback or the WalletLedgerService reconciliation entrypoint.
 
 ### Verification outcomes
-
-For a successful provider verification:
-
-- Payment becomes `SUCCESS`,
-- provider reference id is stored,
-- provider status/message are stored,
-- `verifiedAt` is set,
-- AuditLog is written,
-- `payment.updated` is published after the transaction.
 
 For a definitive gateway/verification failure:
 
 - Payment becomes `FAILED`,
-- failure metadata is persisted.
+- failure metadata is persisted,
+- no Wallet entry is created.
 
 For a temporary provider/network exception during verification:
 
 - Payment remains `PENDING`,
 - the failed verify attempt is recorded,
 - the callback receipt remains retryable (`processedAt` stays null),
-- the same callback can safely retry later.
+- no Wallet entry is created.
 
-ZarinPal verification code `100` is handled as normal success; `101` is handled as already-verified/idempotent success.
+ZarinPal verification code `100` is normal success; `101` is already-verified/idempotent success.
 
 ## Attempts and audit trail
 
-`payment_attempts` records three attempt classes:
+`payment_attempts` records:
 
 - `REQUEST`
 - `CALLBACK`
 - `VERIFY`
 
-Raw secrets are not stored in the attempt payloads. Payment audit entries explicitly mark `walletMutationDeferred: true` for Prompt 30.
+Raw secrets are not stored in attempt payloads. `PAYMENT_VERIFIED` audit records may include the resulting `walletId` and `walletTransactionId` for a top-up.
+
+Wallet posting creates a separate `WALLET_PAYMENT_CREDITED` audit event.
 
 ## Mock gateway
 
@@ -171,7 +193,7 @@ Development/test can use:
 PAYMENT_PROVIDER=mock
 ```
 
-The mock adapter issues a namespaced Authority and routes the payer to `/api/payments/mock-gateway`. The page can simulate success or cancellation. Mock verification creates a deterministic reference from the Authority, which makes repeated verification testable and idempotent.
+The mock adapter issues a namespaced Authority and routes the payer to `/api/payments/mock-gateway`. The page can simulate success or cancellation. Mock verification creates a deterministic reference from Authority so repeated verification is testable.
 
 The mock gateway never performs a banking transaction.
 
@@ -179,27 +201,30 @@ The mock gateway never performs a banking transaction.
 
 - Payment creation requires `payment.topup`.
 - Payment detail requires `payment.view`.
-- A normal user can read only a Payment for which they are the payer.
-- `FINANCE_ADMIN`, `ADMIN`, and `SUPER_ADMIN` may read Payment details for operational support.
-- Gateway callback is public by necessity, but it cannot select amount, payer, provider, or Authority; all are checked against persisted server-side state.
+- A normal user can read only a Payment for which they are payer.
+- Wallet summary/history use the authenticated session user only; the API does not accept another user id.
+- `FINANCE_ADMIN`, `ADMIN`, and `SUPER_ADMIN` may read Payment details for operational support, but Prompt 31 does not introduce arbitrary balance-edit endpoints.
+- Gateway callback is public by necessity, but amount, payer, provider, Authority and target Payment are resolved/validated from persisted server state.
 
 ## Realtime
 
-Terminal Payment changes emit `payment.updated` only after the database transaction succeeds. TanStack Query invalidates the individual Payment and payment lists.
+Terminal Payment changes emit `payment.updated` after transaction success.
 
-## Migration
+A newly posted wallet mutation emits `wallet.updated` only after the transaction commits. TanStack Query invalidates Wallet summary/history and relevant Payment queries.
 
-`drizzle/0013_payment_gateway.sql`:
+## Migrations
 
-- adds Payment purpose/payer/provider metadata,
-- makes Wallet linkage nullable,
-- adds provider Authority uniqueness,
-- adds typed Payment attempts,
-- adds idempotent callback receipts,
-- refuses unsafe legacy data conditions instead of silently deleting records.
+`drizzle/0013_payment_gateway.sql` introduced the provider/payment callback lifecycle.
 
-The Drizzle journal also registers migration `0012_worker_relationships` before `0013_payment_gateway`.
+`drizzle/0014_wallet_ledger.sql` adds:
 
-## Prompt 31 handoff
+- Wallet transaction description/metadata,
+- non-negative wallet projection constraints,
+- positive ledger amount and non-negative balance-after constraints,
+- reference lookup index,
+- duplicate-data guard before migration,
+- unique posted TOPUP credit per Payment reference.
 
-Prompt 31 should introduce the authoritative Wallet ledger and an idempotent consumer of verified `WALLET_TOPUP` Payments. The recommended idempotency reference is the verified Payment id (or a deterministic key derived from it). It must guarantee exactly one Wallet credit for one successful Payment, even if Payment callbacks or consumers are retried.
+## Prompt 32 handoff
+
+Prompt 32 should build settlement, employer fees, worker credits, escrow movements and payout preparation **on top of WalletLedgerService**. It must not restore direct writes to legacy employer balance fields or invent a second financial balance source.
