@@ -38,6 +38,7 @@ export type RealtimeEventName =
   | "sanction.revoked"
   | "timesheet.updated"
   | "payment.updated"
+  | "wallet.updated"
   | "chat.message";
 
 export interface RealtimeEventPayloads {
@@ -198,6 +199,14 @@ export interface RealtimeEventPayloads {
     status: "PENDING" | "SUCCESS" | "FAILED";
     amountRials: string;
     purpose: "WALLET_TOPUP" | "SHIFT_PREFUND";
+  };
+  "wallet.updated": {
+    walletId: string;
+    userId: string;
+    availableRials: string;
+    lockedEscrowRials: string;
+    transactionId: string;
+    reason: "PAYMENT_TOPUP" | "SETTLEMENT" | "REFUND" | "ESCROW" | "PAYOUT" | "ADJUSTMENT";
   };
   "chat.message": { conversationId: string; senderId: string; content: string };
 }
