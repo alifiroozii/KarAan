@@ -28,6 +28,12 @@ export const sanctionTypeEnum = pgEnum("sanction_type", [
   "SHIFT_RESTRICTION",
 ]);
 
+export const noShowStatusEnum = pgEnum("no_show_status", [
+  "POTENTIAL",
+  "FINAL",
+  "OVERRIDDEN",
+]);
+
 export const cancellations = pgTable(
   "cancellations",
   {
@@ -82,22 +88,46 @@ export const noShowEvents = pgTable(
     workerId: text("worker_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    reportedByUserId: text("reported_by_user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    reportedByUserId: text("reported_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    status: noShowStatusEnum("status").default("POTENTIAL").notNull(),
+    previousAssignmentState: text("previous_assignment_state"),
+    detectionSource: text("detection_source").default("SYSTEM").notNull(),
+    gracePeriodMinutes: integer("grace_period_minutes").default(10).notNull(),
+    finalThresholdMinutes: integer("final_threshold_minutes").default(20).notNull(),
     reliabilityPenalty: numeric("reliability_penalty", {
       precision: 5,
       scale: 2,
     })
       .default("25.00")
       .notNull(),
+    strikeRecommended: integer("strike_recommended").default(1).notNull(),
+    detectedAt: timestamp("detected_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    finalizedAt: timestamp("finalized_at", { withTimezone: true }),
+    overriddenAt: timestamp("overridden_at", { withTimezone: true }),
+    resolvedByUserId: text("resolved_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    overrideReason: text("override_reason"),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
   (table) => [
-    index("idx_noshow_assignment_id").on(table.assignmentId),
+    uniqueIndex("uq_noshow_assignment_id").on(table.assignmentId),
     index("idx_noshow_worker_id").on(table.workerId),
+    index("idx_noshow_status").on(table.status),
+    index("idx_noshow_detected_at").on(table.detectedAt),
   ]
 );
 
