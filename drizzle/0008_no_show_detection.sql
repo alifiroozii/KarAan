@@ -51,6 +51,13 @@ CREATE UNIQUE INDEX IF NOT EXISTS "uq_noshow_assignment_id" ON "no_show_events" 
 CREATE INDEX IF NOT EXISTS "idx_noshow_status" ON "no_show_events" USING btree ("status");
 CREATE INDEX IF NOT EXISTS "idx_noshow_detected_at" ON "no_show_events" USING btree ("detected_at");
 --> statement-breakpoint
+ALTER TABLE "no_show_events"
+  DROP CONSTRAINT IF EXISTS "no_show_events_reported_by_user_id_users_id_fk";
+ALTER TABLE "no_show_events"
+  ADD CONSTRAINT "no_show_events_reported_by_user_id_users_id_fk"
+  FOREIGN KEY ("reported_by_user_id") REFERENCES "public"."users"("id")
+  ON DELETE set null ON UPDATE no action;
+--> statement-breakpoint
 DO $$ BEGIN
   ALTER TABLE "no_show_events"
     ADD CONSTRAINT "no_show_events_resolved_by_user_id_users_id_fk"
