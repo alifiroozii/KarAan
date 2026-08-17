@@ -1,5 +1,6 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
+import { backfillRequests } from "@/db/schema/backfill";
 import { branches, businessMembers } from "@/db/schema/employers";
 import { noShowEvents } from "@/db/schema/reliability";
 import { shiftAssignments, shifts } from "@/db/schema/shifts";
@@ -39,6 +40,7 @@ export class AssignmentQueryService {
         checkedOutAt: shiftAssignments.checkedOutAt,
         effectiveEndAt: shiftAssignments.effectiveEndAt,
         totalBreakMinutes: shiftAssignments.totalBreakMinutes,
+        agreedBonusRials: shiftAssignments.agreedBonusRials,
         shiftId: shifts.id,
         branchId: shifts.branchId,
         title: shifts.title,
@@ -73,6 +75,7 @@ export class AssignmentQueryService {
       ...row,
       effectiveEndAt: row.effectiveEndAt ?? row.endAt,
       hourlyPayRials: row.hourlyPayRials.toString(),
+      agreedBonusRials: row.agreedBonusRials.toString(),
       eta,
       noShowFinalizesAt: calculateNoShowFinalizesAt({
         status: row.noShowStatus,
@@ -146,17 +149,28 @@ export class AssignmentQueryService {
         noShowStatus: noShowEvents.status,
         noShowDetectedAt: noShowEvents.detectedAt,
         noShowFinalThresholdMinutes: noShowEvents.finalThresholdMinutes,
+        backfillRequestId: backfillRequests.id,
+        backfillStatus: backfillRequests.status,
+        backfillTrigger: backfillRequests.trigger,
+        backfillUrgentBonusRials: backfillRequests.urgentBonusRials,
+        backfillOffersCreated: backfillRequests.offersCreated,
+        backfillDispatchAttemptCount: backfillRequests.dispatchAttemptCount,
       })
       .from(shiftAssignments)
       .innerJoin(users, eq(users.id, shiftAssignments.workerId))
       .innerJoin(shifts, eq(shifts.id, shiftAssignments.shiftId))
       .leftJoin(noShowEvents, eq(noShowEvents.assignmentId, shiftAssignments.id))
+      .leftJoin(
+        backfillRequests,
+        eq(backfillRequests.sourceAssignmentId, shiftAssignments.id)
+      )
       .where(eq(shiftAssignments.shiftId, shiftId));
 
     return Promise.all(
       rows.map(async (row) => ({
         ...row,
         effectiveEndAt: row.effectiveEndAt ?? row.scheduledEndAt,
+        backfillUrgentBonusRials: (row.backfillUrgentBonusRials ?? 0n).toString(),
         eta: row.state === "EN_ROUTE" ? await getAssignmentEta(row.assignmentId) : null,
         noShowFinalizesAt: calculateNoShowFinalizesAt({
           status: row.noShowStatus,
