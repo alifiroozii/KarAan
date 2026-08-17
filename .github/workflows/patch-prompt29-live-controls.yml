@@ -1,0 +1,44 @@
+name: Temporary Prompt29 UI patch
+
+on:
+  push:
+    branches:
+      - agent/prompt-29-worker-relationships
+    paths:
+      - .github/workflows/patch-prompt29-live-controls.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/prompt-29-worker-relationships
+      - name: Patch live relationship controls
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/components/employer/shift-assignments-live.tsx')
+          s = p.read_text()
+          old_import = 'import { EmployerOvertimeControls } from "@/components/employer/overtime-controls";'
+          new_import = old_import + '\nimport { EmployerWorkerRelationshipControls } from "@/components/employer/worker-relationship-controls";'
+          if old_import not in s:
+              raise SystemExit('import anchor not found')
+          s = s.replace(old_import, new_import, 1)
+          anchor = '''                {cancellableStates.has(assignment.state) && (\n                  <AssignmentCancellationControl'''
+          insert = '''                <EmployerWorkerRelationshipControls\n                  assignmentId={assignment.assignmentId}\n                  workerUserId={assignment.workerId}\n                />\n\n                {cancellableStates.has(assignment.state) && (\n                  <AssignmentCancellationControl'''
+          if anchor not in s:
+              raise SystemExit('render anchor not found')
+          s = s.replace(anchor, insert, 1)
+          p.write_text(s)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/employer/shift-assignments-live.tsx
+          git commit -m "feat: show worker relationship controls in live operations"
+          git push origin HEAD:agent/prompt-29-worker-relationships
