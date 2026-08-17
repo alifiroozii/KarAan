@@ -25,17 +25,22 @@ interface WalletSummaryResponse {
   sourceOfTruth: "WALLET_LEDGER";
 }
 
+type WalletReferenceType =
+  | "ESCROW_LOCK"
+  | "ESCROW_RELEASE"
+  | "SETTLEMENT"
+  | "PLATFORM_FEE"
+  | "REFUND"
+  | "TOPUP"
+  | "WITHDRAWAL"
+  | "PENALTY";
+
 interface WalletTransactionResponse {
   transactionId: string;
   amountRials: string;
   direction: "CREDIT" | "DEBIT";
-  referenceType:
-    | "ESCROW_LOCK"
-    | "SETTLEMENT"
-    | "REFUND"
-    | "TOPUP"
-    | "WITHDRAWAL"
-    | "PENALTY";
+  bucket: "AVAILABLE" | "LOCKED_ESCROW";
+  referenceType: WalletReferenceType;
   referenceId: string | null;
   description: string;
   balanceAfterRials: string;
@@ -66,16 +71,22 @@ function formatTransactionDate(value: string): string {
   }).format(new Date(value));
 }
 
-function referenceLabel(type: WalletTransactionResponse["referenceType"]): string {
-  const labels: Record<WalletTransactionResponse["referenceType"], string> = {
+function referenceLabel(type: WalletReferenceType): string {
+  const labels: Record<WalletReferenceType, string> = {
     TOPUP: "شارژ کیف پول",
     ESCROW_LOCK: "قفل سپرده",
+    ESCROW_RELEASE: "آزادسازی سپرده",
     SETTLEMENT: "تسویه شیفت",
+    PLATFORM_FEE: "کارمزد پلتفرم",
     REFUND: "بازگشت وجه",
-    WITHDRAWAL: "برداشت",
+    WITHDRAWAL: "برداشت / رزرو برداشت",
     PENALTY: "جریمه",
   };
   return labels[type];
+}
+
+function bucketLabel(bucket: WalletTransactionResponse["bucket"]): string {
+  return bucket === "AVAILABLE" ? "موجودی آزاد" : "سپرده قفل‌شده";
 }
 
 export function WalletDashboard({ showTopup = false }: { showTopup?: boolean }) {
@@ -154,7 +165,7 @@ export function WalletDashboard({ showTopup = false }: { showTopup?: boolean }) 
               <CurrencyDisplay amountRials={BigInt(wallet.lockedEscrowRials)} />
             </div>
             <div className="mt-1 text-[11px] text-muted-foreground">
-              مدیریت Escrow در Prompt 32 فعال می‌شود.
+              بودجه شیفت و کارمزد رزروشده تا زمان تسویه یا آزادسازی در این بخش نگه‌داری می‌شود.
             </div>
           </div>
         </div>
@@ -164,7 +175,7 @@ export function WalletDashboard({ showTopup = false }: { showTopup?: boolean }) 
         <div className="mb-5">
           <h2 className="text-lg font-black">گردش حساب</h2>
           <p className="mt-1 text-xs leading-6 text-muted-foreground">
-            هر تغییر موجودی یک Ledger Entry مستقل و غیرتکراری دارد.
+            هر تغییر موجودی آزاد یا سپرده یک Ledger Entry مستقل و غیرتکراری دارد.
           </p>
         </div>
 
@@ -197,7 +208,7 @@ export function WalletDashboard({ showTopup = false }: { showTopup?: boolean }) 
                     <div className="min-w-0">
                       <div className="truncate text-sm font-bold">{transaction.description}</div>
                       <div className="mt-1 text-[11px] text-muted-foreground">
-                        {referenceLabel(transaction.referenceType)} · {formatTransactionDate(transaction.createdAt)}
+                        {referenceLabel(transaction.referenceType)} · {bucketLabel(transaction.bucket)} · {formatTransactionDate(transaction.createdAt)}
                       </div>
                     </div>
                   </div>
@@ -209,7 +220,7 @@ export function WalletDashboard({ showTopup = false }: { showTopup?: boolean }) 
                       </span>
                     </div>
                     <div className="mt-1 text-[11px] text-muted-foreground">
-                      مانده: <CurrencyDisplay amountRials={BigInt(transaction.balanceAfterRials)} />
+                      مانده {transaction.bucket === "AVAILABLE" ? "آزاد" : "سپرده"}: <CurrencyDisplay amountRials={BigInt(transaction.balanceAfterRials)} />
                     </div>
                   </div>
                 </div>
