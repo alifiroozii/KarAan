@@ -2,68 +2,15 @@
   "version": "7",
   "dialect": "postgresql",
   "entries": [
-    {
-      "idx": 0,
-      "version": "7",
-      "when": 1786636117988,
-      "tag": "0000_motionless_swordsman",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1786636304051,
-      "tag": "0001_good_gorilla_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1786636541710,
-      "tag": "0002_aberrant_bug",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1786636902598,
-      "tag": "0003_ancient_mariko_yashida",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1786637129420,
-      "tag": "0004_swift_dagger",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1786912100000,
-      "tag": "0005_timesheet_engine",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1786913500000,
-      "tag": "0006_break_overtime",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1786960000000,
-      "tag": "0007_cancellation_policy",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1786962000000,
-      "tag": "0008_no_show_detection",
-      "breakpoints": true
-    }
+    { "idx": 0, "version": "7", "when": 1786636117988, "tag": "0000_motionless_swordsman", "breakpoints": true },
+    { "idx": 1, "version": "7", "when": 1786636304051, "tag": "0001_good_gorilla_man", "breakpoints": true },
+    { "idx": 2, "version": "7", "when": 1786636541710, "tag": "0002_aberrant_bug", "breakpoints": true },
+    { "idx": 3, "version": "7", "when": 1786636902598, "tag": "0003_ancient_mariko_yashida", "breakpoints": true },
+    { "idx": 4, "version": "7", "when": 1786637129420, "tag": "0004_swift_dagger", "breakpoints": true },
+    { "idx": 5, "version": "7", "when": 1786912100000, "tag": "0005_timesheet_engine", "breakpoints": true },
+    { "idx": 6, "version": "7", "when": 1786913500000, "tag": "0006_break_overtime", "breakpoints": true },
+    { "idx": 7, "version": "7", "when": 1786960000000, "tag": "0007_cancellation_policy", "breakpoints": true },
+    { "idx": 8, "version": "7", "when": 1786962000000, "tag": "0008_no_show_detection", "breakpoints": true },
+    { "idx": 9, "version": "7", "when": 1786964000000, "tag": "0009_backfill_workflow", "breakpoints": true }
   ]
 }
