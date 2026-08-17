@@ -2,12 +2,10 @@ import { UserRole } from "./auth.service";
 import { AppError } from "@/lib/errors";
 
 export type Permission =
-  // Worker Permissions
   | "worker.profile.read"
   | "worker.profile.update"
   | "worker.availability.update"
   | "worker.documents.upload"
-  // Employer & Business Permissions
   | "employer.profile.read"
   | "employer.profile.update"
   | "business.create"
@@ -18,7 +16,6 @@ export type Permission =
   | "branch.read"
   | "branch.update"
   | "branch.delete"
-  // Shift Operations
   | "shift.create"
   | "shift.view"
   | "shift.publish"
@@ -28,7 +25,6 @@ export type Permission =
   | "shift.accept"
   | "shift.checkin"
   | "shift.checkout"
-  // Timesheets & Finance
   | "timesheet.view"
   | "timesheet.approve"
   | "timesheet.dispute"
@@ -36,16 +32,15 @@ export type Permission =
   | "payment.topup"
   | "payment.settle"
   | "payment.payout"
-  // Disputes & Support
   | "dispute.create"
   | "dispute.view"
   | "dispute.manage"
-  // Admin & System
+  | "message.view"
+  | "message.send"
   | "admin.users.manage"
   | "admin.audit.view"
   | "admin.system.manage";
 
-/** Role to granular permissions mapping matrix. */
 export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
   WORKER: [
     "worker.profile.read",
@@ -62,6 +57,8 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
     "payment.payout",
     "dispute.create",
     "dispute.view",
+    "message.view",
+    "message.send",
   ],
   EMPLOYER: [
     "employer.profile.read",
@@ -88,6 +85,8 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
     "payment.settle",
     "dispute.create",
     "dispute.view",
+    "message.view",
+    "message.send",
   ],
   BRANCH_MANAGER: [
     "employer.profile.read",
@@ -104,6 +103,8 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
     "timesheet.approve",
     "dispute.create",
     "dispute.view",
+    "message.view",
+    "message.send",
   ],
   SHIFT_SUPERVISOR: [
     "business.read",
@@ -111,6 +112,8 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
     "shift.view",
     "timesheet.view",
     "timesheet.approve",
+    "message.view",
+    "message.send",
   ],
   SUPPORT_AGENT: [
     "worker.profile.read",
@@ -120,6 +123,7 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
     "shift.view",
     "timesheet.view",
     "dispute.view",
+    "message.view",
     "admin.audit.view",
   ],
   DISPUTE_AGENT: [
@@ -163,6 +167,7 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
     "payment.payout",
     "dispute.view",
     "dispute.manage",
+    "message.view",
     "admin.users.manage",
     "admin.audit.view",
   ],
@@ -200,6 +205,7 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
     "dispute.create",
     "dispute.view",
     "dispute.manage",
+    "message.view",
     "admin.users.manage",
     "admin.audit.view",
     "admin.system.manage",

@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Bell, Building2, Clock, PlusCircle, Users, WalletCards, ListChecks, MapPinned, Scale } from "lucide-react";
+import { Bell, Building2, Clock, PlusCircle, Users, WalletCards, ListChecks, MapPinned, Scale, MessageCircle } from "lucide-react";
 import { CurrencyDisplay } from "../ui/domain-displays";
 import { useRealtimeRoom } from "@/hooks/use-realtime-room";
 
@@ -53,6 +53,7 @@ export function EmployerDashboardLayout({ children }: { children: React.ReactNod
             <Link href="/employer/branches" className={navClass(pathname.startsWith("/employer/branches"))}><MapPinned className="w-4 h-4" /><span>شعب و محل‌ها</span></Link>
             <Link href="/employer/live" className={navClass(pathname.startsWith("/employer/live"))}><Users className="w-4 h-4" /><span>رادار و مانیتورینگ</span></Link>
             <Link href="/employer/timesheets" className={navClass(pathname.startsWith("/employer/timesheets"))}><Clock className="w-4 h-4" /><span>تایم‌شیت‌ها و تسویه</span></Link>
+            <Link href="/employer/messages" className={navClass(pathname.startsWith("/employer/messages"))}><MessageCircle className="w-4 h-4" /><span>گفتگوها</span></Link>
             <Link href="/employer/disputes" className={navClass(pathname.startsWith("/employer/disputes"))}><Scale className="w-4 h-4" /><span>اختلافات</span></Link>
             <Link href="/employer/notifications" className={navClass(pathname.startsWith("/employer/notifications"))}><Bell className="w-4 h-4" /><span>اعلان‌ها</span></Link>
             <Link href="/employer/wallet" className={navClass(pathname.startsWith("/employer/wallet") || pathname.startsWith("/employer/payments"))}><WalletCards className="w-4 h-4" /><span>کیف پول و پرداخت‌ها</span></Link>

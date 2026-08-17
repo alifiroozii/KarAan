@@ -22,6 +22,11 @@ export function getQueryKeysToInvalidate(
     case "notification.created":
     case "notification.delivery.updated":
       return [["notifications"], ["notifications", "unread-count"]];
+    case "chat.message":
+    case "chat.read":
+      return [["conversations"], ["messages"]];
+    case "dispute.updated":
+      return [["disputes"]];
     case "reliability.updated":
     case "strike.created":
     case "sanction.created":
@@ -70,6 +75,8 @@ export function invalidateQueriesForRealtimeEvent(
   const paymentId = payload.paymentId as string | undefined;
   const walletId = payload.walletId as string | undefined;
   const notificationId = payload.notificationId as string | undefined;
+  const conversationId = payload.conversationId as string | undefined;
+  const disputeId = payload.disputeId as string | undefined;
 
   if (assignmentId) {
     keys.push(["assignment", assignmentId]);
@@ -105,6 +112,8 @@ export function invalidateQueriesForRealtimeEvent(
   if (timesheetId) keys.push(["timesheet", timesheetId]);
   if (event === "timesheet.updated") keys.push(["worker", "timesheets"]);
   if (paymentId) keys.push(["payment", paymentId]);
+  if (conversationId) keys.push(["messages", conversationId], ["conversation", conversationId]);
+  if (disputeId) keys.push(["dispute", disputeId]);
 
   const seen = new Set<string>();
   for (const queryKey of keys) {

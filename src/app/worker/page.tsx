@@ -8,6 +8,7 @@ import { CurrentShiftCard } from "@/components/worker/current-shift-card";
 import { WorkerCancellationPanel } from "@/components/worker/worker-cancellation-panel";
 import { WorkerReliabilitySummary } from "@/components/worker/reliability-summary";
 import { WorkerShiftOffers } from "@/components/worker/shift-offers";
+import { WorkerCurrentChatButton } from "@/components/messaging/worker-current-chat-button";
 import { AlertCircle, ArrowUpRight, Navigation, Wallet } from "lucide-react";
 import { useLocation } from "@/hooks/use-location";
 
@@ -41,6 +42,7 @@ export default function WorkerMobileDashboard() {
 
         <WorkerShiftOffers />
         <CurrentShiftCard />
+        <WorkerCurrentChatButton />
         <WorkerCancellationPanel />
 
         <div className="bg-card border border-border rounded-3xl p-5 space-y-3">
@@ -86,13 +88,13 @@ export default function WorkerMobileDashboard() {
             </div>
           </Link>
 
-          <div className="bg-card border border-border p-4 rounded-3xl flex items-center justify-between">
+          <Link href="/worker/wallet" className="bg-card border border-border p-4 rounded-3xl flex items-center justify-between hover:bg-muted transition-colors">
             <div className="flex items-center gap-2">
               <Wallet className="w-4 h-4 text-emerald-400" />
               <span className="text-xs font-bold text-foreground">کیف پول</span>
             </div>
-            <span className="text-[10px] text-muted-foreground font-bold">مرحله مالی</span>
-          </div>
+            <ArrowUpRight className="w-4 h-4 text-muted-foreground" />
+          </Link>
         </div>
       </div>
     </WorkerMobileLayout>
