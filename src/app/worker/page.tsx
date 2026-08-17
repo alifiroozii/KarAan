@@ -5,6 +5,7 @@ import Link from "next/link";
 import { WorkerMobileLayout } from "@/components/layout/worker-mobile-layout";
 import { RatingStars, ReliabilityBadge } from "@/components/ui/domain-displays";
 import { CurrentShiftCard } from "@/components/worker/current-shift-card";
+import { WorkerCancellationPanel } from "@/components/worker/worker-cancellation-panel";
 import { AlertCircle, ArrowUpRight, Navigation, Wallet } from "lucide-react";
 import { useLocation } from "@/hooks/use-location";
 
@@ -37,6 +38,7 @@ export default function WorkerMobileDashboard() {
         </div>
 
         <CurrentShiftCard />
+        <WorkerCancellationPanel />
 
         <div className="bg-card border border-border rounded-3xl p-5 space-y-3">
           <div className="flex items-center justify-between">
