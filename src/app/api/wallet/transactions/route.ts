@@ -58,6 +58,7 @@ export async function GET(req: NextRequest) {
         transactionId: item.transactionId,
         amountRials: item.amountRials.toString(),
         direction: item.direction,
+        bucket: item.bucket,
         referenceType: item.referenceType,
         referenceId: item.referenceId,
         description: item.description,
