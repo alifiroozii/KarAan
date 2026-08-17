@@ -20,6 +20,8 @@ export function getQueryKeysToInvalidate(
       return [["shifts"], ["employer", "shifts"], ["worker", "radar"]];
     case "timesheet.updated":
       return [["timesheets"], ["employer", "timesheets"], ["worker", "earnings"]];
+    case "payment.updated":
+      return [["payments"], ["employer", "payments"]];
     case "reliability.updated":
     case "strike.created":
     case "sanction.created":
@@ -64,6 +66,7 @@ export function invalidateQueriesForRealtimeEvent(
   const workerId = payload.workerId as string | undefined;
   const shiftId = payload.shiftId as string | undefined;
   const timesheetId = payload.timesheetId as string | undefined;
+  const paymentId = payload.paymentId as string | undefined;
 
   if (assignmentId) {
     keys.push(["assignment", assignmentId]);
@@ -94,6 +97,7 @@ export function invalidateQueriesForRealtimeEvent(
   }
   if (timesheetId) keys.push(["timesheet", timesheetId]);
   if (event === "timesheet.updated") keys.push(["worker", "timesheets"]);
+  if (paymentId) keys.push(["payment", paymentId]);
 
   const seen = new Set<string>();
   for (const queryKey of keys) {
