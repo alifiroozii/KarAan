@@ -1,8 +1,9 @@
 import { db } from "@/db";
+import { sanctions } from "@/db/schema/reliability";
 import { workerProfiles } from "@/db/schema/workers";
 import { shifts, shiftSlots, shiftOffers } from "@/db/schema/shifts";
 import { users } from "@/db/schema/users";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gt, isNull, lte, or } from "drizzle-orm";
 import { calculateDistanceKm } from "@/lib/maps/distance";
 import { AppError } from "@/lib/errors";
 
@@ -28,10 +29,8 @@ export class MatchingService {
   /**
    * Find nearby qualified workers for a published Shift.
    *
-   * Backfill callers can pass exclusions for the original/cancelled worker and
-   * workers already involved in the Shift. The underlying ranking remains the
-   * canonical Prompt 16 matching behavior so future matcher improvements are
-   * inherited by backfill automatically.
+   * Active Reliability sanctions are authoritative: a suspended/banned/restricted
+   * Worker cannot enter matching even if Redis presence still says AVAILABLE.
    */
   async findQualifiedWorkers(options: MatchingFilterOptions): Promise<MatchedWorkerResult[]> {
     const [shift] = await db.select().from(shifts).where(eq(shifts.id, options.shiftId)).limit(1);
@@ -41,6 +40,19 @@ export class MatchingService {
 
     const maxDistance = options.maxDistanceKm || 25;
     const excluded = new Set(options.excludeWorkerIds ?? []);
+    const now = new Date();
+
+    const activeSanctions = await db
+      .select({ workerId: sanctions.userId })
+      .from(sanctions)
+      .where(
+        and(
+          eq(sanctions.status, "ACTIVE"),
+          lte(sanctions.startAt, now),
+          or(isNull(sanctions.endAt), gt(sanctions.endAt, now))
+        )
+      );
+    for (const item of activeSanctions) excluded.add(item.workerId);
 
     const profiles = await db
       .select({
