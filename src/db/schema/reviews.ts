@@ -6,6 +6,7 @@ import {
   integer,
   jsonb,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { shiftAssignments } from "./shifts";
 import { users } from "./users";
@@ -18,6 +19,11 @@ export const rosterTypeEnum = pgEnum("roster_type", [
   "BLOCKED",
 ]);
 
+export const ratingDirectionEnum = pgEnum("rating_direction", [
+  "WORKER_TO_EMPLOYER",
+  "EMPLOYER_TO_WORKER",
+]);
+
 export const ratings = pgTable(
   "ratings",
   {
@@ -25,6 +31,7 @@ export const ratings = pgTable(
     assignmentId: text("assignment_id")
       .notNull()
       .references(() => shiftAssignments.id, { onDelete: "cascade" }),
+    direction: ratingDirectionEnum("direction").notNull(),
     evaluatorId: text("evaluator_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -39,9 +46,11 @@ export const ratings = pgTable(
       .notNull(),
   },
   (table) => [
+    uniqueIndex("uq_ratings_assignment_direction").on(table.assignmentId, table.direction),
     index("idx_ratings_assignment_id").on(table.assignmentId),
     index("idx_ratings_evaluator_id").on(table.evaluatorId),
     index("idx_ratings_evaluatee_id").on(table.evaluateeId),
+    index("idx_ratings_direction").on(table.direction),
   ]
 );
 
