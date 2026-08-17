@@ -28,6 +28,16 @@ describe("Prompt 32 financial architecture guards", () => {
     expect(settlement).not.toContain("workerProfiles");
   });
 
+  it("snapshots fee policy inside settlement and avoids double-counting worker commission", () => {
+    const settlement = source("src/modules/settlement/settlement.service.ts");
+    const escrow = source("src/modules/settlement/escrow.service.ts");
+    expect(settlement).toContain("await readCurrentPolicy(tx)");
+    expect(settlement).toContain("policy: { employerFeeBps, workerCommissionBps }");
+    expect(settlement).toContain("settledWorkerRials: sql`${shiftEscrows.settledWorkerRials} + ${amounts.workerNetRials}`");
+    expect(escrow).toContain("policy?: { employerFeeBps: number; workerCommissionBps: number }");
+    expect(escrow).toContain("input.policy ?? (await readPolicy(client))");
+  });
+
   it("models Escrow as a transfer between AVAILABLE and LOCKED_ESCROW buckets", () => {
     const ledger = source("src/modules/wallet/wallet-ledger.service.ts");
     expect(ledger).toContain('bucket: "AVAILABLE"');
