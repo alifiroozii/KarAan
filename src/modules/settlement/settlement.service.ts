@@ -27,6 +27,16 @@ const escrowService = new EscrowService();
 
 type SettlementRow = typeof settlements.$inferSelect;
 
+const TERMINAL_ASSIGNMENT_STATES = new Set<string>([
+  "COMPLETED",
+  "DECLINED",
+  "CANCELLED_BY_WORKER",
+  "CANCELLED_BY_EMPLOYER",
+  "NO_SHOW",
+  "REPLACED",
+  "REMOVED",
+]);
+
 function serializeSettlement(row: SettlementRow, idempotent = false) {
   return {
     settlementId: row.id,
@@ -118,6 +128,7 @@ export class SettlementService {
           employerWalletMutation: null,
           workerWalletMutation: null,
           assignmentChanged: false,
+          shiftCompleted: record.shift.status === "COMPLETED",
           shiftId: record.shift.id,
           workerId: record.assignment.workerId,
           employerUserId: record.shift.employerId,
@@ -283,6 +294,28 @@ export class SettlementService {
         assignmentChanged = true;
       }
 
+      const assignmentStates = await tx
+        .select({ state: shiftAssignments.state })
+        .from(shiftAssignments)
+        .where(eq(shiftAssignments.shiftId, record.shift.id));
+      const shiftCompleted =
+        assignmentStates.length > 0 &&
+        assignmentStates.every((item) => TERMINAL_ASSIGNMENT_STATES.has(item.state));
+      if (shiftCompleted && record.shift.status !== "COMPLETED") {
+        await tx
+          .update(shifts)
+          .set({ status: "COMPLETED", updatedAt: now })
+          .where(eq(shifts.id, record.shift.id));
+        await tx.insert(auditLogs).values({
+          id: `aud_${crypto.randomUUID()}`,
+          actorId: actorUserId,
+          entityName: "shift",
+          entityId: record.shift.id,
+          action: "SHIFT_COMPLETED_AFTER_SETTLEMENT",
+          details: { timesheetId, settlementId },
+        });
+      }
+
       await tx.insert(auditLogs).values({
         id: `aud_${crypto.randomUUID()}`,
         actorId: actorUserId,
@@ -306,6 +339,7 @@ export class SettlementService {
           employerSettlementLedgerId: employerSettlement.transactionId,
           employerFeeLedgerId,
           workerCreditLedgerId: workerCredit.transactionId,
+          shiftCompleted,
         },
       });
 
@@ -315,6 +349,7 @@ export class SettlementService {
         employerWalletMutation: employerFinalMutation,
         workerWalletMutation: workerCredit,
         assignmentChanged,
+        shiftCompleted,
         shiftId: record.shift.id,
         workerId: record.assignment.workerId,
         employerUserId: record.shift.employerId,
@@ -347,6 +382,16 @@ export class SettlementService {
           assignmentId: outcome.settlement.assignmentId,
           shiftId: outcome.shiftId,
           state: "COMPLETED",
+        });
+      }
+      if (outcome.shiftCompleted) {
+        publishRealtimeEvent("shift", outcome.shiftId, "shift.updated", {
+          shiftId: outcome.shiftId,
+          status: "COMPLETED",
+        });
+        publishRealtimeEvent("user", outcome.employerUserId, "shift.updated", {
+          shiftId: outcome.shiftId,
+          status: "COMPLETED",
         });
       }
     }
