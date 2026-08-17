@@ -18,3 +18,8 @@ export {
   enqueueBackfillForAssignment,
   enqueueBackfillReconcile,
 } from "./backfill.queue";
+export {
+  reliabilityQueue,
+  ensureReliabilityWorker,
+  ensureReliabilityInfrastructure,
+} from "./reliability.queue";
