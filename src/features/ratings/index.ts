@@ -1,1 +1,1 @@
-export * from "@/modules/reviews/reviews.service";
+export * from "@/modules/ratings/rating.service";
