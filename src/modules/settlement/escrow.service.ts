@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { and, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   auditLogs,
@@ -399,6 +399,14 @@ export class EscrowService {
       if (row.escrow.status === "RELEASED" || row.escrow.remainingRials === 0n) {
         return { escrow: row.escrow, walletMutation: null, idempotent: true };
       }
+      if (row.shift.status !== "CANCELLED" && row.shift.status !== "COMPLETED") {
+        throw new AppError(
+          "سپرده فقط پس از CANCELLED یا COMPLETED شدن شیفت قابل آزادسازی است.",
+          "CONFLICT",
+          409,
+          { shiftId, shiftStatus: row.shift.status }
+        );
+      }
 
       const assignmentRows = await tx
         .select({
@@ -409,7 +417,7 @@ export class EscrowService {
         .leftJoin(timesheets, eq(timesheets.assignmentId, shiftAssignments.id))
         .where(eq(shiftAssignments.shiftId, shiftId));
 
-      const terminalWithoutPay = new Set([
+      const terminalWithoutPay = new Set<string>([
         "DECLINED",
         "CANCELLED_BY_WORKER",
         "CANCELLED_BY_EMPLOYER",
@@ -456,6 +464,7 @@ export class EscrowService {
         action: "SHIFT_ESCROW_RELEASED",
         details: {
           shiftId,
+          shiftStatus: row.shift.status,
           releasedRials: amount.toString(),
           escrowDebitTransactionId: walletMutation.escrowDebitTransactionId,
           availableCreditTransactionId: walletMutation.availableCreditTransactionId,
