@@ -28,6 +28,7 @@ const EVENTS: RealtimeEventName[] = [
   "sanction.created",
   "sanction.revoked",
   "timesheet.updated",
+  "payment.updated",
 ];
 
 export function useRealtimeRoom(type: RoomType, id?: string | null) {
