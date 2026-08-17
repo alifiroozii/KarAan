@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { branches, businessMembers } from "@/db/schema/employers";
+import { noShowEvents } from "@/db/schema/reliability";
 import { shiftAssignments, shifts } from "@/db/schema/shifts";
 import { users } from "@/db/schema/users";
 import { getAssignmentEta } from "@/infrastructure/redis/redis-client";
@@ -16,6 +17,17 @@ const ACTIVE_WORKER_STATES = [
   "CHECKED_IN",
   "ON_BREAK",
 ] as const;
+
+function calculateNoShowFinalizesAt(input: {
+  status: string | null;
+  shiftStartAt: Date;
+  finalThresholdMinutes: number | null;
+}) {
+  if (input.status !== "POTENTIAL" || input.finalThresholdMinutes == null) return null;
+  return new Date(
+    input.shiftStartAt.getTime() + input.finalThresholdMinutes * 60_000
+  ).toISOString();
+}
 
 export class AssignmentQueryService {
   async getCurrentWorkerAssignment(workerUserId: string) {
@@ -37,9 +49,13 @@ export class AssignmentQueryService {
         startAt: shifts.startAt,
         endAt: shifts.endAt,
         hourlyPayRials: shifts.hourlyPayRials,
+        noShowStatus: noShowEvents.status,
+        noShowDetectedAt: noShowEvents.detectedAt,
+        noShowFinalThresholdMinutes: noShowEvents.finalThresholdMinutes,
       })
       .from(shiftAssignments)
       .innerJoin(shifts, eq(shifts.id, shiftAssignments.shiftId))
+      .leftJoin(noShowEvents, eq(noShowEvents.assignmentId, shiftAssignments.id))
       .where(
         and(
           eq(shiftAssignments.workerId, workerUserId),
@@ -58,6 +74,11 @@ export class AssignmentQueryService {
       effectiveEndAt: row.effectiveEndAt ?? row.endAt,
       hourlyPayRials: row.hourlyPayRials.toString(),
       eta,
+      noShowFinalizesAt: calculateNoShowFinalizesAt({
+        status: row.noShowStatus,
+        shiftStartAt: row.startAt,
+        finalThresholdMinutes: row.noShowFinalThresholdMinutes,
+      }),
     };
   }
 
@@ -121,10 +142,15 @@ export class AssignmentQueryService {
         checkedOutAt: shiftAssignments.checkedOutAt,
         effectiveEndAt: shiftAssignments.effectiveEndAt,
         scheduledEndAt: shifts.endAt,
+        shiftStartAt: shifts.startAt,
+        noShowStatus: noShowEvents.status,
+        noShowDetectedAt: noShowEvents.detectedAt,
+        noShowFinalThresholdMinutes: noShowEvents.finalThresholdMinutes,
       })
       .from(shiftAssignments)
       .innerJoin(users, eq(users.id, shiftAssignments.workerId))
       .innerJoin(shifts, eq(shifts.id, shiftAssignments.shiftId))
+      .leftJoin(noShowEvents, eq(noShowEvents.assignmentId, shiftAssignments.id))
       .where(eq(shiftAssignments.shiftId, shiftId));
 
     return Promise.all(
@@ -132,6 +158,11 @@ export class AssignmentQueryService {
         ...row,
         effectiveEndAt: row.effectiveEndAt ?? row.scheduledEndAt,
         eta: row.state === "EN_ROUTE" ? await getAssignmentEta(row.assignmentId) : null,
+        noShowFinalizesAt: calculateNoShowFinalizesAt({
+          status: row.noShowStatus,
+          shiftStartAt: row.shiftStartAt,
+          finalThresholdMinutes: row.noShowFinalThresholdMinutes,
+        }),
       }))
     );
   }
