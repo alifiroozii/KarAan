@@ -1,5 +1,6 @@
 import { RealtimeEventName, RealtimeEventPayloads } from "./events";
 import { formatRoomName, RoomType, authorizeRoomJoin } from "./rooms";
+import { publishDistributedRealtimeEvent } from "./distributed-bus";
 
 export interface SocketConnectionSession {
   socketId: string;
@@ -34,9 +35,9 @@ function getSocketTransport(): SocketIoTransport | undefined {
 /**
  * Realtime publication abstraction used by domain services.
  *
- * In tests it remains observable through subscribe(). In the self-hosted
- * runtime server.mjs injects the actual Socket.IO server on globalThis, so the
- * same publication is forwarded to an authenticated Socket.IO room.
+ * Local listeners/socket clients receive the event synchronously. The same
+ * envelope is then published best-effort to Redis so other Socket.IO runtime
+ * instances can fan it out to their own authenticated rooms.
  */
 export class RealtimeServerManager {
   private connections = new Map<string, SocketConnectionSession>();
@@ -91,6 +92,8 @@ export class RealtimeServerManager {
 
     const transport = getSocketTransport();
     transport?.to(room).emit(event, payload);
+
+    void publishDistributedRealtimeEvent(envelope);
 
     let recipientCount = 0;
     for (const session of this.connections.values()) {
