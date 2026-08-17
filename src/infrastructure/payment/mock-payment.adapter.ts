@@ -1,37 +1,50 @@
-import {
+import crypto from "crypto";
+import type {
   IPaymentAdapter,
+  PaymentCallbackPayload,
   PaymentRequestParams,
   PaymentRequestResult,
   PaymentVerifyResult,
 } from "./payment-adapter.interface";
 
 export class MockPaymentAdapter implements IPaymentAdapter {
-  async requestPayment(
-    params: PaymentRequestParams
-  ): Promise<PaymentRequestResult> {
-    const mockAuthority = `MOCK_AUTH_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    console.log(
-      `[MockPayment] Payment requested: ${params.amountRials} Rials for "${params.description}"`
-    );
+  readonly provider = "MOCK" as const;
 
+  async requestPayment(params: PaymentRequestParams): Promise<PaymentRequestResult> {
+    const authority = `MOCK_${crypto.randomUUID()}`;
     return {
-      paymentUrl: `/api/finance/mock-gateway?authority=${mockAuthority}&amount=${params.amountRials}&callback=${encodeURIComponent(params.callbackUrl)}`,
-      authority: mockAuthority,
+      paymentUrl: `/api/payments/mock-gateway?authority=${encodeURIComponent(authority)}`,
+      authority,
+      statusCode: 100,
+      message: "Mock payment created",
     };
   }
 
   async verifyPayment(
     authority: string,
-    amountRials: bigint
+    _amountRials: bigint
   ): Promise<PaymentVerifyResult> {
-    console.log(
-      `[MockPayment] Payment verified for authority: ${authority}, amount: ${amountRials} Rials`
-    );
+    if (!authority.startsWith("MOCK_")) {
+      return {
+        success: false,
+        statusCode: 400,
+        message: "Invalid mock authority",
+      };
+    }
+
+    const digest = crypto.createHash("sha256").update(authority).digest("hex").slice(0, 12);
     return {
       success: true,
-      refId: `REF_${Math.floor(10000000 + Math.random() * 90000000)}`,
+      refId: `MOCKREF_${digest}`,
       statusCode: 100,
-      message: "پرداخت با موفقیت انجام شد (Mock)",
+      message: "پرداخت آزمایشی با موفقیت تایید شد.",
+    };
+  }
+
+  parseCallback(params: Record<string, string | undefined>): PaymentCallbackPayload {
+    return {
+      authority: params.Authority ?? params.authority ?? "",
+      status: (params.Status ?? params.status ?? "").toUpperCase(),
     };
   }
 }
