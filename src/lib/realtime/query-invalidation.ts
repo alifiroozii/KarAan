@@ -33,6 +33,11 @@ export function getQueryKeysToInvalidate(
     case "worker.checked_in":
     case "worker.checked_out":
     case "worker.late_risk":
+    case "no_show.potential":
+    case "no_show.finalized":
+    case "no_show.overridden":
+    case "no_show.detected":
+    case "backfill.requested":
     case "assignment.updated":
       return [["worker", "current-shift"], ["employer", "live"], ["employer", "shifts"]];
     default:
@@ -57,7 +62,12 @@ export function invalidateQueriesForRealtimeEvent(
     if (event.startsWith("worker.break_")) keys.push(["worker", "break", assignmentId]);
   }
   if (workerId) keys.push(["worker", workerId]);
-  if (shiftId) keys.push(["shift", shiftId]);
+  if (shiftId) {
+    keys.push(["shift", shiftId]);
+    if (event.startsWith("no_show.") || event === "backfill.requested") {
+      keys.push(["shift", shiftId, "assignments"]);
+    }
+  }
   if (timesheetId) keys.push(["timesheet", timesheetId]);
   if (event === "timesheet.updated") keys.push(["worker", "timesheets"]);
 
