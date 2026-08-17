@@ -6,7 +6,10 @@ import {
   bigint,
   doublePrecision,
   numeric,
+  integer,
+  jsonb,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { shiftAssignments } from "./shifts";
@@ -35,18 +38,37 @@ export const cancellations = pgTable(
     cancelledByUserId: text("cancelled_by_user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    cancelledBySide: text("cancelled_by_side").notNull(),
     reason: text("reason").notNull(),
+    reasonCode: text("reason_code").notNull(),
+    description: text("description"),
     hoursBeforeStart: doublePrecision("hours_before_start").notNull(),
+    minutesBeforeStart: integer("minutes_before_start").notNull(),
+    isLate: integer("is_late").default(0).notNull(),
     penaltyRials: bigint("penalty_rials", { mode: "bigint" })
       .default(sql`0`)
+      .notNull(),
+    workerCompensationRials: bigint("worker_compensation_rials", {
+      mode: "bigint",
+    })
+      .default(sql`0`)
+      .notNull(),
+    scoreImpact: numeric("score_impact", { precision: 5, scale: 2 })
+      .default("0.00")
+      .notNull(),
+    policySnapshot: jsonb("policy_snapshot")
+      .$type<Record<string, unknown>>()
+      .default({})
       .notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
   (table) => [
-    index("idx_cancellations_assignment_id").on(table.assignmentId),
+    uniqueIndex("uq_cancellations_assignment_id").on(table.assignmentId),
     index("idx_cancellations_user_id").on(table.cancelledByUserId),
+    index("idx_cancellations_side").on(table.cancelledBySide),
+    index("idx_cancellations_created_at").on(table.createdAt),
   ]
 );
 
