@@ -34,6 +34,7 @@ export type Permission =
   | "timesheet.dispute"
   | "payment.view"
   | "payment.topup"
+  | "payment.settle"
   | "payment.payout"
   // Disputes & Support
   | "dispute.create"
@@ -44,9 +45,7 @@ export type Permission =
   | "admin.audit.view"
   | "admin.system.manage";
 
-/**
- * Role to Granular Permissions Mapping Matrix (RBAC)
- */
+/** Role to granular permissions mapping matrix. */
 export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
   WORKER: [
     "worker.profile.read",
@@ -86,6 +85,7 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
     "timesheet.dispute",
     "payment.view",
     "payment.topup",
+    "payment.settle",
     "dispute.create",
     "dispute.view",
   ],
@@ -138,6 +138,7 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
     "timesheet.view",
     "payment.view",
     "payment.topup",
+    "payment.settle",
     "payment.payout",
     "admin.audit.view",
   ],
@@ -158,6 +159,8 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
     "timesheet.view",
     "timesheet.approve",
     "payment.view",
+    "payment.settle",
+    "payment.payout",
     "dispute.view",
     "dispute.manage",
     "admin.users.manage",
@@ -192,6 +195,7 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
     "timesheet.dispute",
     "payment.view",
     "payment.topup",
+    "payment.settle",
     "payment.payout",
     "dispute.create",
     "dispute.view",
@@ -202,17 +206,11 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, Permission[]> = {
   ],
 };
 
-/**
- * Check if a role possesses a specific granular permission.
- */
 export function hasPermission(role: UserRole, permission: Permission): boolean {
   const permissions = ROLE_PERMISSIONS_MAP[role] || [];
   return permissions.includes(permission);
 }
 
-/**
- * Asserts that a role possesses a specific permission or throws 403 Forbidden.
- */
 export function assertPermission(role: UserRole, permission: Permission): void {
   if (!hasPermission(role, permission)) {
     throw new AppError(
@@ -224,19 +222,12 @@ export function assertPermission(role: UserRole, permission: Permission): void {
   }
 }
 
-/**
- * Object-level Authorization Check (Ownership Enforcement).
- * Ensures a user only accesses resources they own unless they are an ADMIN/SUPER_ADMIN.
- */
 export function assertOwnership(
   actorUserId: string,
   resourceOwnerId: string,
   actorRole?: UserRole
 ): void {
-  if (actorRole === "SUPER_ADMIN" || actorRole === "ADMIN") {
-    return; // System Administrators override ownership
-  }
-
+  if (actorRole === "SUPER_ADMIN" || actorRole === "ADMIN") return;
   if (actorUserId !== resourceOwnerId) {
     throw new AppError(
       "شما مجوز دسترسی یا تغییر اطلاعات کاربر دیگری را ندارید.",
