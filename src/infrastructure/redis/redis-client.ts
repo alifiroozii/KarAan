@@ -32,9 +32,7 @@ export async function ensureRedisConnected(): Promise<void> {
   if (redis.status === "wait" || redis.status === "end") {
     await redis.connect();
   }
-  if (redis.status !== "ready") {
-    await redis.ping();
-  }
+  await redis.ping();
 }
 
 export async function updateWorkerOnlineLocation(
