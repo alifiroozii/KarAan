@@ -26,6 +26,7 @@ const ledger = new WalletLedgerService();
 const escrowService = new EscrowService();
 
 type SettlementRow = typeof settlements.$inferSelect;
+type FinanceClient = Pick<typeof db, "select" | "insert" | "update" | "execute">;
 
 const TERMINAL_ASSIGNMENT_STATES = new Set<string>([
   "COMPLETED",
@@ -70,13 +71,13 @@ function readBps(value: unknown, fallback: number): number {
     : fallback;
 }
 
-async function readCurrentPolicy() {
-  const [fee] = await db
+async function readCurrentPolicy(client: FinanceClient) {
+  const [fee] = await client
     .select({ value: systemSettings.value })
     .from(systemSettings)
     .where(eq(systemSettings.key, "settlement.employer_fee_bps"))
     .limit(1);
-  const [commission] = await db
+  const [commission] = await client
     .select({ value: systemSettings.value })
     .from(systemSettings)
     .where(eq(systemSettings.key, "settlement.worker_commission_bps"))
@@ -97,8 +98,6 @@ function canSettle(role: UserRole, actorUserId: string, employerUserId: string):
 
 export class SettlementService {
   async settleTimesheet(timesheetId: string, actorUserId: string, role: UserRole) {
-    const currentPolicy = await readCurrentPolicy();
-
     const outcome = await db.transaction(async (tx) => {
       await tx.execute(
         sql`select pg_advisory_xact_lock(hashtext(${`settlement:${timesheetId}`}))`
@@ -159,9 +158,13 @@ export class SettlementService {
         .from(shiftEscrows)
         .where(eq(shiftEscrows.shiftId, record.shift.id))
         .limit(1);
-      const employerFeeBps = policyEscrow?.employerFeeBps ?? currentPolicy.employerFeeBps;
+      const currentPolicy = policyEscrow ? null : await readCurrentPolicy(tx);
+      const employerFeeBps =
+        policyEscrow?.employerFeeBps ?? currentPolicy?.employerFeeBps ?? DEFAULT_EMPLOYER_FEE_BPS;
       const workerCommissionBps =
-        policyEscrow?.workerCommissionBps ?? currentPolicy.workerCommissionBps;
+        policyEscrow?.workerCommissionBps ??
+        currentPolicy?.workerCommissionBps ??
+        DEFAULT_WORKER_COMMISSION_BPS;
       const amounts = calculateSettlementAmounts({
         workerGrossRials: record.timesheet.finalPayRials,
         employerFeeBps,
@@ -176,6 +179,7 @@ export class SettlementService {
         workerGrossRials: amounts.workerGrossRials,
         employerFeeRials: amounts.employerFeeRials,
         referenceId: timesheetId,
+        policy: { employerFeeBps, workerCommissionBps },
       });
       const escrow = coverage.escrow;
       const settlementId = `stl_${crypto.randomUUID()}`;
@@ -234,7 +238,7 @@ export class SettlementService {
         .update(shiftEscrows)
         .set({
           remainingRials: nextRemaining,
-          settledWorkerRials: sql`${shiftEscrows.settledWorkerRials} + ${amounts.workerGrossRials}`,
+          settledWorkerRials: sql`${shiftEscrows.settledWorkerRials} + ${amounts.workerNetRials}`,
           settledFeeRials: sql`${shiftEscrows.settledFeeRials} + ${platformRevenueRials}`,
           status: nextRemaining === 0n ? "SETTLED" : "PARTIALLY_SETTLED",
           updatedAt: now,
@@ -374,15 +378,25 @@ export class SettlementService {
         reason: "SETTLEMENT",
       });
       const timesheetPayload = { timesheetId, status: "SETTLED" };
-      publishRealtimeEvent("assignment", outcome.settlement.assignmentId, "timesheet.updated", timesheetPayload);
+      publishRealtimeEvent(
+        "assignment",
+        outcome.settlement.assignmentId,
+        "timesheet.updated",
+        timesheetPayload
+      );
       publishRealtimeEvent("shift", outcome.shiftId, "timesheet.updated", timesheetPayload);
       publishRealtimeEvent("user", outcome.workerId, "timesheet.updated", timesheetPayload);
       if (outcome.assignmentChanged) {
-        publishRealtimeEvent("assignment", outcome.settlement.assignmentId, "assignment.updated", {
-          assignmentId: outcome.settlement.assignmentId,
-          shiftId: outcome.shiftId,
-          state: "COMPLETED",
-        });
+        publishRealtimeEvent(
+          "assignment",
+          outcome.settlement.assignmentId,
+          "assignment.updated",
+          {
+            assignmentId: outcome.settlement.assignmentId,
+            shiftId: outcome.shiftId,
+            state: "COMPLETED",
+          }
+        );
       }
       if (outcome.shiftCompleted) {
         publishRealtimeEvent("shift", outcome.shiftId, "shift.updated", {

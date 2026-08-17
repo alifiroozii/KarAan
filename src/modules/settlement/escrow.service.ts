@@ -281,6 +281,7 @@ export class EscrowService {
       workerGrossRials: bigint;
       employerFeeRials: bigint;
       referenceId: string;
+      policy?: { employerFeeBps: number; workerCommissionBps: number };
     }
   ): Promise<{ escrow: ShiftEscrowRow; topupTransactionId: string | null }> {
     const requiredRials = input.workerGrossRials + input.employerFeeRials;
@@ -298,7 +299,7 @@ export class EscrowService {
       .limit(1);
 
     if (!escrow) {
-      const policy = await readPolicy(client);
+      const policy = input.policy ?? (await readPolicy(client));
       const walletMutation = await ledger.reserveEscrowInTransaction(client, {
         userId: input.shift.employerId,
         shiftId: input.shift.id,
