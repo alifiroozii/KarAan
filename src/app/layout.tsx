@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Vazirmatn } from "next/font/google";
 import { ThemeProvider } from "@/components/common/theme-provider";
 import { QueryProvider } from "@/components/common/query-provider";
+import { PwaRegistration } from "@/components/common/pwa-registration";
 import "./globals.css";
 
 const vazirmatn = Vazirmatn({
@@ -11,9 +12,17 @@ const vazirmatn = Vazirmatn({
 });
 
 export const metadata: Metadata = {
+  applicationName: "کارآن",
   title: "کارآن | پلتفرم مدیریت و جذب نیروی کار ساعتی و شیفتی",
   description: "سامانه هوشمند اعزام، ثبت حضور و غیاب جی‌پیاسی و تسویه حساب فوری نیروی کار ساعتی در ایران",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -27,18 +36,18 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fa" dir="rtl" className={vazirmatn.variable} suppressHydrationWarning>
       <body className="font-sans antialiased min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>
+            <PwaRegistration />
+            {children}
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>
