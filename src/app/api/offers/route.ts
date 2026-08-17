@@ -1,13 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requirePermission } from "@/modules/auth/auth.middleware";
+import { NextRequest } from "next/server";
+import { and, eq, gt } from "drizzle-orm";
 import { db } from "@/db";
+import { backfillOfferLinks, backfillRequests } from "@/db/schema/backfill";
 import { shiftOffers, shiftSlots, shifts } from "@/db/schema/shifts";
-import { eq, and } from "drizzle-orm";
+import { createErrorResponse, createSuccessResponse } from "@/lib/errors";
+import { requirePermission } from "@/modules/auth/auth.middleware";
 
 export async function GET(req: NextRequest) {
   try {
     const session = await requirePermission(req, "shift.accept");
-    const offers = await db
+    const rows = await db
       .select({
         offerId: shiftOffers.id,
         shiftSlotId: shiftOffers.shiftSlotId,
@@ -15,20 +17,41 @@ export async function GET(req: NextRequest) {
         status: shiftOffers.status,
         expiresAt: shiftOffers.expiresAt,
         createdAt: shiftOffers.createdAt,
+        shiftId: shifts.id,
         shiftTitle: shifts.title,
         hourlyPayRials: shifts.hourlyPayRials,
         locationName: shifts.locationName,
         startAt: shifts.startAt,
         endAt: shifts.endAt,
+        backfillRequestId: backfillRequests.id,
+        urgentBonusRials: backfillRequests.urgentBonusRials,
       })
       .from(shiftOffers)
       .innerJoin(shiftSlots, eq(shiftOffers.shiftSlotId, shiftSlots.id))
       .innerJoin(shifts, eq(shiftSlots.shiftId, shifts.id))
-      .where(and(eq(shiftOffers.workerId, session.userId), eq(shiftOffers.status, "PENDING")));
+      .leftJoin(backfillOfferLinks, eq(backfillOfferLinks.offerId, shiftOffers.id))
+      .leftJoin(
+        backfillRequests,
+        eq(backfillRequests.id, backfillOfferLinks.backfillRequestId)
+      )
+      .where(
+        and(
+          eq(shiftOffers.workerId, session.userId),
+          eq(shiftOffers.status, "PENDING"),
+          gt(shiftOffers.expiresAt, new Date())
+        )
+      );
 
-    return NextResponse.json({ success: true, offers });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "خطا در دریافت پیشنهادهای شیفت کاری";
-    return NextResponse.json({ success: false, error: message }, { status: 400 });
+    return createSuccessResponse(
+      rows.map((row) => ({
+        ...row,
+        offeredPayRials: row.offeredPayRials.toString(),
+        hourlyPayRials: row.hourlyPayRials.toString(),
+        urgentBonusRials: (row.urgentBonusRials ?? 0n).toString(),
+        isBackfill: Boolean(row.backfillRequestId),
+      }))
+    );
+  } catch (error) {
+    return createErrorResponse(error);
   }
 }

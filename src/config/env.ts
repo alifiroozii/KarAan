@@ -17,7 +17,12 @@ const envSchema = z.object({
   PAYMENT_API_KEY: z.string().optional(),
   PAYMENT_CALLBACK_URL: z
     .string()
-    .default("http://localhost:3000/api/finance/callback"),
+    .default("http://localhost:3000/api/payments/callback"),
+  ZARINPAL_MERCHANT_ID: z.string().optional(),
+  ZARINPAL_SANDBOX: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
 
   // Map Adapter
   MAP_PROVIDER: z.enum(["mock", "neshan", "balad"]).default("mock"),

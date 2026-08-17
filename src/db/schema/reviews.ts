@@ -6,6 +6,7 @@ import {
   integer,
   jsonb,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { shiftAssignments } from "./shifts";
 import { users } from "./users";
@@ -18,6 +19,11 @@ export const rosterTypeEnum = pgEnum("roster_type", [
   "BLOCKED",
 ]);
 
+export const ratingDirectionEnum = pgEnum("rating_direction", [
+  "WORKER_TO_EMPLOYER",
+  "EMPLOYER_TO_WORKER",
+]);
+
 export const ratings = pgTable(
   "ratings",
   {
@@ -25,6 +31,7 @@ export const ratings = pgTable(
     assignmentId: text("assignment_id")
       .notNull()
       .references(() => shiftAssignments.id, { onDelete: "cascade" }),
+    direction: ratingDirectionEnum("direction").notNull(),
     evaluatorId: text("evaluator_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -39,9 +46,11 @@ export const ratings = pgTable(
       .notNull(),
   },
   (table) => [
+    uniqueIndex("uq_ratings_assignment_direction").on(table.assignmentId, table.direction),
     index("idx_ratings_assignment_id").on(table.assignmentId),
     index("idx_ratings_evaluator_id").on(table.evaluatorId),
     index("idx_ratings_evaluatee_id").on(table.evaluateeId),
+    index("idx_ratings_direction").on(table.direction),
   ]
 );
 
@@ -60,10 +69,18 @@ export const workerRosters = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
+    uniqueIndex("uq_roster_employer_worker").on(
+      table.employerProfileId,
+      table.workerProfileId
+    ),
     index("idx_roster_employer_id").on(table.employerProfileId),
     index("idx_roster_worker_id").on(table.workerProfileId),
+    index("idx_roster_type").on(table.rosterType),
   ]
 );
 
@@ -83,6 +100,7 @@ export const blocks = pgTable(
       .notNull(),
   },
   (table) => [
+    uniqueIndex("uq_blocks_pair").on(table.blockerUserId, table.blockedUserId),
     index("idx_blocks_blocker_id").on(table.blockerUserId),
     index("idx_blocks_blocked_id").on(table.blockedUserId),
   ]

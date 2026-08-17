@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { z } from "zod";
 import { requirePermission } from "@/modules/auth/auth.middleware";
 import { WorkerPresenceService } from "@/lib/redis/presence";
-import { z } from "zod";
+import { createErrorResponse, createSuccessResponse } from "@/lib/errors";
+import { ReliabilityService } from "@/modules/reliability/reliability.service";
 
 const updateAvailabilitySchema = z.object({
   status: z.enum(["OFFLINE", "AVAILABLE", "BUSY", "WORKING"]),
@@ -13,30 +15,31 @@ const updateAvailabilitySchema = z.object({
 });
 
 const presenceService = new WorkerPresenceService();
+const reliabilityService = new ReliabilityService();
 
 export async function GET(req: NextRequest) {
   try {
     const session = await requirePermission(req, "worker.availability.update");
     const presence = await presenceService.getWorkerPresence(session.userId);
-
-    return NextResponse.json({ success: true, presence });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "خطا در دریافت وضعیت آمادگی";
-    return NextResponse.json({ success: false, error: message }, { status: 400 });
+    return createSuccessResponse(presence);
+  } catch (error) {
+    return createErrorResponse(error);
   }
 }
 
 export async function PUT(req: NextRequest) {
   try {
     const session = await requirePermission(req, "worker.availability.update");
-    const body = await req.json();
-    const parsed = updateAvailabilitySchema.parse(body);
+    const parsed = updateAvailabilitySchema.parse(await req.json());
 
+    // Going OFFLINE is always allowed. Any state that makes the Worker eligible
+    // for work must respect active Reliability sanctions on the server.
     if (parsed.status === "OFFLINE") {
       await presenceService.setWorkerOffline(session.userId);
-      return NextResponse.json({ success: true, status: "OFFLINE" });
+      return createSuccessResponse({ status: "OFFLINE" });
     }
 
+    await reliabilityService.assertWorkerCanTakeShifts(session.userId);
     const presence = await presenceService.setWorkerAvailable({
       workerId: session.userId,
       status: parsed.status,
@@ -47,9 +50,8 @@ export async function PUT(req: NextRequest) {
       longitude: parsed.longitude,
     });
 
-    return NextResponse.json({ success: true, presence });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "خطا در بروزرسانی وضعیت آمادگی";
-    return NextResponse.json({ success: false, error: message }, { status: 400 });
+    return createSuccessResponse(presence);
+  } catch (error) {
+    return createErrorResponse(error);
   }
 }

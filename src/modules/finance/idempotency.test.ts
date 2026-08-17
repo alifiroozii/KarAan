@@ -1,38 +1,18 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { FinanceService } from "./finance.service";
 
-// Mock DB calls
-vi.mock("@/db", () => {
-  return {
-    db: {
-      select: vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([
-              {
-                id: "existing_tx_123",
-                idempotencyKey: "idem_key_duplicate",
-                amountRials: BigInt(5000000),
-              },
-            ]),
-          }),
-        }),
-      }),
-    },
-  };
-});
-
-describe("Financial Ledger Idempotency", () => {
-  it("should return existing transaction when duplicate idempotency key is submitted", async () => {
+ describe("legacy FinanceService", () => {
+  it("fails closed instead of mutating escrow balances outside the ledger", async () => {
     const financeService = new FinanceService();
-    const res = await financeService.lockEscrow(
-      "emp_user_1",
-      "shift_1",
-      BigInt(5000000),
-      "idem_key_duplicate"
-    );
+    await expect(
+      financeService.lockEscrow("emp_user_1", "shift_1", 5_000_000n, "legacy-lock")
+    ).rejects.toMatchObject({ code: "CONFLICT", statusCode: 409 });
+  });
 
-    expect(res.transactionId).toBe("existing_tx_123");
-    expect(res.lockedAmount).toBe(BigInt(5000000));
+  it("fails closed instead of settling assignments outside the ledger", async () => {
+    const financeService = new FinanceService();
+    await expect(
+      financeService.settleAssignment("asg_1", "legacy-settle")
+    ).rejects.toMatchObject({ code: "CONFLICT", statusCode: 409 });
   });
 });

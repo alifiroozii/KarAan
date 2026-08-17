@@ -23,10 +23,24 @@ export type RealtimeEventName =
   | "overtime.declined"
   | "overtime.cancelled"
   | "overtime.expired"
+  | "no_show.potential"
+  | "no_show.finalized"
+  | "no_show.overridden"
   | "no_show.detected"
   | "backfill.requested"
+  | "backfill.offers_dispatched"
+  | "backfill.filled"
+  | "backfill.exhausted"
+  | "backfill.cancelled"
+  | "reliability.updated"
+  | "strike.created"
+  | "sanction.created"
+  | "sanction.revoked"
   | "timesheet.updated"
   | "payment.updated"
+  | "wallet.updated"
+  | "notification.created"
+  | "notification.delivery.updated"
   | "chat.message";
 
 export interface RealtimeEventPayloads {
@@ -125,9 +139,87 @@ export interface RealtimeEventPayloads {
     shiftId: string;
     workerId: string;
   };
+  "no_show.potential": {
+    noShowEventId: string;
+    assignmentId: string;
+    workerId: string;
+    shiftId: string;
+    finalizesAt: string;
+  };
+  "no_show.finalized": {
+    noShowEventId: string;
+    assignmentId: string;
+    workerId: string;
+    shiftId: string;
+    previousState: string;
+  };
+  "no_show.overridden": {
+    noShowEventId: string;
+    assignmentId: string;
+    workerId: string;
+    shiftId: string;
+    reason: string;
+  };
   "no_show.detected": { assignmentId: string; workerId: string };
   "backfill.requested": { shiftId: string; neededSlots: number };
+  "backfill.offers_dispatched": {
+    backfillRequestId: string;
+    shiftId: string;
+    shiftSlotId: string;
+    offersCreated: number;
+    expiresAt: string;
+  };
+  "backfill.filled": {
+    backfillRequestId: string;
+    shiftId: string;
+    shiftSlotId: string;
+    assignmentId: string;
+  };
+  "backfill.exhausted": {
+    backfillRequestId: string;
+    shiftId: string;
+    shiftSlotId: string;
+  };
+  "backfill.cancelled": {
+    backfillRequestId: string;
+    shiftId: string;
+    shiftSlotId: string;
+    reason: string;
+  };
+  "reliability.updated": {
+    workerId: string;
+    eventId: string;
+    scoreDelta: number;
+    resultingScore: number;
+  };
+  "strike.created": { workerId: string; strikeId: string };
+  "sanction.created": { workerId: string; sanctionId: string; sanctionType: string };
+  "sanction.revoked": { workerId: string; reason: string };
   "timesheet.updated": { timesheetId: string; status: string };
-  "payment.updated": { transactionId: string; amountRials: string };
+  "payment.updated": {
+    paymentId: string;
+    status: "PENDING" | "SUCCESS" | "FAILED";
+    amountRials: string;
+    purpose: "WALLET_TOPUP" | "SHIFT_PREFUND";
+  };
+  "wallet.updated": {
+    walletId: string;
+    userId: string;
+    availableRials: string;
+    lockedEscrowRials: string;
+    transactionId: string;
+    reason: "PAYMENT_TOPUP" | "SETTLEMENT" | "REFUND" | "ESCROW" | "PAYOUT" | "ADJUSTMENT";
+  };
+  "notification.created": {
+    notificationId: string;
+    userId: string;
+    type: string;
+  };
+  "notification.delivery.updated": {
+    notificationId: string;
+    deliveryId: string;
+    channel: "IN_APP" | "SMS" | "PUSH";
+    status: "PENDING" | "PROCESSING" | "SENT" | "FAILED" | "SKIPPED";
+  };
   "chat.message": { conversationId: string; senderId: string; content: string };
 }

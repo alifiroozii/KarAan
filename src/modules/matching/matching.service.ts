@@ -1,8 +1,9 @@
 import { db } from "@/db";
-import { workerProfiles, workerSkills, skills } from "@/db/schema/workers";
+import { sanctions } from "@/db/schema/reliability";
+import { workerProfiles } from "@/db/schema/workers";
 import { shifts, shiftSlots, shiftOffers } from "@/db/schema/shifts";
 import { users } from "@/db/schema/users";
-import { eq, and, gte, inArray } from "drizzle-orm";
+import { eq, and, gt, isNull, lte, or } from "drizzle-orm";
 import { calculateDistanceKm } from "@/lib/maps/distance";
 import { AppError } from "@/lib/errors";
 
@@ -10,6 +11,7 @@ export interface MatchingFilterOptions {
   shiftId: string;
   maxDistanceKm?: number;
   limit?: number;
+  excludeWorkerIds?: string[];
 }
 
 export interface MatchedWorkerResult {
@@ -25,7 +27,10 @@ export interface MatchedWorkerResult {
 
 export class MatchingService {
   /**
-   * Find nearby qualified workers for a published Shift
+   * Find nearby qualified workers for a published Shift.
+   *
+   * Active Reliability sanctions are authoritative: a suspended/banned/restricted
+   * Worker cannot enter matching even if Redis presence still says AVAILABLE.
    */
   async findQualifiedWorkers(options: MatchingFilterOptions): Promise<MatchedWorkerResult[]> {
     const [shift] = await db.select().from(shifts).where(eq(shifts.id, options.shiftId)).limit(1);
@@ -33,9 +38,22 @@ export class MatchingService {
       throw new AppError("شیفت کاری پیدا نشد.", "NOT_FOUND", 404);
     }
 
-    const maxDistance = options.maxDistanceKm || 25; // Default 25km radius
+    const maxDistance = options.maxDistanceKm || 25;
+    const excluded = new Set(options.excludeWorkerIds ?? []);
+    const now = new Date();
 
-    // Retrieve all active and verified worker profiles
+    const activeSanctions = await db
+      .select({ workerId: sanctions.userId })
+      .from(sanctions)
+      .where(
+        and(
+          eq(sanctions.status, "ACTIVE"),
+          lte(sanctions.startAt, now),
+          or(isNull(sanctions.endAt), gt(sanctions.endAt, now))
+        )
+      );
+    for (const item of activeSanctions) excluded.add(item.workerId);
+
     const profiles = await db
       .select({
         workerId: workerProfiles.userId,
@@ -61,9 +79,10 @@ export class MatchingService {
     const matchedList: MatchedWorkerResult[] = [];
 
     for (const profile of profiles) {
-      // Calculate distance between shift location and worker home location
+      if (excluded.has(profile.workerId)) continue;
+
       let distanceKm = 0;
-      if (profile.homeLat && profile.homeLng) {
+      if (profile.homeLat != null && profile.homeLng != null) {
         distanceKm = calculateDistanceKm(
           shift.latitude,
           shift.longitude,
@@ -72,33 +91,30 @@ export class MatchingService {
         );
       }
 
-      if (distanceKm <= maxDistance) {
-        // Filter by minimum reliability score
-        const relScoreNum = parseFloat(profile.reliabilityScore || "100.00");
-        if (relScoreNum >= (shift.minReliability || 0)) {
-          matchedList.push({
-            workerId: profile.workerId,
-            fullName: profile.fullName,
-            phone: profile.phone,
-            distanceKm: Math.round(distanceKm * 10) / 10,
-            reliabilityScore: relScoreNum,
-            completedShiftsCount: profile.completedShiftsCount,
-            hourlyRateRials: profile.hourlyRateRials,
-            matchingSkills: (shift.requiredSkills as string[]) || [],
-          });
-        }
-      }
+      if (distanceKm > maxDistance) continue;
+
+      const relScoreNum = parseFloat(profile.reliabilityScore || "100.00");
+      if (relScoreNum < (shift.minReliability || 0)) continue;
+
+      matchedList.push({
+        workerId: profile.workerId,
+        fullName: profile.fullName,
+        phone: profile.phone,
+        distanceKm: Math.round(distanceKm * 10) / 10,
+        reliabilityScore: relScoreNum,
+        completedShiftsCount: profile.completedShiftsCount,
+        hourlyRateRials: profile.hourlyRateRials,
+        matchingSkills: (shift.requiredSkills as string[]) || [],
+      });
     }
 
-    // Sort by highest reliability score and nearest distance
-    matchedList.sort((a, b) => b.reliabilityScore - a.reliabilityScore || a.distanceKm - b.distanceKm);
+    matchedList.sort(
+      (a, b) => b.reliabilityScore - a.reliabilityScore || a.distanceKm - b.distanceKm
+    );
 
     return matchedList.slice(0, options.limit || 20);
   }
 
-  /**
-   * Automatically dispatch shift offers to matched workers
-   */
   async dispatchOffersForShift(shiftId: string, limit = 5): Promise<number> {
     const matched = await this.findQualifiedWorkers({ shiftId, limit });
     const [openSlot] = await db
@@ -107,12 +123,10 @@ export class MatchingService {
       .where(and(eq(shiftSlots.shiftId, shiftId), eq(shiftSlots.status, "OPEN")))
       .limit(1);
 
-    if (!openSlot) {
-      return 0;
-    }
+    if (!openSlot) return 0;
 
     let offersCount = 0;
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // Offer expires in 15 mins
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
     for (const worker of matched) {
       const offerId = `offer_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;

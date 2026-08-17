@@ -14,7 +14,22 @@ const EVENTS: RealtimeEventName[] = [
   "worker.checked_in",
   "worker.checked_out",
   "worker.late_risk",
+  "no_show.potential",
+  "no_show.finalized",
+  "no_show.overridden",
+  "no_show.detected",
+  "backfill.requested",
+  "backfill.offers_dispatched",
+  "backfill.filled",
+  "backfill.exhausted",
+  "backfill.cancelled",
+  "reliability.updated",
+  "strike.created",
+  "sanction.created",
+  "sanction.revoked",
   "timesheet.updated",
+  "payment.updated",
+  "wallet.updated",
 ];
 
 export function useRealtimeRoom(type: RoomType, id?: string | null) {

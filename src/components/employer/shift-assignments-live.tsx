@@ -8,9 +8,12 @@ import {
   Loader2,
   Navigation,
   Users,
+  Zap,
 } from "lucide-react";
+import { AssignmentCancellationControl } from "@/components/common/assignment-cancellation-control";
 import { EmployerOvertimeControls } from "@/components/employer/overtime-controls";
-import { StatusBadge } from "@/components/ui/domain-displays";
+import { EmployerWorkerRelationshipControls } from "@/components/employer/worker-relationship-controls";
+import { CurrencyDisplay, StatusBadge } from "@/components/ui/domain-displays";
 import { useRealtimeRoom } from "@/hooks/use-realtime-room";
 
 interface EtaSnapshot {
@@ -31,7 +34,33 @@ interface AssignmentRow {
   scheduledEndAt: string;
   effectiveEndAt: string;
   eta: EtaSnapshot | null;
+  noShowStatus: "POTENTIAL" | "FINAL" | "OVERRIDDEN" | null;
+  noShowDetectedAt: string | null;
+  noShowFinalizesAt: string | null;
+  backfillRequestId: string | null;
+  backfillStatus:
+    | "REQUESTED"
+    | "DISPATCHING"
+    | "OFFERED"
+    | "FILLED"
+    | "EXHAUSTED"
+    | "CANCELLED"
+    | null;
+  backfillTrigger: string | null;
+  backfillUrgentBonusRials: string;
+  backfillOffersCreated: number | null;
+  backfillDispatchAttemptCount: number | null;
 }
+
+const cancellableStates = new Set([
+  "OFFERED",
+  "VIEWED",
+  "ACCEPTED",
+  "RECONFIRM_PENDING",
+  "CONFIRMED",
+  "EN_ROUTE",
+  "ARRIVED",
+]);
 
 async function fetchAssignments(shiftId: string): Promise<AssignmentRow[]> {
   const response = await fetch(`/api/shifts/${shiftId}/assignments`);
@@ -40,6 +69,25 @@ async function fetchAssignments(shiftId: string): Promise<AssignmentRow[]> {
     throw new Error(body?.error?.message || "دریافت نیروهای شیفت ناموفق بود.");
   }
   return body.data as AssignmentRow[];
+}
+
+function backfillStatusLabel(status: AssignmentRow["backfillStatus"]) {
+  switch (status) {
+    case "REQUESTED":
+      return "در صف جایگزینی";
+    case "DISPATCHING":
+      return "در حال جستجوی نیروی جایگزین";
+    case "OFFERED":
+      return "پیشنهاد فوری ارسال شده";
+    case "FILLED":
+      return "نیروی جایگزین پیدا شد";
+    case "EXHAUSTED":
+      return "کاندیدای مناسب پیدا نشد";
+    case "CANCELLED":
+      return "جایگزینی متوقف شد";
+    default:
+      return "";
+  }
 }
 
 export function ShiftAssignmentsLive({ shiftId }: { shiftId: string }) {
@@ -100,6 +148,7 @@ export function ShiftAssignmentsLive({ shiftId }: { shiftId: string }) {
             const extended =
               new Date(assignment.effectiveEndAt).getTime() >
               new Date(assignment.scheduledEndAt).getTime();
+            const backfillBonus = BigInt(assignment.backfillUrgentBonusRials || "0");
 
             return (
               <div key={assignment.assignmentId} className="py-4 space-y-3">
@@ -112,6 +161,72 @@ export function ShiftAssignmentsLive({ shiftId }: { shiftId: string }) {
                   </div>
                   <StatusBadge status={assignment.state} />
                 </div>
+
+                {assignment.noShowStatus === "POTENTIAL" && (
+                  <div className="flex items-start gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div>
+                      <strong className="block">احتمال عدم حضور</strong>
+                      <span className="mt-1 block text-amber-200/80">
+                        ورود Worker هنوز ثبت نشده است
+                        {assignment.noShowFinalizesAt
+                          ? `؛ در صورت ادامه تا ${new Date(assignment.noShowFinalizesAt).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tehran" })} عدم حضور نهایی می‌شود.`
+                          : "."}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {(assignment.noShowStatus === "FINAL" || assignment.state === "NO_SHOW") && (
+                  <div className="flex items-start gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-200">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div>
+                      <strong className="block">عدم حضور نهایی ثبت شد</strong>
+                      <span className="mt-1 block text-red-200/80">
+                        جایگاه این Assignment برای جایگزینی آزاد شده است.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {assignment.noShowStatus === "OVERRIDDEN" && (
+                  <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    ثبت No-show توسط سیستم/پشتیبانی اصلاح شده است.
+                  </div>
+                )}
+
+                {assignment.backfillRequestId && assignment.backfillStatus && (
+                  <div
+                    className={`rounded-2xl border p-3 text-xs ${
+                      assignment.backfillStatus === "FILLED"
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                        : assignment.backfillStatus === "EXHAUSTED"
+                          ? "border-red-500/30 bg-red-500/10 text-red-200"
+                          : assignment.backfillStatus === "CANCELLED"
+                            ? "border-border bg-muted/40 text-muted-foreground"
+                            : "border-amber-500/30 bg-amber-500/10 text-amber-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-bold">
+                      <Zap className="h-4 w-4" />
+                      {backfillStatusLabel(assignment.backfillStatus)}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] opacity-80">
+                      <span>
+                        پیشنهادهای ارسال‌شده: {(assignment.backfillOffersCreated ?? 0).toLocaleString("fa-IR")}
+                      </span>
+                      <span>
+                        تلاش: {(assignment.backfillDispatchAttemptCount ?? 0).toLocaleString("fa-IR")}
+                      </span>
+                      {backfillBonus > 0n && (
+                        <span>
+                          پاداش فوری: <CurrencyDisplay amountRials={backfillBonus} />
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {assignment.state === "EN_ROUTE" && assignment.eta && (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-3 text-xs">
@@ -155,6 +270,19 @@ export function ShiftAssignmentsLive({ shiftId }: { shiftId: string }) {
                     assignmentId={assignment.assignmentId}
                     workerName={assignment.workerName}
                     state={assignment.state}
+                  />
+                )}
+
+                <EmployerWorkerRelationshipControls
+                  assignmentId={assignment.assignmentId}
+                  workerUserId={assignment.workerId}
+                />
+
+                {cancellableStates.has(assignment.state) && (
+                  <AssignmentCancellationControl
+                    assignmentId={assignment.assignmentId}
+                    shiftId={shiftId}
+                    mode="employer"
                   />
                 )}
 
