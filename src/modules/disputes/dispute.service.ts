@@ -21,6 +21,8 @@ type Context = {
   timesheetStatus: typeof timesheets.$inferSelect.status;
 };
 
+type AccessContext = Pick<Context, "workerId" | "employerId" | "businessId" | "branchId">;
+
 const notificationsService = new NotificationService();
 
 function decodeReason(reason: string) {
@@ -50,7 +52,7 @@ export class DisputeService {
     return row;
   }
 
-  private async canAccess(context: Omit<Context, "timesheetId" | "timesheetStatus">, actorUserId: string, role: UserRole) {
+  private async canAccess(context: AccessContext, actorUserId: string, role: UserRole) {
     if (["ADMIN", "SUPER_ADMIN", "DISPUTE_AGENT", "SUPPORT_AGENT"].includes(role)) return true;
     if (context.workerId === actorUserId || context.employerId === actorUserId) return true;
     if (context.branchId) {
