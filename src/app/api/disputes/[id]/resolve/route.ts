@@ -5,18 +5,18 @@ import { DisputeService } from "@/modules/disputes/dispute.service";
 import { createErrorResponse, createSuccessResponse } from "@/lib/errors";
 
 const bodySchema = z.object({
-  reasonCode: z.string().min(1).max(80),
-  description: z.string().min(5).max(2000),
+  action: z.enum(["REQUIRE_ADJUSTMENT", "REJECT_DISPUTE"]),
+  notes: z.string().min(5).max(3000),
 });
 
 const disputes = new DisputeService();
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await requirePermission(req, "dispute.create");
+    const session = await requirePermission(req, "dispute.manage");
     const { id } = await params;
     const body = bodySchema.parse(await req.json());
-    return createSuccessResponse(await disputes.openFromTimesheet(id, session.userId, session.role, body.reasonCode, body.description));
+    return createSuccessResponse(await disputes.resolve(id, session.userId, session.role, body.action, body.notes));
   } catch (error) {
     return createErrorResponse(error);
   }
