@@ -20,6 +20,11 @@ export function getQueryKeysToInvalidate(
       return [["shifts"], ["employer", "shifts"], ["worker", "radar"]];
     case "timesheet.updated":
       return [["timesheets"], ["employer", "timesheets"], ["worker", "earnings"]];
+    case "reliability.updated":
+    case "strike.created":
+    case "sanction.created":
+    case "sanction.revoked":
+      return [["worker", "reliability"], ["worker", "availability"], ["worker", "offers"]];
     case "worker.break_started":
     case "worker.break_ended":
     case "worker.break_limit_warning":
@@ -65,7 +70,18 @@ export function invalidateQueriesForRealtimeEvent(
     if (event.startsWith("overtime.")) keys.push(["worker", "overtime", assignmentId]);
     if (event.startsWith("worker.break_")) keys.push(["worker", "break", assignmentId]);
   }
-  if (workerId) keys.push(["worker", workerId]);
+  if (workerId) {
+    keys.push(["worker", workerId]);
+    if (
+      event === "reliability.updated" ||
+      event === "strike.created" ||
+      event === "sanction.created" ||
+      event === "sanction.revoked"
+    ) {
+      keys.push(["worker", "reliability"]);
+      keys.push(["admin", "worker", workerId, "reliability"]);
+    }
+  }
   if (shiftId) {
     keys.push(["shift", shiftId]);
     if (event.startsWith("no_show.") || event.startsWith("backfill.")) {
