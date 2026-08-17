@@ -174,10 +174,11 @@ export class BackfillService {
     if (!initial) throw new AppError("Backfill Request پیدا نشد.", "NOT_FOUND", 404);
 
     if (initial.request.status === "FILLED" || initial.slot.status === "FILLED") {
-      await this.markFilledIfNeeded(requestId);
+      const completion = await this.markFilledIfNeeded(requestId);
+      const completionStatus = completion?.status === "CANCELLED" ? "CANCELLED" : "FILLED";
       return {
         requestId,
-        status: "FILLED",
+        status: completionStatus,
         offersCreatedNow: 0,
         expiresAt: null,
         shouldRetry: false,
@@ -243,7 +244,7 @@ export class BackfillService {
       shiftId: initial.shift.id,
       maxDistanceKm: (await this.readPolicy()).maxDistanceKm,
       limit: initial.request.maxCandidates,
-      excludeWorkerIds,
+      excludeWorkerIds: excludedWorkerIds,
     });
 
     const now = new Date();
@@ -354,6 +355,8 @@ export class BackfillService {
       });
     });
 
+    const finalStatus = status as BackfillDispatchResult["status"];
+
     for (const offer of createdOffers) {
       publishRealtimeEvent("user", offer.workerId, "offer.created", {
         offerId: offer.id,
@@ -386,7 +389,7 @@ export class BackfillService {
         offersCreated: createdOffers.length,
         expiresAt: expiresAt.toISOString(),
       });
-    } else if (status === "EXHAUSTED") {
+    } else if (finalStatus === "EXHAUSTED") {
       publishRealtimeEvent("shift", initial.shift.id, "backfill.exhausted", {
         backfillRequestId: requestId,
         shiftId: initial.shift.id,
@@ -397,10 +400,10 @@ export class BackfillService {
     const policy = await this.readPolicy();
     return {
       requestId,
-      status,
+      status: finalStatus,
       offersCreatedNow: createdOffers.length,
       expiresAt: createdOffers.length > 0 ? expiresAt : null,
-      shouldRetry: status === "REQUESTED" && attemptCount < initial.request.maxDispatchAttempts,
+      shouldRetry: finalStatus === "REQUESTED" && attemptCount < initial.request.maxDispatchAttempts,
       retryAfterSeconds: policy.retryDelaySeconds,
     };
   }
@@ -416,10 +419,11 @@ export class BackfillService {
     if (!row) throw new AppError("Backfill Request پیدا نشد.", "NOT_FOUND", 404);
 
     if (row.slot.status === "FILLED" || row.request.status === "FILLED") {
-      await this.markFilledIfNeeded(requestId);
+      const completion = await this.markFilledIfNeeded(requestId);
+      const completionStatus = completion?.status === "CANCELLED" ? "CANCELLED" : "FILLED";
       return {
         requestId,
-        status: "FILLED",
+        status: completionStatus,
         offersCreatedNow: 0,
         expiresAt: null,
         shouldRetry: false,
@@ -508,7 +512,7 @@ export class BackfillService {
       .where(eq(backfillRequests.id, requestId))
       .limit(1);
     if (!request) return null;
-    if (request.status === "FILLED") return request;
+    if (request.status === "FILLED" || request.status === "CANCELLED") return request;
 
     let filledByAssignmentId = assignmentId ?? null;
     if (!filledByAssignmentId) {
@@ -525,6 +529,28 @@ export class BackfillService {
         )
         .limit(1);
       filledByAssignmentId = assignment?.id ?? null;
+    }
+
+    if (!filledByAssignmentId && request.sourceAssignmentId) {
+      const [cancelled] = await db
+        .update(backfillRequests)
+        .set({
+          status: "CANCELLED",
+          completedAt: now,
+          updatedAt: now,
+        })
+        .where(eq(backfillRequests.id, requestId))
+        .returning();
+
+      if (cancelled) {
+        publishRealtimeEvent("shift", cancelled.shiftId, "backfill.cancelled", {
+          backfillRequestId: cancelled.id,
+          shiftId: cancelled.shiftId,
+          shiftSlotId: cancelled.shiftSlotId,
+          reason: "SLOT_FILLED_WITHOUT_REPLACEMENT_ASSIGNMENT",
+        });
+      }
+      return cancelled ?? null;
     }
 
     const [updated] = await db
