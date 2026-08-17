@@ -14,6 +14,7 @@ ALTER TABLE "payments" ADD COLUMN IF NOT EXISTS "payer_user_id" text;
 ALTER TABLE "payments" ADD COLUMN IF NOT EXISTS "purpose" "payment_purpose" DEFAULT 'WALLET_TOPUP' NOT NULL;
 ALTER TABLE "payments" ADD COLUMN IF NOT EXISTS "reference_id" text;
 ALTER TABLE "payments" ADD COLUMN IF NOT EXISTS "description" text;
+ALTER TABLE "payments" ADD COLUMN IF NOT EXISTS "payment_url" text;
 ALTER TABLE "payments" ADD COLUMN IF NOT EXISTS "provider_status_code" text;
 ALTER TABLE "payments" ADD COLUMN IF NOT EXISTS "provider_message" text;
 ALTER TABLE "payments" ADD COLUMN IF NOT EXISTS "callback_received_at" timestamp with time zone;
