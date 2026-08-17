@@ -16,17 +16,29 @@ import {
   type PaymentProviderName,
 } from "@/infrastructure/payment";
 import type { UserRole } from "@/modules/auth/auth.service";
+import {
+  WalletLedgerService,
+  type WalletCreditResult,
+} from "@/modules/wallet/wallet-ledger.service";
 
 export type PaymentPurpose = "WALLET_TOPUP" | "SHIFT_PREFUND";
 
 const MIN_PAYMENT_RIALS = 10_000n;
 const MAX_PAYMENT_RIALS = 500_000_000_000n;
 const IDEMPOTENCY_PATTERN = /^[A-Za-z0-9._:-]{8,128}$/;
+const walletLedger = new WalletLedgerService();
+
+function walletPostingStatus(row: typeof payments.$inferSelect) {
+  if (row.purpose !== "WALLET_TOPUP") return "NOT_APPLICABLE" as const;
+  if (row.status !== "SUCCESS") return "AWAITING_PAYMENT" as const;
+  return row.walletId ? ("POSTED" as const) : ("PENDING_LEDGER" as const);
+}
 
 function serializePayment(row: typeof payments.$inferSelect, idempotent = false) {
   return {
     paymentId: row.id,
     payerUserId: row.payerUserId,
+    walletId: row.walletId,
     amountRials: row.amountRials.toString(),
     purpose: row.purpose,
     referenceId: row.referenceId,
@@ -38,13 +50,13 @@ function serializePayment(row: typeof payments.$inferSelect, idempotent = false)
     providerStatusCode: row.providerStatusCode,
     providerMessage: row.providerMessage,
     status: row.status,
+    walletPostingStatus: walletPostingStatus(row),
     callbackReceivedAt: row.callbackReceivedAt?.toISOString() ?? null,
     verifiedAt: row.verifiedAt?.toISOString() ?? null,
     failedAt: row.failedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     idempotent,
-    walletMutationDeferred: true as const,
   };
 }
 
@@ -103,7 +115,11 @@ export class PaymentService {
     validateAmount(input.amountRials);
     const description = input.description.trim();
     if (description.length < 3 || description.length > 255) {
-      throw new AppError("توضیحات پرداخت باید بین ۳ تا ۲۵۵ کاراکتر باشد.", "VALIDATION_ERROR", 422);
+      throw new AppError(
+        "توضیحات پرداخت باید بین ۳ تا ۲۵۵ کاراکتر باشد.",
+        "VALIDATION_ERROR",
+        422
+      );
     }
 
     const provider = getConfiguredPaymentProvider();
@@ -206,7 +222,7 @@ export class PaymentService {
             amountRials: input.amountRials.toString(),
             purpose: input.purpose,
             referenceId: input.referenceId ?? null,
-            walletMutationDeferred: true,
+            ledgerPosting: input.purpose === "WALLET_TOPUP" ? "AFTER_VERIFICATION" : "NOT_APPLICABLE",
           },
         });
 
@@ -249,7 +265,7 @@ export class PaymentService {
           details: { provider, purpose: input.purpose },
         });
 
-        return { kind: "failed" as const, payment: failed, message };
+        return { kind: "failed" as const, payment: failed };
       }
     });
 
@@ -260,9 +276,12 @@ export class PaymentService {
         amountRials: outcome.payment.amountRials.toString(),
         purpose: outcome.payment.purpose,
       });
-      throw new AppError("ایجاد درخواست پرداخت در درگاه ناموفق بود.", "PAYMENT_PROVIDER_ERROR", 502, {
-        paymentId: outcome.payment.id,
-      });
+      throw new AppError(
+        "ایجاد درخواست پرداخت در درگاه ناموفق بود.",
+        "PAYMENT_PROVIDER_ERROR",
+        502,
+        { paymentId: outcome.payment.id }
+      );
     }
 
     return serializePayment(outcome.payment, outcome.kind === "existing");
@@ -329,14 +348,6 @@ export class PaymentService {
         .where(eq(paymentCallbacks.idempotencyKey, callbackKey))
         .limit(1);
 
-      if (receipt?.processedAt) {
-        return {
-          kind: "idempotent" as const,
-          payment,
-          result: receipt.processingResult ?? payment.status,
-        };
-      }
-
       const now = new Date();
       if (!receipt) {
         [receipt] = await tx
@@ -351,6 +362,56 @@ export class PaymentService {
             receivedAt: now,
           })
           .returning();
+      }
+
+      // A Prompt-30-era SUCCESS may exist without a ledger credit. Replaying a
+      // callback safely repairs it without re-verifying or double-crediting.
+      if (payment.status === "SUCCESS") {
+        let walletCredit: WalletCreditResult | null = null;
+        let finalizedPayment = payment;
+        if (payment.purpose === "WALLET_TOPUP") {
+          walletCredit = await walletLedger.creditVerifiedPaymentInTransaction(tx, payment);
+          finalizedPayment = { ...payment, walletId: walletCredit.walletId };
+        }
+        if (!receipt.processedAt) {
+          await tx
+            .update(paymentCallbacks)
+            .set({
+              processingResult: walletCredit ? "ALREADY_SUCCESS_LEDGER_ENSURED" : "ALREADY_SUCCESS",
+              processedAt: now,
+            })
+            .where(eq(paymentCallbacks.id, receipt.id));
+        }
+        return {
+          kind: "idempotent" as const,
+          payment: finalizedPayment,
+          result: walletCredit ? "ALREADY_SUCCESS_LEDGER_ENSURED" : "ALREADY_SUCCESS",
+          walletCredit,
+        };
+      }
+
+      if (receipt.processedAt) {
+        return {
+          kind: "idempotent" as const,
+          payment,
+          result: receipt.processingResult ?? payment.status,
+          walletCredit: null,
+        };
+      }
+
+      // FAILED is terminal in this flow. Network uncertainty never marks a
+      // payment failed; it remains PENDING and therefore remains retryable.
+      if (payment.status === "FAILED") {
+        await tx
+          .update(paymentCallbacks)
+          .set({ processingResult: "ALREADY_FAILED", processedAt: now })
+          .where(eq(paymentCallbacks.id, receipt.id));
+        return {
+          kind: "failed" as const,
+          payment,
+          result: "ALREADY_FAILED",
+          walletCredit: null,
+        };
       }
 
       await tx
@@ -370,14 +431,6 @@ export class PaymentService {
         status: callback.status === "OK" ? "PENDING" : "FAILED",
         createdAt: now,
       });
-
-      if (payment.status === "SUCCESS") {
-        await tx
-          .update(paymentCallbacks)
-          .set({ processingResult: "ALREADY_SUCCESS", processedAt: now })
-          .where(eq(paymentCallbacks.id, receipt.id));
-        return { kind: "idempotent" as const, payment, result: "ALREADY_SUCCESS" };
-      }
 
       if (callback.status !== "OK") {
         const [failed] = await tx
@@ -403,89 +456,20 @@ export class PaymentService {
           action: "PAYMENT_CALLBACK_FAILED",
           details: { provider: input.provider, providerStatus: callback.status },
         });
-        return { kind: "failed" as const, payment: failed, result: "GATEWAY_NOT_OK" };
+        return {
+          kind: "failed" as const,
+          payment: failed,
+          result: "GATEWAY_NOT_OK",
+          walletCredit: null,
+        };
       }
 
+      // Only provider transport/availability errors are retryable. Ledger
+      // errors are deliberately NOT swallowed here; the DB transaction rolls
+      // back and a later provider 101/already-verified callback can retry safely.
+      let verification;
       try {
-        const verification = await adapter.verifyPayment(callback.authority, payment.amountRials);
-        await tx.insert(paymentAttempts).values({
-          id: `pat_${crypto.randomUUID()}`,
-          paymentId: payment.id,
-          attemptType: "VERIFY",
-          requestPayload: {
-            authority: callback.authority,
-            amountRials: payment.amountRials.toString(),
-          },
-          responsePayload: {
-            success: verification.success,
-            alreadyVerified: verification.alreadyVerified ?? false,
-            refId: verification.refId ?? null,
-            statusCode: verification.statusCode ?? null,
-          },
-          status: verification.success ? "SUCCESS" : "FAILED",
-          errorCode: verification.success ? null : "PROVIDER_VERIFY_FAILED",
-          errorMessage: verification.success ? null : verification.message ?? null,
-          createdAt: new Date(),
-        });
-
-        if (!verification.success) {
-          const [failed] = await tx
-            .update(payments)
-            .set({
-              status: "FAILED",
-              providerStatusCode:
-                verification.statusCode != null ? String(verification.statusCode) : null,
-              providerMessage: verification.message ?? "تایید پرداخت ناموفق بود.",
-              failedAt: new Date(),
-              updatedAt: new Date(),
-            })
-            .where(eq(payments.id, payment.id))
-            .returning();
-          await tx
-            .update(paymentCallbacks)
-            .set({ processingResult: "VERIFY_FAILED", processedAt: new Date() })
-            .where(eq(paymentCallbacks.id, receipt.id));
-          return { kind: "failed" as const, payment: failed, result: "VERIFY_FAILED" };
-        }
-
-        const [succeeded] = await tx
-          .update(payments)
-          .set({
-            status: "SUCCESS",
-            refId: verification.refId ?? payment.refId,
-            providerStatusCode:
-              verification.statusCode != null ? String(verification.statusCode) : null,
-            providerMessage: verification.message ?? null,
-            verifiedAt: new Date(),
-            failedAt: null,
-            updatedAt: new Date(),
-          })
-          .where(eq(payments.id, payment.id))
-          .returning();
-
-        await tx
-          .update(paymentCallbacks)
-          .set({
-            processingResult: verification.alreadyVerified ? "ALREADY_VERIFIED" : "VERIFIED",
-            processedAt: new Date(),
-          })
-          .where(eq(paymentCallbacks.id, receipt.id));
-
-        await tx.insert(auditLogs).values({
-          id: `aud_${crypto.randomUUID()}`,
-          actorId: payment.payerUserId,
-          entityName: "payment",
-          entityId: payment.id,
-          action: "PAYMENT_VERIFIED",
-          details: {
-            provider: input.provider,
-            providerStatusCode: verification.statusCode ?? null,
-            refId: verification.refId ?? null,
-            alreadyVerified: verification.alreadyVerified ?? false,
-            walletMutationDeferred: true,
-          },
-        });
-        return { kind: "success" as const, payment: succeeded, result: "VERIFIED" };
+        verification = await adapter.verifyPayment(callback.authority, payment.amountRials);
       } catch (error) {
         const message = errorMessage(error);
         await tx.insert(paymentAttempts).values({
@@ -515,8 +499,117 @@ export class PaymentService {
           .from(payments)
           .where(eq(payments.id, payment.id))
           .limit(1);
-        return { kind: "retryable" as const, payment: pending, result: "RETRYABLE_VERIFY_ERROR" };
+        return {
+          kind: "retryable" as const,
+          payment: pending,
+          result: "RETRYABLE_VERIFY_ERROR",
+          walletCredit: null,
+        };
       }
+
+      await tx.insert(paymentAttempts).values({
+        id: `pat_${crypto.randomUUID()}`,
+        paymentId: payment.id,
+        attemptType: "VERIFY",
+        requestPayload: {
+          authority: callback.authority,
+          amountRials: payment.amountRials.toString(),
+        },
+        responsePayload: {
+          success: verification.success,
+          alreadyVerified: verification.alreadyVerified ?? false,
+          refId: verification.refId ?? null,
+          statusCode: verification.statusCode ?? null,
+        },
+        status: verification.success ? "SUCCESS" : "FAILED",
+        errorCode: verification.success ? null : "PROVIDER_VERIFY_FAILED",
+        errorMessage: verification.success ? null : verification.message ?? null,
+        createdAt: new Date(),
+      });
+
+      if (!verification.success) {
+        const [failed] = await tx
+          .update(payments)
+          .set({
+            status: "FAILED",
+            providerStatusCode:
+              verification.statusCode != null ? String(verification.statusCode) : null,
+            providerMessage: verification.message ?? "تایید پرداخت ناموفق بود.",
+            failedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(payments.id, payment.id))
+          .returning();
+        await tx
+          .update(paymentCallbacks)
+          .set({ processingResult: "VERIFY_FAILED", processedAt: new Date() })
+          .where(eq(paymentCallbacks.id, receipt.id));
+        return {
+          kind: "failed" as const,
+          payment: failed,
+          result: "VERIFY_FAILED",
+          walletCredit: null,
+        };
+      }
+
+      const verifiedAt = new Date();
+      const [succeeded] = await tx
+        .update(payments)
+        .set({
+          status: "SUCCESS",
+          refId: verification.refId ?? payment.refId,
+          providerStatusCode:
+            verification.statusCode != null ? String(verification.statusCode) : null,
+          providerMessage: verification.message ?? null,
+          verifiedAt,
+          failedAt: null,
+          updatedAt: verifiedAt,
+        })
+        .where(eq(payments.id, payment.id))
+        .returning();
+
+      let walletCredit: WalletCreditResult | null = null;
+      let finalizedPayment = succeeded;
+      if (succeeded.purpose === "WALLET_TOPUP") {
+        walletCredit = await walletLedger.creditVerifiedPaymentInTransaction(tx, succeeded);
+        finalizedPayment = { ...succeeded, walletId: walletCredit.walletId };
+      }
+
+      const processingResult = walletCredit
+        ? verification.alreadyVerified
+          ? "ALREADY_VERIFIED_AND_CREDITED"
+          : "VERIFIED_AND_CREDITED"
+        : verification.alreadyVerified
+          ? "ALREADY_VERIFIED"
+          : "VERIFIED";
+
+      await tx
+        .update(paymentCallbacks)
+        .set({ processingResult, processedAt: new Date() })
+        .where(eq(paymentCallbacks.id, receipt.id));
+
+      await tx.insert(auditLogs).values({
+        id: `aud_${crypto.randomUUID()}`,
+        actorId: payment.payerUserId,
+        entityName: "payment",
+        entityId: payment.id,
+        action: "PAYMENT_VERIFIED",
+        details: {
+          provider: input.provider,
+          providerStatusCode: verification.statusCode ?? null,
+          refId: verification.refId ?? null,
+          alreadyVerified: verification.alreadyVerified ?? false,
+          walletTransactionId: walletCredit?.transactionId ?? null,
+          walletId: walletCredit?.walletId ?? null,
+        },
+      });
+
+      return {
+        kind: "success" as const,
+        payment: finalizedPayment,
+        result: processingResult,
+        walletCredit,
+      };
     });
 
     if (outcome.kind === "success" || outcome.kind === "failed") {
@@ -528,10 +621,22 @@ export class PaymentService {
       });
     }
 
+    if (outcome.walletCredit && !outcome.walletCredit.idempotent) {
+      publishRealtimeEvent("user", outcome.payment.payerUserId, "wallet.updated", {
+        walletId: outcome.walletCredit.walletId,
+        userId: outcome.payment.payerUserId,
+        availableRials: outcome.walletCredit.availableRials.toString(),
+        lockedEscrowRials: outcome.walletCredit.lockedEscrowRials.toString(),
+        transactionId: outcome.walletCredit.transactionId,
+        reason: "PAYMENT_TOPUP",
+      });
+    }
+
     return {
       ...serializePayment(outcome.payment, outcome.kind === "idempotent"),
       callbackResult: outcome.result,
       retryable: outcome.kind === "retryable",
+      walletTransactionId: outcome.walletCredit?.transactionId ?? null,
     };
   }
 }
