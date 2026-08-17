@@ -45,6 +45,9 @@ interface CurrentShift {
   effectiveEndAt: string;
   hourlyPayRials: string;
   eta: EtaSnapshot | null;
+  noShowStatus: "POTENTIAL" | "FINAL" | "OVERRIDDEN" | null;
+  noShowDetectedAt: string | null;
+  noShowFinalizesAt: string | null;
 }
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -222,6 +225,21 @@ export function CurrentShiftCard() {
           </span>
         </div>
       </div>
+
+      {currentShift.noShowStatus === "POTENTIAL" && (
+        <div className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <strong className="block">ورود شما هنوز ثبت نشده است</strong>
+            <span className="mt-1 block text-amber-200/80">
+              اگر در مسیر یا محل کار هستید مراحل رسیدن و ثبت ورود را همین حالا کامل کنید
+              {currentShift.noShowFinalizesAt
+                ? `؛ در صورت ثبت‌نشدن ورود تا ${new Date(currentShift.noShowFinalizesAt).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tehran" })} عدم حضور نهایی می‌شود.`
+                : "."}
+            </span>
+          </div>
+        </div>
+      )}
 
       {hasAcceptedExtension && (
         <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-2 text-xs text-emerald-300">
