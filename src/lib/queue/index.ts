@@ -11,3 +11,9 @@ export {
 } from "./overtime.queue";
 
 export { noShowQueue, ensureNoShowScheduler } from "./no-show.queue";
+export {
+  backfillQueue,
+  ensureBackfillWorker,
+  enqueueBackfillForAssignment,
+  enqueueBackfillReconcile,
+} from "./backfill.queue";
