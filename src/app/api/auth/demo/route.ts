@@ -8,16 +8,31 @@ function isDemoRole(value: FormDataEntryValue | null): value is DemoRole {
   return value === "WORKER" || value === "EMPLOYER";
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    if (process.env.DEMO_OPEN_ACCESS === "false") {
-      throw new AppError("ورود نمایشی غیرفعال است.", "FORBIDDEN", 403);
-    }
+function fallbackDestination(role: DemoRole, reason?: string) {
+  const slug = role === "WORKER" ? "worker" : "employer";
+  const url = new URL(`/demo/${slug}`, "http://karaan.local");
+  url.searchParams.set("mode", "readonly");
+  if (reason) url.searchParams.set("reason", reason);
+  return `${url.pathname}${url.search}`;
+}
 
+function wantsHtml(req: NextRequest) {
+  return (req.headers.get("accept") ?? "").includes("text/html");
+}
+
+export async function POST(req: NextRequest) {
+  let requestedRole: DemoRole | null = null;
+
+  try {
     const formData = await req.formData();
     const role = formData.get("role");
     if (!isDemoRole(role)) {
       throw new AppError("فقط دموی کارگر یا کارفرما مجاز است.", "BAD_REQUEST", 400);
+    }
+    requestedRole = role;
+
+    if (process.env.DEMO_OPEN_ACCESS === "false") {
+      throw new AppError("ورود نمایشی غیرفعال است.", "FORBIDDEN", 403);
     }
 
     const userAgent = req.headers.get("user-agent") || undefined;
@@ -37,13 +52,23 @@ export async function POST(req: NextRequest) {
       expires: expiresAt,
       path: "/",
     });
-
+    response.headers.set("Cache-Control", "no-store");
     return response;
   } catch (error) {
+    if (requestedRole && wantsHtml(req)) {
+      const reason = error instanceof AppError ? error.code : "DEMO_BACKEND_UNAVAILABLE";
+      const response = NextResponse.redirect(
+        new URL(fallbackDestination(requestedRole, reason), req.url),
+        303
+      );
+      response.headers.set("Cache-Control", "no-store");
+      return response;
+    }
+
     if (error instanceof AppError) {
       return NextResponse.json(
         { error: error.message, code: error.code },
-        { status: error.statusCode }
+        { status: error.statusCode, headers: { "Cache-Control": "no-store" } }
       );
     }
 
@@ -52,7 +77,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(
       { error: "ورود نمایشی در حال حاضر در دسترس نیست." },
-      { status: 500 }
+      { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
 }

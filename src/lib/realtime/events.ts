@@ -37,6 +37,7 @@ export type RealtimeEventName =
   | "sanction.created"
   | "sanction.revoked"
   | "timesheet.updated"
+  | "dispute.updated"
   | "payment.updated"
   | "wallet.updated"
   | "notification.created"
@@ -196,6 +197,11 @@ export interface RealtimeEventPayloads {
   "sanction.created": { workerId: string; sanctionId: string; sanctionType: string };
   "sanction.revoked": { workerId: string; reason: string };
   "timesheet.updated": { timesheetId: string; status: string };
+  "dispute.updated": {
+    disputeId: string;
+    status: "OPEN" | "UNDER_REVIEW" | "RESOLVED" | "REJECTED";
+    resolutionAction?: "REQUIRE_ADJUSTMENT" | "REJECT_DISPUTE";
+  };
   "payment.updated": {
     paymentId: string;
     status: "PENDING" | "SUCCESS" | "FAILED";
