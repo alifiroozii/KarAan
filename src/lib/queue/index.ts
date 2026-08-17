@@ -14,6 +14,7 @@ export { noShowQueue, ensureNoShowScheduler } from "./no-show.queue";
 export {
   backfillQueue,
   ensureBackfillWorker,
+  ensureBackfillInfrastructure,
   enqueueBackfillForAssignment,
   enqueueBackfillReconcile,
 } from "./backfill.queue";
