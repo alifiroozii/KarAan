@@ -73,17 +73,26 @@ export function EmployerDashboardLayout({ children }: { children: React.ReactNod
       <div className="max-w-7xl mx-auto px-4 py-8 flex-1 w-full grid grid-cols-1 md:grid-cols-4 gap-8">
         <aside className="md:col-span-1 space-y-2">
           <nav className="space-y-1.5 bg-card p-3 border border-border rounded-3xl">
-            <Link href="/employer" className={navClass(pathname === "/employer")}>
+            <Link
+              href="/employer/shifts/new"
+              className={navClass(pathname.startsWith("/employer/shifts/new"))}
+            >
               <PlusCircle className="w-4 h-4" />
               <span>ایجاد شیفت جدید</span>
             </Link>
-            <Link href="/employer" className={navClass(false)}>
+            <Link
+              href="/employer/live"
+              className={navClass(pathname.startsWith("/employer/live"))}
+            >
               <Users className="w-4 h-4" />
               <span>رادار و مانیتورینگ شیفت‌ها</span>
             </Link>
-            <Link href="/employer" className={navClass(false)}>
+            <Link
+              href="/employer/timesheets"
+              className={navClass(pathname.startsWith("/employer/timesheets"))}
+            >
               <Clock className="w-4 h-4" />
-              <span>تایید تایم‌شیت‌ها</span>
+              <span>تأیید و تسویه تایم‌شیت‌ها</span>
             </Link>
             <Link
               href="/employer/wallet"
