@@ -202,6 +202,10 @@ export const shiftAssignments = pgTable(
     // Assignment-level end isolates accepted overtime for one worker in a multi-worker shift.
     effectiveEndAt: timestamp("effective_end_at", { withTimezone: true }),
     totalBreakMinutes: integer("total_break_minutes").default(0).notNull(),
+    // Contractual one-time bonus, e.g. an urgent backfill incentive. Settlement remains downstream.
+    agreedBonusRials: bigint("agreed_bonus_rials", { mode: "bigint" })
+      .default(sql`0`)
+      .notNull(),
     actualPayRials: bigint("actual_pay_rials", { mode: "bigint" })
       .default(sql`0`)
       .notNull(),
