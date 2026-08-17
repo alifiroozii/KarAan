@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { RefreshCw, Scale, ShieldCheck } from "lucide-react";
 
 interface DisputeItem {
@@ -29,34 +30,29 @@ const statusLabel: Record<DisputeItem["status"], string> = {
   REJECTED: "ردشده",
 };
 
+async function fetchDisputes(): Promise<DisputePageData> {
+  const response = await fetch("/api/disputes", { cache: "no-store" });
+  const body = await response.json();
+  if (!response.ok || !body.success) {
+    throw new Error(body?.error?.message ?? "دریافت اختلافات ناموفق بود.");
+  }
+  return body.data as DisputePageData;
+}
+
 export function DisputeCenter() {
-  const [data, setData] = useState<DisputePageData>({ items: [], canManage: false });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery({
+    queryKey: ["disputes"],
+    queryFn: fetchDisputes,
+  });
+  const data = query.data ?? { items: [], canManage: false };
+  const [actionError, setActionError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
-  async function load() {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/disputes", { cache: "no-store" });
-      const body = await response.json();
-      if (!response.ok || !body.success) throw new Error(body?.error?.message ?? "دریافت اختلافات ناموفق بود.");
-      setData(body.data as DisputePageData);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "دریافت اختلافات ناموفق بود.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => { void load(); }, []);
-
   async function post(path: string, body?: unknown) {
     setSaving(true);
-    setError(null);
+    setActionError(null);
     try {
       const response = await fetch(path, {
         method: "POST",
@@ -64,16 +60,21 @@ export function DisputeCenter() {
         body: body ? JSON.stringify(body) : undefined,
       });
       const payload = await response.json();
-      if (!response.ok || !payload.success) throw new Error(payload?.error?.message ?? "عملیات ناموفق بود.");
+      if (!response.ok || !payload.success) {
+        throw new Error(payload?.error?.message ?? "عملیات ناموفق بود.");
+      }
       setSelected(null);
       setNotes("");
-      await load();
+      await query.refetch();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "عملیات ناموفق بود.");
+      setActionError(cause instanceof Error ? cause.message : "عملیات ناموفق بود.");
     } finally {
       setSaving(false);
     }
   }
+
+  const queryError = query.error instanceof Error ? query.error.message : null;
+  const error = actionError ?? queryError;
 
   return (
     <section dir="rtl" className="space-y-5">
@@ -82,13 +83,19 @@ export function DisputeCenter() {
           <div className="flex items-center gap-2"><Scale className="h-6 w-6 text-indigo-400" /><h2 className="text-2xl font-black">مرکز اختلافات</h2></div>
           <p className="mt-1 text-sm text-muted-foreground">پرونده‌های تایم‌شیت با Audit، وضعیت بررسی و رأی نهایی</p>
         </div>
-        <button onClick={() => void load()} className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-bold hover:bg-muted"><RefreshCw className="h-4 w-4" />بازخوانی</button>
+        <button
+          onClick={() => void query.refetch()}
+          disabled={query.isFetching}
+          className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-bold hover:bg-muted disabled:opacity-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${query.isFetching ? "animate-spin" : ""}`} />بازخوانی
+        </button>
       </div>
 
       {data.canManage && <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-xs font-bold text-emerald-300"><ShieldCheck className="h-4 w-4" />این حساب مجوز بررسی و صدور رأی اختلاف را دارد.</div>}
       {error && <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">{error}</div>}
-      {loading && <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">در حال دریافت پرونده‌ها…</div>}
-      {!loading && data.items.length === 0 && <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">پرونده اختلافی برای این حساب وجود ندارد.</div>}
+      {query.isLoading && <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">در حال دریافت پرونده‌ها…</div>}
+      {!query.isLoading && !error && data.items.length === 0 && <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">پرونده اختلافی برای این حساب وجود ندارد.</div>}
 
       <div className="space-y-3">
         {data.items.map((item) => (
