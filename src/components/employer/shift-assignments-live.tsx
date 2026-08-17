@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { AssignmentCancellationControl } from "@/components/common/assignment-cancellation-control";
 import { EmployerOvertimeControls } from "@/components/employer/overtime-controls";
+import { EmployerWorkerRelationshipControls } from "@/components/employer/worker-relationship-controls";
 import { CurrencyDisplay, StatusBadge } from "@/components/ui/domain-displays";
 import { useRealtimeRoom } from "@/hooks/use-realtime-room";
 
@@ -271,6 +272,11 @@ export function ShiftAssignmentsLive({ shiftId }: { shiftId: string }) {
                     state={assignment.state}
                   />
                 )}
+
+                <EmployerWorkerRelationshipControls
+                  assignmentId={assignment.assignmentId}
+                  workerUserId={assignment.workerId}
+                />
 
                 {cancellableStates.has(assignment.state) && (
                   <AssignmentCancellationControl
