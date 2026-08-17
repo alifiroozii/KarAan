@@ -6,6 +6,7 @@ export * from "./shifts";
 export * from "./attendance";
 export * from "./overtime";
 export * from "./reliability";
+export * from "./backfill";
 export * from "./reviews";
 export * from "./finance";
 export * from "./messaging";
