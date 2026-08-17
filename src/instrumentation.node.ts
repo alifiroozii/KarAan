@@ -1,11 +1,10 @@
 async function bootstrapBackgroundWorkers() {
   try {
-    const [{ ensureNoShowScheduler }, { ensureBackfillWorker }] = await Promise.all([
+    const [{ ensureNoShowScheduler }, { ensureBackfillInfrastructure }] = await Promise.all([
       import("@/lib/queue/no-show.queue"),
       import("@/lib/queue/backfill.queue"),
     ]);
-    ensureBackfillWorker();
-    await ensureNoShowScheduler();
+    await Promise.all([ensureNoShowScheduler(), ensureBackfillInfrastructure()]);
   } catch (error) {
     // A temporary Redis outage must not prevent the web server from booting.
     // Background work remains retryable/idempotent on the next process boot.
