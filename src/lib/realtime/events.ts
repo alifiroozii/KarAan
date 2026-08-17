@@ -31,6 +31,7 @@ export type RealtimeEventName =
   | "backfill.offers_dispatched"
   | "backfill.filled"
   | "backfill.exhausted"
+  | "backfill.cancelled"
   | "timesheet.updated"
   | "payment.updated"
   | "chat.message";
@@ -171,6 +172,12 @@ export interface RealtimeEventPayloads {
     backfillRequestId: string;
     shiftId: string;
     shiftSlotId: string;
+  };
+  "backfill.cancelled": {
+    backfillRequestId: string;
+    shiftId: string;
+    shiftSlotId: string;
+    reason: string;
   };
   "timesheet.updated": { timesheetId: string; status: string };
   "payment.updated": { transactionId: string; amountRials: string };
