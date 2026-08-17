@@ -193,6 +193,11 @@ export interface RealtimeEventPayloads {
   "sanction.created": { workerId: string; sanctionId: string; sanctionType: string };
   "sanction.revoked": { workerId: string; reason: string };
   "timesheet.updated": { timesheetId: string; status: string };
-  "payment.updated": { transactionId: string; amountRials: string };
+  "payment.updated": {
+    paymentId: string;
+    status: "PENDING" | "SUCCESS" | "FAILED";
+    amountRials: string;
+    purpose: "WALLET_TOPUP" | "SHIFT_PREFUND";
+  };
   "chat.message": { conversationId: string; senderId: string; content: string };
 }
