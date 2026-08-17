@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { AuthService } from "./auth.service";
 import { AuthSession, UserRole } from "./auth.types";
 import { Permission, assertPermission, assertOwnership } from "./permissions";
+import { assertSafeMutationOrigin } from "./request-security";
 import { AppError } from "@/lib/errors";
 
 const authService = new AuthService();
@@ -30,6 +31,7 @@ export async function getSessionFromRequest(req: NextRequest): Promise<AuthSessi
 }
 
 export async function requireAuth(req: NextRequest): Promise<AuthSession> {
+  assertSafeMutationOrigin(req);
   const session = await getSessionFromRequest(req);
   if (!session) {
     throw new AppError("لطفاً ابتدا وارد حساب کاربری خود شوید.", "UNAUTHORIZED", 401);
