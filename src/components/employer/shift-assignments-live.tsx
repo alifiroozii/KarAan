@@ -9,6 +9,7 @@ import {
   Navigation,
   Users,
 } from "lucide-react";
+import { AssignmentCancellationControl } from "@/components/common/assignment-cancellation-control";
 import { EmployerOvertimeControls } from "@/components/employer/overtime-controls";
 import { StatusBadge } from "@/components/ui/domain-displays";
 import { useRealtimeRoom } from "@/hooks/use-realtime-room";
@@ -32,6 +33,16 @@ interface AssignmentRow {
   effectiveEndAt: string;
   eta: EtaSnapshot | null;
 }
+
+const cancellableStates = new Set([
+  "OFFERED",
+  "VIEWED",
+  "ACCEPTED",
+  "RECONFIRM_PENDING",
+  "CONFIRMED",
+  "EN_ROUTE",
+  "ARRIVED",
+]);
 
 async function fetchAssignments(shiftId: string): Promise<AssignmentRow[]> {
   const response = await fetch(`/api/shifts/${shiftId}/assignments`);
@@ -155,6 +166,14 @@ export function ShiftAssignmentsLive({ shiftId }: { shiftId: string }) {
                     assignmentId={assignment.assignmentId}
                     workerName={assignment.workerName}
                     state={assignment.state}
+                  />
+                )}
+
+                {cancellableStates.has(assignment.state) && (
+                  <AssignmentCancellationControl
+                    assignmentId={assignment.assignmentId}
+                    shiftId={shiftId}
+                    mode="employer"
                   />
                 )}
 
