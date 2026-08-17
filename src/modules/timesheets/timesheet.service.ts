@@ -53,13 +53,14 @@ export class TimesheetService extends TimesheetEngineService {
 
       if (timesheet.finalPayRials === finalPayRials) return;
 
+      const updatedAt = new Date();
       await tx
         .update(timesheets)
-        .set({ finalPayRials, updatedAt: new Date() })
+        .set({ finalPayRials, updatedAt })
         .where(eq(timesheets.id, timesheetId));
       await tx
         .update(shiftAssignments)
-        .set({ actualPayRials: finalPayRials, updatedAt: new Date() })
+        .set({ actualPayRials: finalPayRials, updatedAt })
         .where(eq(shiftAssignments.id, assignmentId));
 
       await tx.insert(auditLogs).values({
@@ -92,10 +93,12 @@ export class TimesheetService extends TimesheetEngineService {
 
   private async enrichContractBonus<T extends { assignmentId: string; bonusRials: string }>(detail: T) {
     const contractBonusRials = await this.readContractBonus(detail.assignmentId);
+    const totalBonusRials = BigInt(detail.bonusRials) + contractBonusRials;
     return {
       ...detail,
+      bonusRials: totalBonusRials.toString(),
       contractBonusRials: contractBonusRials.toString(),
-      totalBonusRials: (BigInt(detail.bonusRials) + contractBonusRials).toString(),
+      totalBonusRials: totalBonusRials.toString(),
     };
   }
 
