@@ -2,9 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, CircleX, Clock3, ExternalLink, Loader2, ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { CurrencyDisplay } from "@/components/ui/domain-displays";
 import { useRealtimeRoom } from "@/hooks/use-realtime-room";
+import { cn } from "@/lib/utils";
 
 interface PaymentView {
   paymentId: string;
@@ -96,11 +97,13 @@ export function PaymentStatusCard({ paymentId }: { paymentId: string }) {
       </div>
 
       {payment.status === "PENDING" && payment.paymentUrl && (
-        <Button asChild className="w-full">
-          <a href={payment.paymentUrl} rel="noreferrer">
-            ادامه پرداخت در درگاه <ExternalLink className="mr-2 h-4 w-4" />
-          </a>
-        </Button>
+        <a
+          href={payment.paymentUrl}
+          rel="noreferrer"
+          className={cn(buttonVariants(), "w-full")}
+        >
+          ادامه پرداخت در درگاه <ExternalLink className="mr-2 h-4 w-4" />
+        </a>
       )}
 
       <div className="flex items-start gap-2 rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4 text-xs leading-6 text-sky-200">
