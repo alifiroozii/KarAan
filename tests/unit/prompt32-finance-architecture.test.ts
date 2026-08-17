@@ -37,11 +37,29 @@ describe("Prompt 32 financial architecture guards", () => {
     expect(ledger).toContain("reconcileProjection");
   });
 
+  it("does not allow unused Escrow to be released while a Shift is still active", () => {
+    const escrow = source("src/modules/settlement/escrow.service.ts");
+    expect(escrow).toContain('row.shift.status !== "CANCELLED"');
+    expect(escrow).toContain('row.shift.status !== "COMPLETED"');
+    expect(escrow).toContain("سپرده فقط پس از CANCELLED یا COMPLETED شدن شیفت قابل آزادسازی است");
+  });
+
   it("prepares Payout by reserving Wallet money and does not claim bank completion", () => {
     const payout = source("src/modules/payouts/payout.service.ts");
     expect(payout).toContain("reservePayoutInTransaction");
     expect(payout).toContain('status: "PENDING"');
     expect(payout).toContain("bankTransferDeferred");
     expect(payout).not.toContain('status: "DONE"');
+  });
+
+  it("resolves an existing Payout before mutable verification status and IBAN checks", () => {
+    const payout = source("src/modules/payouts/payout.service.ts");
+    const existingLookup = payout.indexOf("const [existing]");
+    const verificationCheck = payout.indexOf('worker.verificationStatus !== "VERIFIED"');
+    const ibanCheck = payout.indexOf("IRAN_IBAN_PATTERN.test");
+    expect(existingLookup).toBeGreaterThan(-1);
+    expect(verificationCheck).toBeGreaterThan(existingLookup);
+    expect(ibanCheck).toBeGreaterThan(existingLookup);
+    expect(payout).not.toContain("existing.bankIban !== iban");
   });
 });
