@@ -1,20 +1,38 @@
 import Redis from "ioredis";
+import { env } from "@/config/env";
 
-const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
+const globalState = globalThis as typeof globalThis & {
+  __karaanRedis?: Redis;
+  __karaanRedisErrorListenerInstalled?: boolean;
+};
 
-export const redis = new Redis(redisUrl, {
-  maxRetriesPerRequest: null,
-  lazyConnect: true,
-});
+export const redis =
+  globalState.__karaanRedis ??
+  new Redis(env.REDIS_URL, {
+    maxRetriesPerRequest: null,
+    lazyConnect: true,
+    connectTimeout: 5_000,
+  });
+
+globalState.__karaanRedis = redis;
+
+if (!globalState.__karaanRedisErrorListenerInstalled) {
+  redis.on("error", (error) => {
+    console.error("[Redis Connection Error]", error.message);
+  });
+  globalState.__karaanRedisErrorListenerInstalled = true;
+}
 
 export const REDIS_GEO_KEY = "karaan:workers:online_locations";
 export const REDIS_WORKER_STATUS_PREFIX = "karaan:worker:status:";
 export const REDIS_ASSIGNMENT_ETA_PREFIX = "karaan:assignment:eta:";
 
-async function ensureRedisConnected(): Promise<void> {
-  if (redis.status !== "ready" && redis.status !== "connecting") {
+export async function ensureRedisConnected(): Promise<void> {
+  if (redis.status === "ready") return;
+  if (redis.status === "wait" || redis.status === "end") {
     await redis.connect();
   }
+  await redis.ping();
 }
 
 export async function updateWorkerOnlineLocation(
