@@ -6,6 +6,7 @@ import { WorkerMobileLayout } from "@/components/layout/worker-mobile-layout";
 import { RatingStars, ReliabilityBadge } from "@/components/ui/domain-displays";
 import { CurrentShiftCard } from "@/components/worker/current-shift-card";
 import { WorkerCancellationPanel } from "@/components/worker/worker-cancellation-panel";
+import { WorkerShiftOffers } from "@/components/worker/shift-offers";
 import { AlertCircle, ArrowUpRight, Navigation, Wallet } from "lucide-react";
 import { useLocation } from "@/hooks/use-location";
 
@@ -37,6 +38,7 @@ export default function WorkerMobileDashboard() {
           </p>
         </div>
 
+        <WorkerShiftOffers />
         <CurrentShiftCard />
         <WorkerCancellationPanel />
 
