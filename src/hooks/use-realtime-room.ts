@@ -14,6 +14,11 @@ const EVENTS: RealtimeEventName[] = [
   "worker.checked_in",
   "worker.checked_out",
   "worker.late_risk",
+  "no_show.potential",
+  "no_show.finalized",
+  "no_show.overridden",
+  "no_show.detected",
+  "backfill.requested",
   "timesheet.updated",
 ];
 
