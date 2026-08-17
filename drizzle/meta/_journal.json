@@ -13,6 +13,8 @@
     { "idx": 8, "version": "7", "when": 1786962000000, "tag": "0008_no_show_detection", "breakpoints": true },
     { "idx": 9, "version": "7", "when": 1786964000000, "tag": "0009_backfill_workflow", "breakpoints": true },
     { "idx": 10, "version": "7", "when": 1786966000000, "tag": "0010_reliability_engine", "breakpoints": true },
-    { "idx": 11, "version": "7", "when": 1786968000000, "tag": "0011_two_way_ratings", "breakpoints": true }
+    { "idx": 11, "version": "7", "when": 1786968000000, "tag": "0011_two_way_ratings", "breakpoints": true },
+    { "idx": 12, "version": "7", "when": 1786970000000, "tag": "0012_worker_relationships", "breakpoints": true },
+    { "idx": 13, "version": "7", "when": 1786972000000, "tag": "0013_payment_gateway", "breakpoints": true }
   ]
 }
