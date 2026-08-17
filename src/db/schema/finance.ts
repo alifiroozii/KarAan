@@ -7,6 +7,7 @@ import {
   jsonb,
   index,
   uniqueIndex,
+  check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { users } from "./users";
@@ -66,6 +67,10 @@ export const wallets = pgTable(
       .notNull()
       .unique()
       .references(() => users.id, { onDelete: "cascade" }),
+    /**
+     * Fast balance projection. All mutations MUST be produced by the
+     * authoritative wallet ledger in the same database transaction.
+     */
     availableRials: bigint("available_rials", { mode: "bigint" })
       .default(sql`0`)
       .notNull(),
@@ -80,7 +85,11 @@ export const wallets = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => [index("idx_wallets_user_id").on(table.userId)]
+  (table) => [
+    index("idx_wallets_user_id").on(table.userId),
+    check("wallets_available_non_negative", sql`${table.availableRials} >= 0`),
+    check("wallets_locked_non_negative", sql`${table.lockedEscrowRials} >= 0`),
+  ]
 );
 
 export const walletTransactions = pgTable(
@@ -95,6 +104,12 @@ export const walletTransactions = pgTable(
     direction: transactionDirectionEnum("direction").notNull(),
     referenceType: referenceTypeEnum("reference_type").notNull(),
     referenceId: text("reference_id"),
+    description: text("description").default("Wallet transaction").notNull(),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    /** Available balance projection immediately after this posted entry. */
     balanceAfterRials: bigint("balance_after_rials", { mode: "bigint" }).notNull(),
     status: paymentStatusEnum("status").default("SUCCESS").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -105,6 +120,14 @@ export const walletTransactions = pgTable(
     index("idx_wallet_tx_wallet_id").on(table.walletId),
     index("idx_wallet_tx_idempotency").on(table.idempotencyKey),
     index("idx_wallet_tx_created_at").on(table.createdAt),
+    index("idx_wallet_tx_reference").on(table.referenceType, table.referenceId),
+    uniqueIndex("uq_wallet_tx_topup_payment")
+      .on(table.referenceId)
+      .where(
+        sql`${table.referenceType} = 'TOPUP' AND ${table.direction} = 'CREDIT' AND ${table.status} = 'SUCCESS'`
+      ),
+    check("wallet_tx_amount_positive", sql`${table.amountRials} > 0`),
+    check("wallet_tx_balance_non_negative", sql`${table.balanceAfterRials} >= 0`),
   ]
 );
 
