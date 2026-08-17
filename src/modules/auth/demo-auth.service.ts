@@ -56,7 +56,7 @@ export class DemoAuthService {
       if (demoUser && demoUser.role !== role) {
         throw new AppError(
           "شماره حساب دمو با نقش دیگری ثبت شده است.",
-          "DEMO_ACCOUNT_ROLE_CONFLICT",
+          "CONFLICT",
           409
         );
       }

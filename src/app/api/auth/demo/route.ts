@@ -11,13 +11,13 @@ function isDemoRole(value: FormDataEntryValue | null): value is DemoRole {
 export async function POST(req: NextRequest) {
   try {
     if (process.env.DEMO_OPEN_ACCESS === "false") {
-      throw new AppError("ورود نمایشی غیرفعال است.", "DEMO_ACCESS_DISABLED", 403);
+      throw new AppError("ورود نمایشی غیرفعال است.", "FORBIDDEN", 403);
     }
 
     const formData = await req.formData();
     const role = formData.get("role");
     if (!isDemoRole(role)) {
-      throw new AppError("فقط دموی کارگر یا کارفرما مجاز است.", "INVALID_DEMO_ROLE", 400);
+      throw new AppError("فقط دموی کارگر یا کارفرما مجاز است.", "BAD_REQUEST", 400);
     }
 
     const userAgent = req.headers.get("user-agent") || undefined;
