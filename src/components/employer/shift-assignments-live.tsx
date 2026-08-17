@@ -8,10 +8,11 @@ import {
   Loader2,
   Navigation,
   Users,
+  Zap,
 } from "lucide-react";
 import { AssignmentCancellationControl } from "@/components/common/assignment-cancellation-control";
 import { EmployerOvertimeControls } from "@/components/employer/overtime-controls";
-import { StatusBadge } from "@/components/ui/domain-displays";
+import { CurrencyDisplay, StatusBadge } from "@/components/ui/domain-displays";
 import { useRealtimeRoom } from "@/hooks/use-realtime-room";
 
 interface EtaSnapshot {
@@ -35,6 +36,19 @@ interface AssignmentRow {
   noShowStatus: "POTENTIAL" | "FINAL" | "OVERRIDDEN" | null;
   noShowDetectedAt: string | null;
   noShowFinalizesAt: string | null;
+  backfillRequestId: string | null;
+  backfillStatus:
+    | "REQUESTED"
+    | "DISPATCHING"
+    | "OFFERED"
+    | "FILLED"
+    | "EXHAUSTED"
+    | "CANCELLED"
+    | null;
+  backfillTrigger: string | null;
+  backfillUrgentBonusRials: string;
+  backfillOffersCreated: number | null;
+  backfillDispatchAttemptCount: number | null;
 }
 
 const cancellableStates = new Set([
@@ -54,6 +68,25 @@ async function fetchAssignments(shiftId: string): Promise<AssignmentRow[]> {
     throw new Error(body?.error?.message || "دریافت نیروهای شیفت ناموفق بود.");
   }
   return body.data as AssignmentRow[];
+}
+
+function backfillStatusLabel(status: AssignmentRow["backfillStatus"]) {
+  switch (status) {
+    case "REQUESTED":
+      return "در صف جایگزینی";
+    case "DISPATCHING":
+      return "در حال جستجوی نیروی جایگزین";
+    case "OFFERED":
+      return "پیشنهاد فوری ارسال شده";
+    case "FILLED":
+      return "نیروی جایگزین پیدا شد";
+    case "EXHAUSTED":
+      return "کاندیدای مناسب پیدا نشد";
+    case "CANCELLED":
+      return "جایگزینی متوقف شد";
+    default:
+      return "";
+  }
 }
 
 export function ShiftAssignmentsLive({ shiftId }: { shiftId: string }) {
@@ -114,6 +147,7 @@ export function ShiftAssignmentsLive({ shiftId }: { shiftId: string }) {
             const extended =
               new Date(assignment.effectiveEndAt).getTime() >
               new Date(assignment.scheduledEndAt).getTime();
+            const backfillBonus = BigInt(assignment.backfillUrgentBonusRials || "0");
 
             return (
               <div key={assignment.assignmentId} className="py-4 space-y-3">
@@ -158,6 +192,38 @@ export function ShiftAssignmentsLive({ shiftId }: { shiftId: string }) {
                   <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300">
                     <CheckCircle2 className="h-4 w-4 shrink-0" />
                     ثبت No-show توسط سیستم/پشتیبانی اصلاح شده است.
+                  </div>
+                )}
+
+                {assignment.backfillRequestId && assignment.backfillStatus && (
+                  <div
+                    className={`rounded-2xl border p-3 text-xs ${
+                      assignment.backfillStatus === "FILLED"
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                        : assignment.backfillStatus === "EXHAUSTED"
+                          ? "border-red-500/30 bg-red-500/10 text-red-200"
+                          : assignment.backfillStatus === "CANCELLED"
+                            ? "border-border bg-muted/40 text-muted-foreground"
+                            : "border-amber-500/30 bg-amber-500/10 text-amber-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-bold">
+                      <Zap className="h-4 w-4" />
+                      {backfillStatusLabel(assignment.backfillStatus)}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] opacity-80">
+                      <span>
+                        پیشنهادهای ارسال‌شده: {(assignment.backfillOffersCreated ?? 0).toLocaleString("fa-IR")}
+                      </span>
+                      <span>
+                        تلاش: {(assignment.backfillDispatchAttemptCount ?? 0).toLocaleString("fa-IR")}
+                      </span>
+                      {backfillBonus > 0n && (
+                        <span>
+                          پاداش فوری: <CurrencyDisplay amountRials={backfillBonus} />
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
 
