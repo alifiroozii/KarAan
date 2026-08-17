@@ -39,6 +39,8 @@ export type RealtimeEventName =
   | "timesheet.updated"
   | "payment.updated"
   | "wallet.updated"
+  | "notification.created"
+  | "notification.delivery.updated"
   | "chat.message";
 
 export interface RealtimeEventPayloads {
@@ -207,6 +209,17 @@ export interface RealtimeEventPayloads {
     lockedEscrowRials: string;
     transactionId: string;
     reason: "PAYMENT_TOPUP" | "SETTLEMENT" | "REFUND" | "ESCROW" | "PAYOUT" | "ADJUSTMENT";
+  };
+  "notification.created": {
+    notificationId: string;
+    userId: string;
+    type: string;
+  };
+  "notification.delivery.updated": {
+    notificationId: string;
+    deliveryId: string;
+    channel: "IN_APP" | "SMS" | "PUSH";
+    status: "PENDING" | "PROCESSING" | "SENT" | "FAILED" | "SKIPPED";
   };
   "chat.message": { conversationId: string; senderId: string; content: string };
 }

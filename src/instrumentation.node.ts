@@ -5,17 +5,20 @@ async function bootstrapBackgroundWorkers() {
       { ensureBackfillInfrastructure },
       { bindBackfillOverrideBridge },
       { ensureReliabilityInfrastructure },
+      { ensureNotificationInfrastructure },
     ] = await Promise.all([
       import("@/lib/queue/no-show.queue"),
       import("@/lib/queue/backfill.queue"),
       import("@/modules/backfill/backfill-realtime-bridge"),
       import("@/lib/queue/reliability.queue"),
+      import("@/lib/queue/notification.queue"),
     ]);
     bindBackfillOverrideBridge();
     await Promise.all([
       ensureNoShowScheduler(),
       ensureBackfillInfrastructure(),
       ensureReliabilityInfrastructure(),
+      ensureNotificationInfrastructure(),
     ]);
   } catch (error) {
     // A temporary Redis outage must not prevent the web server from booting.

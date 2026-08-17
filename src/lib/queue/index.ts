@@ -23,3 +23,8 @@ export {
   ensureReliabilityWorker,
   ensureReliabilityInfrastructure,
 } from "./reliability.queue";
+export {
+  notificationDeliveryQueue,
+  enqueueNotificationDelivery,
+  ensureNotificationInfrastructure,
+} from "./notification.queue";

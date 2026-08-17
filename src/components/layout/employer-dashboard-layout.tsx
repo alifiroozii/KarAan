@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, Clock, PlusCircle, Users, WalletCards } from "lucide-react";
+import { Bell, Building2, Clock, PlusCircle, Users, WalletCards } from "lucide-react";
 import { CurrencyDisplay } from "../ui/domain-displays";
 import { useRealtimeRoom } from "@/hooks/use-realtime-room";
 
@@ -93,6 +93,13 @@ export function EmployerDashboardLayout({ children }: { children: React.ReactNod
             >
               <Clock className="w-4 h-4" />
               <span>تأیید و تسویه تایم‌شیت‌ها</span>
+            </Link>
+            <Link
+              href="/employer/notifications"
+              className={navClass(pathname.startsWith("/employer/notifications"))}
+            >
+              <Bell className="w-4 h-4" />
+              <span>اعلان‌ها</span>
             </Link>
             <Link
               href="/employer/wallet"

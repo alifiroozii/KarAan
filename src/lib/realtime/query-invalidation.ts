@@ -3,11 +3,6 @@ import { RealtimeEventName } from "./events";
 
 export type RealtimeQueryKey = readonly unknown[];
 
-/**
- * Stable public mapping retained for existing consumers/tests.
- * Entity-specific keys are added by invalidateQueriesForRealtimeEvent so this
- * helper remains backwards compatible.
- */
 export function getQueryKeysToInvalidate(
   event: RealtimeEventName,
   _payload: Record<string, unknown>
@@ -24,6 +19,9 @@ export function getQueryKeysToInvalidate(
       return [["payments"], ["employer", "payments"]];
     case "wallet.updated":
       return [["wallet"], ["wallet", "transactions"], ["employer", "wallet"], ["worker", "wallet"]];
+    case "notification.created":
+    case "notification.delivery.updated":
+      return [["notifications"], ["notifications", "unread-count"]];
     case "reliability.updated":
     case "strike.created":
     case "sanction.created":
@@ -71,6 +69,7 @@ export function invalidateQueriesForRealtimeEvent(
   const timesheetId = payload.timesheetId as string | undefined;
   const paymentId = payload.paymentId as string | undefined;
   const walletId = payload.walletId as string | undefined;
+  const notificationId = payload.notificationId as string | undefined;
 
   if (assignmentId) {
     keys.push(["assignment", assignmentId]);
@@ -90,6 +89,8 @@ export function invalidateQueriesForRealtimeEvent(
     }
   }
   if (userId && event === "wallet.updated") keys.push(["wallet", userId]);
+  if (userId && event.startsWith("notification.")) keys.push(["notifications", userId]);
+  if (notificationId) keys.push(["notification", notificationId]);
   if (walletId) keys.push(["wallet", walletId]);
   if (shiftId) {
     keys.push(["shift", shiftId]);

@@ -9,12 +9,15 @@ describe("Reconfirmation & Reminder Queue Unit Tests", () => {
       idempotencyKey: "idem_24h_999",
     };
 
-    // Simulate processor logic when shift assignment is cancelled
     const mockProcess = (data: ReconfirmationJobData): ReconfirmationJobResult => {
       if (data.assignmentId.includes("cancelled")) {
         return { status: "SKIPPED_CANCELLED", assignmentId: data.assignmentId, riskFlagged: false };
       }
-      return { status: "RISK_FLAGGED_SMS_SENT", assignmentId: data.assignmentId, riskFlagged: true };
+      return {
+        status: "RISK_FLAGGED_NOTIFICATION_QUEUED",
+        assignmentId: data.assignmentId,
+        riskFlagged: true,
+      };
     };
 
     const result = mockProcess(mockData);
@@ -22,7 +25,7 @@ describe("Reconfirmation & Reminder Queue Unit Tests", () => {
     expect(result.riskFlagged).toBe(false);
   });
 
-  it("should flag risk and send SMS fallback for unresponsive worker", () => {
+  it("should flag risk and queue a durable notification for an unresponsive worker", () => {
     const mockData: ReconfirmationJobData = {
       assignmentId: "asgn_unresponsive_2",
       reminderType: "T_3H",
@@ -33,11 +36,15 @@ describe("Reconfirmation & Reminder Queue Unit Tests", () => {
       if (data.assignmentId.includes("cancelled")) {
         return { status: "SKIPPED_CANCELLED", assignmentId: data.assignmentId, riskFlagged: false };
       }
-      return { status: "RISK_FLAGGED_SMS_SENT", assignmentId: data.assignmentId, riskFlagged: true };
+      return {
+        status: "RISK_FLAGGED_NOTIFICATION_QUEUED",
+        assignmentId: data.assignmentId,
+        riskFlagged: true,
+      };
     };
 
     const result = mockProcess(mockData);
-    expect(result.status).toBe("RISK_FLAGGED_SMS_SENT");
+    expect(result.status).toBe("RISK_FLAGGED_NOTIFICATION_QUEUED");
     expect(result.riskFlagged).toBe(true);
   });
 });
