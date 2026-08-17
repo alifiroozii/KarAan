@@ -123,6 +123,7 @@ export const payments = pgTable(
     description: text("description").notNull(),
     provider: paymentProviderEnum("provider").default("MOCK").notNull(),
     authority: text("authority"),
+    paymentUrl: text("payment_url"),
     refId: text("ref_id"),
     providerStatusCode: text("provider_status_code"),
     providerMessage: text("provider_message"),
