@@ -1,10 +1,10 @@
 import { AdminDashboardLayout } from "@/components/layout/admin-dashboard-layout";
-import { DisputeCenter } from "@/components/disputes/dispute-center";
+import { AdminAuditLog } from "@/components/admin/admin-audit-log";
 
-export default function AdminDisputesPage() {
+export default function AdminAuditPage() {
   return (
     <AdminDashboardLayout>
-      <DisputeCenter />
+      <AdminAuditLog />
     </AdminDashboardLayout>
   );
 }
