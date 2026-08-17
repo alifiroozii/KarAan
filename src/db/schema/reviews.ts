@@ -69,10 +69,18 @@ export const workerRosters = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
+    uniqueIndex("uq_roster_employer_worker").on(
+      table.employerProfileId,
+      table.workerProfileId
+    ),
     index("idx_roster_employer_id").on(table.employerProfileId),
     index("idx_roster_worker_id").on(table.workerProfileId),
+    index("idx_roster_type").on(table.rosterType),
   ]
 );
 
@@ -92,6 +100,7 @@ export const blocks = pgTable(
       .notNull(),
   },
   (table) => [
+    uniqueIndex("uq_blocks_pair").on(table.blockerUserId, table.blockedUserId),
     index("idx_blocks_blocker_id").on(table.blockerUserId),
     index("idx_blocks_blocked_id").on(table.blockedUserId),
   ]
