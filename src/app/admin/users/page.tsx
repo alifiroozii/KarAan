@@ -1,10 +1,10 @@
 import { AdminDashboardLayout } from "@/components/layout/admin-dashboard-layout";
-import { DisputeCenter } from "@/components/disputes/dispute-center";
+import { AdminUsers } from "@/components/admin/admin-users";
 
-export default function AdminDisputesPage() {
+export default function AdminUsersPage() {
   return (
     <AdminDashboardLayout>
-      <DisputeCenter />
+      <AdminUsers />
     </AdminDashboardLayout>
   );
 }

@@ -1,54 +1,45 @@
 "use client";
 
-import React from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { ShieldCheck, Users, Briefcase, FileText } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Activity, FileSearch, Scale, ShieldCheck, Users } from "lucide-react";
 
-export function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
+function navClass(active: boolean) {
+  return active
+    ? "flex items-center gap-3 rounded-2xl bg-indigo-600 px-4 py-3 text-xs font-bold text-white"
+    : "flex items-center gap-3 rounded-2xl px-4 py-3 text-xs font-bold text-slate-400 transition hover:bg-slate-900 hover:text-white";
+}
+
+export function AdminDashboardLayout({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-indigo-500 selection:text-white">
-      <header className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+    <div dir="rtl" className="min-h-screen bg-slate-950 text-slate-100">
+      <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4">
           <Link href="/admin" className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-600/20 text-indigo-400">
+              <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-foreground">کارآن | پنل مدیریت ارشد (Admin)</h1>
-              <p className="text-xs text-muted-foreground">نظارت کل سیستم و دفتر کل مالی</p>
+              <h1 className="text-sm font-black">کارآن | عملیات مدیریت</h1>
+              <p className="text-[10px] text-slate-500">Production Operations Center</p>
             </div>
           </Link>
+          <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold text-emerald-300">Audit enabled</span>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-8 flex-1 w-full grid grid-cols-1 md:grid-cols-4 gap-8">
-        <aside className="md:col-span-1 space-y-2">
-          <nav className="space-y-1.5 bg-card p-3 border border-border rounded-3xl">
-            <Link
-              href="/admin"
-              className="w-full p-3 rounded-2xl text-xs font-bold flex items-center gap-3 bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
-            >
-              <Users className="w-4 h-4" />
-              <span>کاربران و اعتبارسنجی</span>
-            </Link>
-            <Link
-              href="/admin"
-              className="w-full p-3 rounded-2xl text-xs font-bold flex items-center gap-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
-            >
-              <Briefcase className="w-4 h-4" />
-              <span>شیفت‌های فعال</span>
-            </Link>
-            <Link
-              href="/admin"
-              className="w-full p-3 rounded-2xl text-xs font-bold flex items-center gap-3 text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
-            >
-              <FileText className="w-4 h-4" />
-              <span>دفتر کل حسابداری (Audit)</span>
-            </Link>
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 md:grid-cols-[220px_1fr]">
+        <aside className="h-fit rounded-3xl border border-slate-800 bg-slate-900/60 p-3">
+          <nav className="space-y-1">
+            <Link href="/admin" className={navClass(pathname === "/admin")}><Activity className="h-4 w-4" />داشبورد</Link>
+            <Link href="/admin/users" className={navClass(pathname.startsWith("/admin/users"))}><Users className="h-4 w-4" />کاربران</Link>
+            <Link href="/admin/audit" className={navClass(pathname.startsWith("/admin/audit"))}><FileSearch className="h-4 w-4" />Audit Log</Link>
+            <Link href="/admin/disputes" className={navClass(pathname.startsWith("/admin/disputes"))}><Scale className="h-4 w-4" />اختلافات</Link>
           </nav>
         </aside>
-
-        <main className="md:col-span-3">{children}</main>
+        <main className="min-w-0">{children}</main>
       </div>
     </div>
   );
