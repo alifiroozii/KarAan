@@ -1,6 +1,8 @@
+import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import next from "next";
 import { Server } from "socket.io";
+import Redis from "ioredis";
 import postgres from "postgres";
 
 const productionFlag = process.argv.includes("--production");
@@ -9,11 +11,20 @@ if (!dev) process.env.NODE_ENV = "production";
 
 const hostname = process.env.HOSTNAME || "0.0.0.0";
 const port = Number(process.env.PORT || 3000);
+const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
+const REALTIME_REDIS_CHANNEL = "karaan:realtime:v1";
+const realtimeInstanceId = process.env.REALTIME_INSTANCE_ID?.trim() || `socket-${process.pid}-${randomUUID()}`;
+globalThis.__karaanRealtimeInstanceId = realtimeInstanceId;
 
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 const sql = postgres(process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/karaan", {
   max: 5,
+});
+const realtimeSubscriber = new Redis(redisUrl, {
+  lazyConnect: true,
+  maxRetriesPerRequest: null,
+  connectTimeout: 5_000,
 });
 
 function readCookie(cookieHeader, key) {
@@ -59,58 +70,28 @@ async function canJoinAssignment(userId, assignmentId) {
     limit 1
   `;
   const row = rows[0];
-  return Boolean(
-    row &&
-      (row.workerId === userId ||
-        row.employerId === userId ||
-        row.isBusinessMember ||
-        row.isBranchManager)
-  );
+  return Boolean(row && (row.workerId === userId || row.employerId === userId || row.isBusinessMember || row.isBranchManager));
 }
 
 async function canJoinShift(userId, shiftId) {
   const rows = await sql`
     select
       s.employer_id as "employerId",
-      exists(
-        select 1 from shift_assignments a
-        where a.shift_id = s.id and a.worker_id = ${userId}
-      ) as "isAssignedWorker",
-      exists(
-        select 1 from business_members bm
-        where bm.business_id = s.business_id and bm.user_id = ${userId}
-      ) as "isBusinessMember",
-      exists(
-        select 1 from branches br
-        where br.id = s.branch_id and br.manager_user_id = ${userId}
-      ) as "isBranchManager"
-    from shifts s
-    where s.id = ${shiftId}
-    limit 1
+      exists(select 1 from shift_assignments a where a.shift_id = s.id and a.worker_id = ${userId}) as "isAssignedWorker",
+      exists(select 1 from business_members bm where bm.business_id = s.business_id and bm.user_id = ${userId}) as "isBusinessMember",
+      exists(select 1 from branches br where br.id = s.branch_id and br.manager_user_id = ${userId}) as "isBranchManager"
+    from shifts s where s.id = ${shiftId} limit 1
   `;
   const row = rows[0];
-  return Boolean(
-    row &&
-      (row.employerId === userId ||
-        row.isAssignedWorker ||
-        row.isBusinessMember ||
-        row.isBranchManager)
-  );
+  return Boolean(row && (row.employerId === userId || row.isAssignedWorker || row.isBusinessMember || row.isBranchManager));
 }
 
 async function canJoinBusiness(userId, businessId) {
   const rows = await sql`
-    select 1
-    from businesses b
+    select 1 from businesses b
     inner join employer_profiles ep on ep.id = b.employer_profile_id
     where b.id = ${businessId}
-      and (
-        ep.user_id = ${userId}
-        or exists(
-          select 1 from business_members bm
-          where bm.business_id = b.id and bm.user_id = ${userId}
-        )
-      )
+      and (ep.user_id = ${userId} or exists(select 1 from business_members bm where bm.business_id = b.id and bm.user_id = ${userId}))
     limit 1
   `;
   return rows.length > 0;
@@ -118,19 +99,11 @@ async function canJoinBusiness(userId, businessId) {
 
 async function canJoinBranch(userId, branchId) {
   const rows = await sql`
-    select 1
-    from branches br
+    select 1 from branches br
     inner join businesses b on b.id = br.business_id
     inner join employer_profiles ep on ep.id = b.employer_profile_id
     where br.id = ${branchId}
-      and (
-        br.manager_user_id = ${userId}
-        or ep.user_id = ${userId}
-        or exists(
-          select 1 from business_members bm
-          where bm.business_id = b.id and bm.user_id = ${userId}
-        )
-      )
+      and (br.manager_user_id = ${userId} or ep.user_id = ${userId} or exists(select 1 from business_members bm where bm.business_id = b.id and bm.user_id = ${userId}))
     limit 1
   `;
   return rows.length > 0;
@@ -147,6 +120,21 @@ async function authorizeRoom(user, roomType, id) {
   return false;
 }
 
+function isValidDistributedEnvelope(value) {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      typeof value.sourceInstanceId === "string" &&
+      typeof value.room === "string" &&
+      /^(user|worker|assignment|shift|business|branch):[A-Za-z0-9_:-]{1,220}$/.test(value.room) &&
+      typeof value.event === "string" &&
+      /^[a-z_]+(?:\.[a-z_]+)+$/.test(value.event) &&
+      value.payload &&
+      typeof value.payload === "object" &&
+      Number.isFinite(value.publishedAt)
+  );
+}
+
 await app.prepare();
 
 const httpServer = createServer((req, res) => handle(req, res));
@@ -157,6 +145,39 @@ const io = new Server(httpServer, {
 });
 
 globalThis.__karaanSocketIO = io;
+
+realtimeSubscriber.on("error", (error) => {
+  console.error("[Realtime Redis Subscriber Error]", error.message);
+});
+realtimeSubscriber.on("message", (channel, raw) => {
+  if (channel !== REALTIME_REDIS_CHANNEL) return;
+  try {
+    const envelope = JSON.parse(raw);
+    if (!isValidDistributedEnvelope(envelope)) return;
+    if (envelope.sourceInstanceId === realtimeInstanceId) return;
+    io.to(envelope.room).emit(envelope.event, envelope.payload);
+  } catch (error) {
+    console.error("[Realtime Redis Message Error]", error);
+  }
+});
+
+async function startRealtimeSubscriber() {
+  if (realtimeSubscriber.status === "wait" || realtimeSubscriber.status === "end") {
+    await realtimeSubscriber.connect();
+  }
+  await realtimeSubscriber.subscribe(REALTIME_REDIS_CHANNEL);
+  console.log(`[Realtime] Redis subscriber ready as ${realtimeInstanceId}`);
+}
+
+if (dev) {
+  try {
+    await startRealtimeSubscriber();
+  } catch (error) {
+    console.warn("[Realtime] Redis subscriber unavailable in development", error);
+  }
+} else {
+  await startRealtimeSubscriber();
+}
 
 io.use(async (socket, nextSocket) => {
   try {
@@ -201,6 +222,11 @@ httpServer.listen(port, hostname, () => {
 async function shutdown(signal) {
   console.log(`[${signal}] shutting down`);
   io.close();
+  try {
+    if (realtimeSubscriber.status !== "end") await realtimeSubscriber.quit();
+  } catch (error) {
+    console.error("[Realtime Redis Shutdown Error]", error);
+  }
   httpServer.close(async () => {
     await sql.end({ timeout: 5 });
     process.exit(0);
