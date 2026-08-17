@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   CheckCircle2,
+  CircleDollarSign,
   Clock3,
   Coffee,
   Loader2,
@@ -65,6 +66,18 @@ interface TimesheetDetailModel {
   overtimeContracts: OvertimeContract[];
 }
 
+interface SettlementResult {
+  settlementId: string;
+  timesheetId: string;
+  workerGrossRials: string;
+  workerCommissionRials: string;
+  workerNetRials: string;
+  employerFeeRials: string;
+  totalEscrowDebitRials: string;
+  status: "SETTLED" | "REVERSED";
+  idempotent: boolean;
+}
+
 async function readResult<T>(response: Response): Promise<T> {
   const body = await response.json();
   if (!response.ok || !body.success) {
@@ -122,6 +135,19 @@ export function TimesheetDetail({
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["timesheet", timesheetId] });
       void queryClient.invalidateQueries({ queryKey: ["employer", "timesheets"] });
+    },
+  });
+
+  const settle = useMutation({
+    mutationFn: async () =>
+      readResult<SettlementResult>(
+        await fetch(`/api/timesheets/${timesheetId}/settle`, { method: "POST" })
+      ),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["timesheet", timesheetId] });
+      void queryClient.invalidateQueries({ queryKey: ["employer", "timesheets"] });
+      void queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      void queryClient.invalidateQueries({ queryKey: ["wallet", "transactions"] });
     },
   });
 
@@ -193,7 +219,7 @@ export function TimesheetDetail({
         </div>
       </section>
 
-      <section className="rounded-3xl border border-border bg-card p-5 sm:p-6 space-y-4">
+      <section className="space-y-4 rounded-3xl border border-border bg-card p-5 sm:p-6">
         <h2 className="flex items-center gap-2 text-base font-extrabold">
           <ReceiptText className="h-5 w-5 text-indigo-400" />
           جزئیات محاسبه
@@ -224,16 +250,22 @@ export function TimesheetDetail({
         {item.status === "READY_FOR_SETTLEMENT" && (
           <div className="flex items-start gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs leading-6 text-emerald-200">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-            کارکرد تأیید شده و آماده لایه تسویه است؛ هنوز هیچ موجودی کیف پولی تغییر نکرده است.
+            کارکرد تأیید شده و آماده تسویه مالی از Escrow است. تا قبل از اجرای Settlement موجودی Worker تغییر نمی‌کند.
+          </div>
+        )}
+        {item.status === "SETTLED" && (
+          <div className="flex items-start gap-2 rounded-2xl border border-sky-500/30 bg-sky-500/10 p-4 text-xs leading-6 text-sky-200">
+            <CircleDollarSign className="mt-0.5 h-4 w-4 shrink-0" />
+            این تایم‌شیت تسویه شده و درآمد Worker در Wallet Ledger ثبت شده است.
           </div>
         )}
       </section>
 
       {item.overtimeContracts.length > 0 && (
-        <section className="rounded-3xl border border-violet-500/25 bg-violet-500/5 p-5 sm:p-6 space-y-3">
+        <section className="space-y-3 rounded-3xl border border-violet-500/25 bg-violet-500/5 p-5 sm:p-6">
           <h2 className="flex items-center gap-2 text-base font-extrabold"><Clock3 className="h-5 w-5 text-violet-400" />قراردادهای اضافه‌کاری پذیرفته‌شده</h2>
           {item.overtimeContracts.map((contract) => (
-            <div key={contract.id} className="rounded-2xl border border-violet-500/20 bg-background/50 p-3 text-xs space-y-1">
+            <div key={contract.id} className="space-y-1 rounded-2xl border border-violet-500/20 bg-background/50 p-3 text-xs">
               <div className="flex justify-between gap-3"><strong>{timeLabel(contract.originalEndAt)} → {timeLabel(contract.requestedEndAt)}</strong><span>{contract.requestedMinutes.toLocaleString("fa-IR")} دقیقه</span></div>
               <div className="text-muted-foreground">نرخ: {overtimeRateLabel(contract)}</div>
               {BigInt(contract.fixedBonusRials) > 0n && <div>پاداش ثابت قرارداد: <CurrencyDisplay amountRials={BigInt(contract.fixedBonusRials)} /></div>}
@@ -243,7 +275,7 @@ export function TimesheetDetail({
       )}
 
       {item.breaks.length > 0 && (
-        <section className="rounded-3xl border border-border bg-card p-5 sm:p-6 space-y-3">
+        <section className="space-y-3 rounded-3xl border border-border bg-card p-5 sm:p-6">
           <h2 className="flex items-center gap-2 text-base font-extrabold"><Coffee className="h-5 w-5 text-amber-400" />استراحت‌ها</h2>
           {item.breaks.map((brk) => (
             <div key={brk.id} className="flex justify-between rounded-2xl border border-border p-3 text-xs">
@@ -255,7 +287,7 @@ export function TimesheetDetail({
       )}
 
       {mode === "employer" && item.status === "SUBMITTED" && (
-        <section className="rounded-3xl border border-border bg-card p-5 sm:p-6 space-y-3">
+        <section className="space-y-3 rounded-3xl border border-border bg-card p-5 sm:p-6">
           <div className="flex items-center gap-2 text-sm font-bold"><ShieldCheck className="h-5 w-5 text-emerald-400" />بررسی کارفرما</div>
           <div className="grid gap-2 sm:grid-cols-2">
             <Button disabled={approve.isPending} onClick={() => approve.mutate()}>
@@ -268,6 +300,20 @@ export function TimesheetDetail({
         </section>
       )}
 
+      {mode === "employer" && item.status === "READY_FOR_SETTLEMENT" && (
+        <section className="space-y-3 rounded-3xl border border-emerald-500/25 bg-emerald-500/5 p-5 sm:p-6">
+          <div className="flex items-center gap-2 text-sm font-bold"><CircleDollarSign className="h-5 w-5 text-emerald-400" />تسویه مالی</div>
+          <p className="text-xs leading-6 text-muted-foreground">
+            با اجرای تسویه، مبلغ نهایی Worker و کارمزد محاسبه‌شده به‌صورت atomic از Escrow مصرف می‌شود و خالص درآمد Worker در Wallet Ledger او ثبت خواهد شد.
+          </p>
+          <Button disabled={settle.isPending} onClick={() => settle.mutate()}>
+            {settle.isPending ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <CircleDollarSign className="ml-2 h-4 w-4" />}
+            تسویه از سپرده
+          </Button>
+          {settle.error && <p className="text-xs leading-6 text-red-300">{settle.error.message}</p>}
+        </section>
+      )}
+
       {mode === "employer" && item.status === "ADJUSTMENT_REQUIRED" && (
         <section className="rounded-3xl border border-amber-500/30 bg-amber-500/10 p-5 text-xs leading-6 text-amber-200">
           این تایم‌شیت تا تعیین تکلیف زمان بدون قرارداد قابل تأیید نیست.
@@ -276,7 +322,7 @@ export function TimesheetDetail({
       )}
 
       {(mode === "worker" || showDispute) && canDispute && (
-        <section className="rounded-3xl border border-border bg-card p-5 sm:p-6 space-y-3">
+        <section className="space-y-3 rounded-3xl border border-border bg-card p-5 sm:p-6">
           <div className="flex items-center gap-2 text-sm font-bold"><Clock3 className="h-5 w-5 text-amber-400" />ثبت اختلاف تایم‌شیت</div>
           <Input value={reasonCode} onChange={(event) => setReasonCode(event.target.value)} placeholder="کد دلیل، مثلاً TIME" />
           <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="شرح دقیق اختلاف..." className="min-h-28 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
