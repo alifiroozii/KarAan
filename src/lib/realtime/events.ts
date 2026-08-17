@@ -32,6 +32,10 @@ export type RealtimeEventName =
   | "backfill.filled"
   | "backfill.exhausted"
   | "backfill.cancelled"
+  | "reliability.updated"
+  | "strike.created"
+  | "sanction.created"
+  | "sanction.revoked"
   | "timesheet.updated"
   | "payment.updated"
   | "chat.message";
@@ -179,6 +183,15 @@ export interface RealtimeEventPayloads {
     shiftSlotId: string;
     reason: string;
   };
+  "reliability.updated": {
+    workerId: string;
+    eventId: string;
+    scoreDelta: number;
+    resultingScore: number;
+  };
+  "strike.created": { workerId: string; strikeId: string };
+  "sanction.created": { workerId: string; sanctionId: string; sanctionType: string };
+  "sanction.revoked": { workerId: string; reason: string };
   "timesheet.updated": { timesheetId: string; status: string };
   "payment.updated": { transactionId: string; amountRials: string };
   "chat.message": { conversationId: string; senderId: string; content: string };
