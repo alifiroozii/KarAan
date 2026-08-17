@@ -12,3 +12,5 @@ async function bootstrapNoShowScheduler() {
 }
 
 void bootstrapNoShowScheduler();
+
+export {};
