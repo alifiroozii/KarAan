@@ -29,33 +29,9 @@ export class ReviewsService {
       comment,
     });
 
-    // Update worker reliability score if evaluatee is a worker
-    const workerProfileList = await db
-      .select()
-      .from(workerProfiles)
-      .where(eq(workerProfiles.userId, evaluateeId))
-      .limit(1);
-
-    if (workerProfileList.length > 0) {
-      const profile = workerProfileList[0];
-      const currentScore = parseFloat(profile.reliabilityScore || "100.00");
-      // Adjust score: 5 stars => +2, 4 stars => +1, 3 stars => 0, 1-2 stars => -5
-      let delta = 0;
-      if (score === 5) delta = 2.0;
-      else if (score === 4) delta = 1.0;
-      else if (score <= 2) delta = -5.0;
-
-      const newScore = Math.min(100.0, Math.max(0.0, currentScore + delta)).toFixed(2);
-
-      await db
-        .update(workerProfiles)
-        .set({
-          reliabilityScore: newScore,
-          updatedAt: new Date(),
-        })
-        .where(eq(workerProfiles.id, profile.id));
-    }
-
+    // Quality Rating and Reliability are intentionally separate domains.
+    // Reliability changes only through the authoritative ReliabilityService
+    // from operational events such as no-show, cancellation and completion.
     await db.insert(auditLogs).values({
       id: `aud_${crypto.randomUUID()}`,
       actorId: evaluatorId,
@@ -104,14 +80,14 @@ export class ReviewsService {
         .delete(workerRosters)
         .where(eq(workerRosters.id, existing[0].id));
       return { isFavorite: false };
-    } else {
-      await db.insert(workerRosters).values({
-        id: `fav_${crypto.randomUUID()}`,
-        employerProfileId,
-        workerProfileId,
-        rosterType: "FAVORITE",
-      });
-      return { isFavorite: true };
     }
+
+    await db.insert(workerRosters).values({
+      id: `fav_${crypto.randomUUID()}`,
+      employerProfileId,
+      workerProfileId,
+      rosterType: "FAVORITE",
+    });
+    return { isFavorite: true };
   }
 }
