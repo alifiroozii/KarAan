@@ -64,6 +64,29 @@ export class PayoutService {
         .where(eq(workerProfiles.userId, input.workerUserId))
         .limit(1);
       if (!worker) throw new AppError("پروفایل کارگر پیدا نشد.", "NOT_FOUND", 404);
+
+      // Idempotent retries are resolved from the immutable request snapshot first.
+      // A later IBAN/profile-status change must not turn a previously successful
+      // network retry into a conflict or reserve the same money again.
+      const [existing] = await tx
+        .select()
+        .from(payouts)
+        .where(eq(payouts.idempotencyKey, idempotencyKey))
+        .limit(1);
+      if (existing) {
+        if (
+          existing.workerProfileId !== worker.id ||
+          existing.amountRials !== input.amountRials
+        ) {
+          throw new AppError(
+            "این Idempotency-Key قبلاً برای درخواست برداشت دیگری استفاده شده است.",
+            "CONFLICT",
+            409
+          );
+        }
+        return { payout: existing, walletMutation: null, idempotent: true };
+      }
+
       if (worker.verificationStatus !== "VERIFIED") {
         throw new AppError("برداشت فقط برای کارگر تاییدشده فعال است.", "FORBIDDEN", 403);
       }
@@ -74,26 +97,6 @@ export class PayoutService {
           "VALIDATION_ERROR",
           422
         );
-      }
-
-      const [existing] = await tx
-        .select()
-        .from(payouts)
-        .where(eq(payouts.idempotencyKey, idempotencyKey))
-        .limit(1);
-      if (existing) {
-        if (
-          existing.workerProfileId !== worker.id ||
-          existing.amountRials !== input.amountRials ||
-          existing.bankIban !== iban
-        ) {
-          throw new AppError(
-            "این Idempotency-Key قبلاً برای درخواست برداشت دیگری استفاده شده است.",
-            "CONFLICT",
-            409
-          );
-        }
-        return { payout: existing, walletMutation: null, idempotent: true };
       }
 
       const payoutId = `pyo_${crypto.randomUUID()}`;
