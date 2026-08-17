@@ -125,8 +125,11 @@ export class TimesheetService extends TimesheetEngineService {
   }
 
   override async listForWorker(workerUserId: string, filters: TimesheetListFilters = {}) {
-    const rows = await super.listForWorker(workerUserId, filters);
-    return Promise.all(rows.map((row) => this.enrichContractBonus(row)));
+    const page = await super.listForWorker(workerUserId, filters);
+    return {
+      ...page,
+      items: await Promise.all(page.items.map((row) => this.enrichContractBonus(row))),
+    };
   }
 
   override async listForEmployer(
@@ -134,7 +137,10 @@ export class TimesheetService extends TimesheetEngineService {
     role: UserRole,
     filters: TimesheetListFilters = {}
   ) {
-    const rows = await super.listForEmployer(actorUserId, role, filters);
-    return Promise.all(rows.map((row) => this.enrichContractBonus(row)));
+    const page = await super.listForEmployer(actorUserId, role, filters);
+    return {
+      ...page,
+      items: await Promise.all(page.items.map((row) => this.enrichContractBonus(row))),
+    };
   }
 }
