@@ -22,6 +22,8 @@ export function getQueryKeysToInvalidate(
       return [["timesheets"], ["employer", "timesheets"], ["worker", "earnings"]];
     case "payment.updated":
       return [["payments"], ["employer", "payments"]];
+    case "wallet.updated":
+      return [["wallet"], ["wallet", "transactions"], ["employer", "wallet"], ["worker", "wallet"]];
     case "reliability.updated":
     case "strike.created":
     case "sanction.created":
@@ -64,9 +66,11 @@ export function invalidateQueriesForRealtimeEvent(
   const keys: RealtimeQueryKey[] = [...getQueryKeysToInvalidate(event, payload)];
   const assignmentId = payload.assignmentId as string | undefined;
   const workerId = payload.workerId as string | undefined;
+  const userId = payload.userId as string | undefined;
   const shiftId = payload.shiftId as string | undefined;
   const timesheetId = payload.timesheetId as string | undefined;
   const paymentId = payload.paymentId as string | undefined;
+  const walletId = payload.walletId as string | undefined;
 
   if (assignmentId) {
     keys.push(["assignment", assignmentId]);
@@ -85,6 +89,8 @@ export function invalidateQueriesForRealtimeEvent(
       keys.push(["admin", "worker", workerId, "reliability"]);
     }
   }
+  if (userId && event === "wallet.updated") keys.push(["wallet", userId]);
+  if (walletId) keys.push(["wallet", walletId]);
   if (shiftId) {
     keys.push(["shift", shiftId]);
     if (event.startsWith("no_show.") || event.startsWith("backfill.")) {
