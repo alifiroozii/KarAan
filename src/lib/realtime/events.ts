@@ -28,6 +28,9 @@ export type RealtimeEventName =
   | "no_show.overridden"
   | "no_show.detected"
   | "backfill.requested"
+  | "backfill.offers_dispatched"
+  | "backfill.filled"
+  | "backfill.exhausted"
   | "timesheet.updated"
   | "payment.updated"
   | "chat.message";
@@ -151,6 +154,24 @@ export interface RealtimeEventPayloads {
   };
   "no_show.detected": { assignmentId: string; workerId: string };
   "backfill.requested": { shiftId: string; neededSlots: number };
+  "backfill.offers_dispatched": {
+    backfillRequestId: string;
+    shiftId: string;
+    shiftSlotId: string;
+    offersCreated: number;
+    expiresAt: string;
+  };
+  "backfill.filled": {
+    backfillRequestId: string;
+    shiftId: string;
+    shiftSlotId: string;
+    assignmentId: string;
+  };
+  "backfill.exhausted": {
+    backfillRequestId: string;
+    shiftId: string;
+    shiftSlotId: string;
+  };
   "timesheet.updated": { timesheetId: string; status: string };
   "payment.updated": { transactionId: string; amountRials: string };
   "chat.message": { conversationId: string; senderId: string; content: string };
