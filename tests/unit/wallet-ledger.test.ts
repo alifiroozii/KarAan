@@ -55,6 +55,7 @@ function postedCredit(overrides: Record<string, unknown> = {}) {
     idempotencyKey: "wallet:payment-credit:pay_verified_1",
     amountRials: 5_000_000n,
     direction: "CREDIT" as const,
+    bucket: "AVAILABLE" as const,
     referenceType: "TOPUP" as const,
     referenceId: "pay_verified_1",
     description: "شارژ کیف پول از درگاه پرداخت",
@@ -111,7 +112,7 @@ function fakeClient(selectResults: unknown[][], updatedWallet = wallet(15_000_00
 describe("WalletLedgerService payment credits", () => {
   it("returns the existing posted credit on duplicate callback without another insert", async () => {
     const existing = postedCredit();
-    const fake = fakeClient([[wallet()], [existing]]);
+    const fake = fakeClient([[wallet()], [existing], [wallet(15_000_000n)]]);
     const service = new WalletLedgerService();
 
     const result = await service.creditVerifiedPaymentInTransaction(
@@ -128,7 +129,7 @@ describe("WalletLedgerService payment credits", () => {
     expect(fake.update).not.toHaveBeenCalled();
   });
 
-  it("posts one ledger credit and updates the wallet projection for a new verified topup", async () => {
+  it("posts one AVAILABLE ledger credit and updates the wallet projection for a new verified topup", async () => {
     const fake = fakeClient([[wallet()], [], [], [wallet()]], wallet(15_000_000n));
     const service = new WalletLedgerService();
 
@@ -145,6 +146,7 @@ describe("WalletLedgerService payment credits", () => {
       idempotencyKey: "wallet:payment-credit:pay_verified_1",
       amountRials: 5_000_000n,
       direction: "CREDIT",
+      bucket: "AVAILABLE",
       referenceType: "TOPUP",
       referenceId: "pay_verified_1",
       balanceAfterRials: 15_000_000n,
