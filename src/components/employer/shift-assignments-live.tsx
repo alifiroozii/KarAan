@@ -32,6 +32,9 @@ interface AssignmentRow {
   scheduledEndAt: string;
   effectiveEndAt: string;
   eta: EtaSnapshot | null;
+  noShowStatus: "POTENTIAL" | "FINAL" | "OVERRIDDEN" | null;
+  noShowDetectedAt: string | null;
+  noShowFinalizesAt: string | null;
 }
 
 const cancellableStates = new Set([
@@ -123,6 +126,40 @@ export function ShiftAssignmentsLive({ shiftId }: { shiftId: string }) {
                   </div>
                   <StatusBadge status={assignment.state} />
                 </div>
+
+                {assignment.noShowStatus === "POTENTIAL" && (
+                  <div className="flex items-start gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div>
+                      <strong className="block">احتمال عدم حضور</strong>
+                      <span className="mt-1 block text-amber-200/80">
+                        ورود Worker هنوز ثبت نشده است
+                        {assignment.noShowFinalizesAt
+                          ? `؛ در صورت ادامه تا ${new Date(assignment.noShowFinalizesAt).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tehran" })} عدم حضور نهایی می‌شود.`
+                          : "."}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {(assignment.noShowStatus === "FINAL" || assignment.state === "NO_SHOW") && (
+                  <div className="flex items-start gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-200">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div>
+                      <strong className="block">عدم حضور نهایی ثبت شد</strong>
+                      <span className="mt-1 block text-red-200/80">
+                        جایگاه این Assignment برای جایگزینی آزاد شده است.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {assignment.noShowStatus === "OVERRIDDEN" && (
+                  <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    ثبت No-show توسط سیستم/پشتیبانی اصلاح شده است.
+                  </div>
+                )}
 
                 {assignment.state === "EN_ROUTE" && assignment.eta && (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-3 text-xs">
