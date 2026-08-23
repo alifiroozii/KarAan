@@ -233,6 +233,13 @@ fun KarvinNavGraph(
             )
         }
 
+        // Active Shift & Attendance
+        composable(Screen.ActiveShift.route) {
+            com.karvin.app.presentation.attendance.ActiveShiftScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
         // Notifications
         composable(Screen.Notifications.route) {
             NotificationScreen(

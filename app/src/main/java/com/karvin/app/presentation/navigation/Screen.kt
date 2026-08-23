@@ -21,6 +21,7 @@ sealed class Screen(val route: String) {
     object WorkerChat : Screen("worker_chat")
     object WorkerProfile : Screen("worker_profile")
     object WorkerWallet : Screen("worker_wallet")
+    object ActiveShift : Screen("active_shift")
 
     // Employer Flows
     object EmployerMain : Screen("employer_main")

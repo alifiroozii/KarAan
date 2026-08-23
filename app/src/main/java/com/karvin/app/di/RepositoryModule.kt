@@ -1,5 +1,6 @@
 package com.karvin.app.di
 
+import com.karvin.app.data.repository.AttendanceRepositoryImpl
 import com.karvin.app.data.repository.AuthRepositoryImpl
 import com.karvin.app.data.repository.ChatRepositoryImpl
 import com.karvin.app.data.repository.EmployerRepositoryImpl
@@ -10,6 +11,7 @@ import com.karvin.app.data.repository.NotificationRepositoryImpl
 import com.karvin.app.data.repository.PaymentRepositoryImpl
 import com.karvin.app.data.repository.WalletRepositoryImpl
 import com.karvin.app.data.repository.WorkerRepositoryImpl
+import com.karvin.app.domain.repository.AttendanceRepository
 import com.karvin.app.domain.repository.AuthRepository
 import com.karvin.app.domain.repository.ChatRepository
 import com.karvin.app.domain.repository.EmployerRepository
@@ -69,4 +71,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindPaymentRepository(impl: PaymentRepositoryImpl): PaymentRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAttendanceRepository(impl: AttendanceRepositoryImpl): AttendanceRepository
 }
