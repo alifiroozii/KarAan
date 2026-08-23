@@ -71,6 +71,7 @@ import com.karvin.app.utils.PriceFormatter
 fun WorkerProfileScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToEditProfile: () -> Unit,
+    onNavigateToWallet: () -> Unit = {},
     onLogout: () -> Unit,
     viewModel: WorkerProfileViewModel = hiltViewModel()
 ) {
@@ -243,6 +244,12 @@ fun WorkerProfileScreen(
             // Settings & Actions list
             KarvinCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp)) {
+                    ProfileOptionRow(
+                        title = "کیف پول و درخواست تسویه",
+                        icon = androidx.compose.material.icons.filled.AccountBalanceWallet,
+                        onClick = onNavigateToWallet
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                     ProfileOptionRow(
                         title = "ویرایش اطلاعات و مهارت‌ها",
                         icon = Icons.Default.Edit,

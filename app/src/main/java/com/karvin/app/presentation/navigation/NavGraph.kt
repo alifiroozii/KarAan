@@ -18,6 +18,7 @@ import com.karvin.app.presentation.employer.EmployerMainContainer
 import com.karvin.app.presentation.notifications.NotificationScreen
 import com.karvin.app.presentation.role_selection.RoleSelectionScreen
 import com.karvin.app.presentation.splash.SplashScreen
+import com.karvin.app.presentation.wallet.WalletScreen
 import com.karvin.app.presentation.worker.WorkerMainContainer
 import com.karvin.app.presentation.worker.jobs.JobDetailsScreen
 
@@ -147,6 +148,9 @@ fun KarvinNavGraph(
                 onNavigateToChatDetail = { convId ->
                     navController.navigate(Screen.ChatDetail.createRoute(convId))
                 },
+                onNavigateToWallet = {
+                    navController.navigate(Screen.WorkerWallet.route)
+                },
                 onNavigateToNotifications = {
                     navController.navigate(Screen.Notifications.route)
                 },
@@ -218,6 +222,13 @@ fun KarvinNavGraph(
             val convId = backStackEntry.arguments?.getString("conversationId") ?: "conv_1"
             ChatDetailScreen(
                 conversationId = convId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // Worker Wallet
+        composable(Screen.WorkerWallet.route) {
+            WalletScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

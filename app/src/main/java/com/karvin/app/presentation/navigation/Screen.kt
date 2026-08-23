@@ -20,6 +20,7 @@ sealed class Screen(val route: String) {
     object WorkerShifts : Screen("worker_shifts")
     object WorkerChat : Screen("worker_chat")
     object WorkerProfile : Screen("worker_profile")
+    object WorkerWallet : Screen("worker_wallet")
 
     // Employer Flows
     object EmployerMain : Screen("employer_main")
@@ -30,6 +31,7 @@ sealed class Screen(val route: String) {
     object EmployerShifts : Screen("employer_shifts")
     object EmployerChat : Screen("employer_chat")
     object EmployerProfile : Screen("employer_profile")
+    object EmployerPayment : Screen("employer_payment")
 
     // Shared Screens
     object JobDetails : Screen("job_details/{jobId}") {

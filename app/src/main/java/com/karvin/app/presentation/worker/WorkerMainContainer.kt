@@ -35,6 +35,7 @@ import com.karvin.app.presentation.worker.shifts.WorkerShiftsScreen
 fun WorkerMainContainer(
     onNavigateToJobDetails: (String) -> Unit,
     onNavigateToChatDetail: (String) -> Unit,
+    onNavigateToWallet: () -> Unit,
     onNavigateToNotifications: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToEditProfile: () -> Unit,
@@ -135,6 +136,7 @@ fun WorkerMainContainer(
                 WorkerProfileScreen(
                     onNavigateToSettings = onNavigateToSettings,
                     onNavigateToEditProfile = onNavigateToEditProfile,
+                    onNavigateToWallet = onNavigateToWallet,
                     onLogout = onLogout
                 )
             }
