@@ -1,7 +1,7 @@
 package com.karvin.app.presentation.notifications
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
@@ -35,8 +36,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,6 +45,7 @@ import com.karvin.app.domain.model.NotificationItem
 import com.karvin.app.domain.model.NotificationType
 import com.karvin.app.presentation.components.EmptyStateView
 import com.karvin.app.presentation.components.KarvinCard
+import com.karvin.app.presentation.components.KarvinFilterChip
 import com.karvin.app.presentation.components.KarvinTopAppBar
 import com.karvin.app.presentation.theme.Amber100
 import com.karvin.app.presentation.theme.Amber500
@@ -64,6 +64,7 @@ fun NotificationScreen(
     viewModel: NotificationViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val filterScroll = rememberScrollState()
 
     Scaffold(
         topBar = {
@@ -94,10 +95,28 @@ fun NotificationScreen(
         ) {
             Spacer(modifier = Modifier.height(10.dp))
 
-            if (state.notifications.isEmpty()) {
+            // Category Filter Chips
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(filterScroll),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                NotificationFilter.values().forEach { filter ->
+                    KarvinFilterChip(
+                        text = filter.titleFa,
+                        isSelected = state.selectedFilter == filter,
+                        onClick = { viewModel.onFilterChange(filter) }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (state.filteredNotifications.isEmpty()) {
                 EmptyStateView(
-                    title = "هیچ اعلانی ندارید",
-                    message = "پیام‌های سیستم، یادآوری شیفت‌ها و تاییدیه‌ها در این بخش ثبت خواهند شد.",
+                    title = "اعلانی در این دسته وجود ندارد",
+                    message = "پیام‌های سیستم، فرصت‌های نزدیک و یادآوری شیفت‌ها در این بخش ثبت می‌شوند.",
                     icon = Icons.Default.Notifications
                 )
             } else {
@@ -105,7 +124,7 @@ fun NotificationScreen(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(state.notifications) { item ->
+                    items(state.filteredNotifications) { item ->
                         NotificationCard(
                             item = item,
                             onClick = { viewModel.markAsRead(item.id) }
