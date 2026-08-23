@@ -3,11 +3,8 @@ package com.karvin.app.presentation.worker.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.karvin.app.domain.model.Job
-import com.karvin.app.domain.model.JobApplication
-import com.karvin.app.domain.model.Shift
 import com.karvin.app.domain.model.WorkerProfile
-import com.karvin.app.domain.repository.WorkerRepository
-import com.karvin.app.domain.usecase.auth.GetCurrentUserUseCase
+import com.karvin.app.domain.usecase.matching.GetRecommendedJobsUseCase
 import com.karvin.app.domain.usecase.worker.ApplyForJobUseCase
 import com.karvin.app.domain.usecase.worker.GetNearbyJobsUseCase
 import com.karvin.app.domain.usecase.worker.GetWorkerApplicationsUseCase
@@ -29,6 +26,7 @@ data class WorkerHomeUiState(
     val activeShiftsCount: Int = 0,
     val monthlyEarningsToman: Long = 0,
     val performanceRating: Float = 5.0f,
+    val recommendedJobs: List<Job> = emptyList(),
     val urgentJobs: List<Job> = emptyList(),
     val isAvailableForWork: Boolean = true,
     val isLoading: Boolean = false,
@@ -37,13 +35,12 @@ data class WorkerHomeUiState(
 
 @HiltViewModel
 class WorkerHomeViewModel @Inject constructor(
-    private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getWorkerStatsUseCase: GetWorkerStatsUseCase,
     private val getNearbyJobsUseCase: GetNearbyJobsUseCase,
+    private val getRecommendedJobsUseCase: GetRecommendedJobsUseCase,
     private val getWorkerApplicationsUseCase: GetWorkerApplicationsUseCase,
     private val getWorkerShiftsUseCase: GetWorkerShiftsUseCase,
-    private val applyForJobUseCase: ApplyForJobUseCase,
-    private val workerRepository: WorkerRepository
+    private val applyForJobUseCase: ApplyForJobUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(WorkerHomeUiState())
@@ -62,15 +59,19 @@ class WorkerHomeViewModel @Inject constructor(
                 getWorkerApplicationsUseCase(workerId),
                 getWorkerShiftsUseCase(workerId)
             ) { profile, jobs, applications, shifts ->
+                val mockProfile = profile ?: com.karvin.app.data.repository.FakeDataGenerator.generate100Workers().first()
+                val sortedJobs = jobs.sortedByDescending { it.matchScorePercentage ?: 80 }
+
                 WorkerHomeUiState(
-                    workerProfile = profile,
+                    workerProfile = mockProfile,
                     nearbyJobsCount = jobs.size,
                     applicationsCount = applications.size,
                     activeShiftsCount = shifts.count { it.status == com.karvin.app.domain.model.ShiftStatus.UPCOMING || it.status == com.karvin.app.domain.model.ShiftStatus.IN_PROGRESS },
-                    monthlyEarningsToman = profile?.totalEarningsToman ?: 28500000L,
-                    performanceRating = profile?.rating ?: 4.8f,
+                    monthlyEarningsToman = mockProfile.totalEarningsToman,
+                    performanceRating = mockProfile.rating,
+                    recommendedJobs = sortedJobs.take(4),
                     urgentJobs = jobs.filter { it.isUrgent },
-                    isAvailableForWork = profile?.isAvailableForWork ?: true,
+                    isAvailableForWork = mockProfile.isAvailableForWork,
                     isLoading = false
                 )
             }.collect { state ->
