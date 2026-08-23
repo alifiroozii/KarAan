@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand & Core -->
+    <string name="app_name">کاروین</string>
+    <string name="brand_name_en">KARVIN</string>
+    <string name="brand_slogan">اتصال هوشمند کار و فرصت</string>
+    <string name="brand_sub_slogan">پلتفرم هوشمند ارتباط مستقیم کارگر و کارفرما</string>
+
+    <!-- Role Selection -->
+    <string name="welcome_title">به کاروین خوش آمدید</string>
+    <string name="choose_role_prompt">نوع حساب کاربری خود را انتخاب کنید</string>
+    <string name="role_worker_title">ورود به عنوان کارگر</string>
+    <string name="role_worker_desc">یافتن کارهای روزمزد، شیفتی و پروژه‌ای با درآمد منصفانه</string>
+    <string name="role_employer_title">ورود به عنوان کارفرما</string>
+    <string name="role_employer_desc">ثبت فرصت‌های شغلی و استخدام سریع نیروهای ماهر و مطمئن</string>
+
+    <!-- Auth Common -->
+    <string name="login_title">ورود به حساب</string>
+    <string name="phone_number_label">شماره تلفن همراه</string>
+    <string name="phone_number_hint">۰۹۱۲۳۴۵۶۷۸۹</string>
+    <string name="send_otp_btn">دریافت کد تایید</string>
+    <string name="otp_title">تایید شماره همراه</string>
+    <string name="otp_sent_to">کد تایید پیامک شده به شماره %s را وارد کنید</string>
+    <string name="otp_code_label">کد ۵ رقمی</string>
+    <string name="verify_and_continue">تایید و ادامه</string>
+    <string name="resend_otp">ارسال مجدد کد</string>
+    <string name="terms_notice">ورود شما به معنای پذیرش قوانین و مقررات کاروین است.</string>
+
+    <!-- Worker Registration -->
+    <string name="worker_reg_title">ثبت‌نام کارگر متخصص</string>
+    <string name="step_personal_info">اطلاعات فردی</string>
+    <string name="step_professional_info">اطلاعات مهارتی</string>
+    <string name="step_availability">زمان‌بندی و دسترسی</string>
+    <string name="full_name_label">نام و نام خانوادگی</string>
+    <string name="national_id_label">کد ملی</string>
+    <string name="birth_date_label">تاریخ تولد</string>
+    <string name="gender_label">جنسیت</string>
+    <string name="gender_male">مرد</string>
+    <string name="gender_female">زن</string>
+    <string name="skills_label">مهارت‌ها و تخصص‌ها</string>
+    <string name="job_categories_label">دسته‌بندی‌های شغلی</string>
+    <string name="experience_years_label">سابقه کاری (سال)</string>
+    <string name="city_label">شهر</string>
+    <string name="address_label">آدرس یا محله</string>
+    <string name="available_days_label">روزهای کاری در دسترس</string>
+    <string name="available_hours_label">ساعات کاری مورد نظر</string>
+    <string name="preferred_jobs_label">علاقه‌مندی‌های شغلی</string>
+    <string name="next_step">مرحله بعد</string>
+    <string name="prev_step">مرحله قبل</string>
+    <string name="complete_registration">تکمیل ثبت‌نام و ورود</string>
+
+    <!-- Employer Registration -->
+    <string name="employer_reg_title">ثبت‌نام کارفرما / کسب‌وکار</string>
+    <string name="business_name_label">نام کسب‌وکار یا کارگاه</string>
+    <string name="business_category_label">حوزه فعالیت</string>
+    <string name="contact_info_label">شماره تماس ثابت / پشتیبان</string>
+
+    <!-- Navigation Tabs -->
+    <string name="nav_home">خانه</string>
+    <string name="nav_jobs">فرصت‌های کاری</string>
+    <string name="nav_shifts">شیفت‌ها</string>
+    <string name="nav_applicants">درخواست‌ها</string>
+    <string name="nav_create_job">ثبت نیرو</string>
+    <string name="nav_profile">پروفایل</string>
+    <string name="nav_notifications">اعلان‌ها</string>
+
+    <!-- Worker Home & Dashboard -->
+    <string name="worker_greeting">سلام، %s</string>
+    <string name="ready_for_work">آماده به کار</string>
+    <string name="stat_nearby_jobs">فرصت‌های نزدیک</string>
+    <string name="stat_my_applications">درخواست‌های من</string>
+    <string name="stat_active_shifts">شیفت‌های فعال</string>
+    <string name="stat_earnings">درآمد این ماه</string>
+    <string name="stat_rating">امتیاز عملکرد</string>
+    <string name="urgent_jobs_title">فرصت‌های فوری کاری</string>
+    <string name="view_all">مشاهده همه</string>
+    <string name="view_details">مشاهده جزئیات</string>
+    <string name="apply_for_job">درخواست همکاری</string>
+    <string name="already_applied">درخواست ارسال شده</string>
+
+    <!-- Job Details -->
+    <string name="job_details_title">جزئیات فرصت شغلی</string>
+    <string name="salary_label">دستمزد پیشنهادی</string>
+    <string name="working_hours_label">ساعات کاری</string>
+    <string name="location_label">موقعیت مکانی</string>
+    <string name="required_skills_label">مهارت‌های مورد نیاز</string>
+    <string name="workers_needed_label">تعداد نیروی مورد نیاز</string>
+    <string name="employer_info_label">اطلاعات کارفرما</string>
+    <string name="apply_success">درخواست همکاری شما با موفقیت ثبت شد.</string>
+
+    <!-- Employer Dashboard & Create Job -->
+    <string name="employer_dashboard_title">پیشخوان مدیریت نیرو</string>
+    <string name="stat_posted_jobs">آگهی‌های ثبت شده</string>
+    <string name="stat_received_applications">درخواست‌های دریافتی</string>
+    <string name="stat_approved_workers">نیروهای تایید شده</string>
+    <string name="stat_employer_active_shifts">شیفت‌های در حال اجرا</string>
+    <string name="create_job_banner_title">نیاز به نیروی کار فوری دارید؟</string>
+    <string name="create_job_banner_btn">ثبت درخواست نیروی جدید</string>
+    <string name="job_title_label">عنوان شغل</string>
+    <string name="job_description_label">شرح وظایف و جزئیات کار</string>
+    <string name="job_category_select">دسته‌بندی شغلی</string>
+    <string name="job_workers_count">تعداد نیروی مورد نیاز</string>
+    <string name="job_date_label">تاریخ انجام کار</string>
+    <string name="job_start_time">ساعت شروع</string>
+    <string name="job_end_time">ساعت پایان</string>
+    <string name="job_salary_amount">مبلغ دستمزد (تومان)</string>
+    <string name="submit_job_btn">انتشار آگهی استخدام</string>
+
+    <!-- Applicants & Rating -->
+    <string name="applicants_title">درخواست‌های دریافتی</string>
+    <string name="tab_all">همه</string>
+    <string name="tab_pending">در انتظار بررسی</string>
+    <string name="tab_accepted">تایید شده</string>
+    <string name="tab_rejected">رد شده</string>
+    <string name="accept_btn">تایید نیرو</string>
+    <string name="reject_btn">رد درخواست</string>
+    <string name="rate_worker_btn">ثبت امتیاز و نظر</string>
+    <string name="rate_dialog_title">امتیازدهی به عملکرد نیرو</string>
+    <string name="rating_stars_prompt">نمره شما به کیفیت کار و تعهد نیرو:</string>
+    <string name="feedback_comment_label">نظر تکمیلی شما (اختیاری)</string>
+    <string name="submit_rating">ثبت نهایی امتیاز</string>
+
+    <!-- Shifts -->
+    <string name="shifts_title">برنامه شیفت‌های کاری</string>
+    <string name="shift_upcoming">پیش‌رو</string>
+    <string name="shift_in_progress">در حال انجام</string>
+    <string name="shift_completed">پایان یافته</string>
+    <string name="shift_start_btn">شروع شیفت (ثبت ورود)</string>
+    <string name="shift_finish_btn">پایان شیفت (ثبت خروج)</string>
+
+    <!-- Profile & Common -->
+    <string name="profile_title">پروفایل کاربری</string>
+    <string name="edit_profile">ویرایش اطلاعات</string>
+    <string name="change_avatar">تغییر تصویر پروفایل</string>
+    <string name="settings">تنظیمات</string>
+    <string name="support_contact">ارتباط با پشتیبانی کاروین</string>
+    <string name="about_karvin">درباره کاروین</string>
+    <string name="logout">خروج از حساب کاربری</string>
+    <string name="logout_confirm">آیا مایل به خروج از حساب کاربری هستید؟</string>
+    <string name="cancel">انصراف</string>
+    <string name="confirm">تایید</string>
+    <string name="toman_unit">تومان</string>
+    <string name="person_unit">نفر</string>
+    <string name="years_unit">سال</string>
+    <string name="empty_data">موردی برای نمایش وجود ندارد</string>
+    <string name="dark_mode">حالت شب (دارک مود)</string>
+</resources>

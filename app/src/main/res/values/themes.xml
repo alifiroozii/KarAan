@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.KarVin" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/primary_navy</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@color/background_light</item>
+    </style>
+
+    <style name="Theme.KarVin.Splash" parent="Theme.KarVin">
+        <item name="android:windowBackground">@color/primary_navy</item>
+        <item name="android:statusBarColor">@color/primary_navy</item>
+    </style>
+</resources>
