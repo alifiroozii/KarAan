@@ -15,22 +15,29 @@ sealed class Screen(val route: String) {
     // Worker Flows
     object WorkerMain : Screen("worker_main")
     object WorkerHome : Screen("worker_home")
+    object WorkerMap : Screen("worker_map")
     object WorkerJobs : Screen("worker_jobs")
-    object JobDetails : Screen("job_details/{jobId}") {
-        fun createRoute(jobId: String) = "job_details/$jobId"
-    }
     object WorkerShifts : Screen("worker_shifts")
+    object WorkerChat : Screen("worker_chat")
     object WorkerProfile : Screen("worker_profile")
 
     // Employer Flows
     object EmployerMain : Screen("employer_main")
     object EmployerDashboard : Screen("employer_dashboard")
+    object EmployerMap : Screen("employer_map")
     object CreateJob : Screen("create_job")
     object EmployerApplicants : Screen("employer_applicants")
     object EmployerShifts : Screen("employer_shifts")
+    object EmployerChat : Screen("employer_chat")
     object EmployerProfile : Screen("employer_profile")
 
     // Shared Screens
+    object JobDetails : Screen("job_details/{jobId}") {
+        fun createRoute(jobId: String) = "job_details/$jobId"
+    }
+    object ChatDetail : Screen("chat_detail/{conversationId}") {
+        fun createRoute(conversationId: String) = "chat_detail/$conversationId"
+    }
     object Notifications : Screen("notifications")
     object Settings : Screen("settings")
     object EditProfile : Screen("edit_profile")

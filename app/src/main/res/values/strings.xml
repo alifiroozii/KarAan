@@ -4,15 +4,15 @@
     <string name="app_name">کاروین</string>
     <string name="brand_name_en">KARVIN</string>
     <string name="brand_slogan">اتصال هوشمند کار و فرصت</string>
-    <string name="brand_sub_slogan">پلتفرم هوشمند ارتباط مستقیم کارگر و کارفرما</string>
+    <string name="brand_sub_slogan">پلتفرم هوشمند موقعیت‌محور اتصال کارگر و کارفرما</string>
 
     <!-- Role Selection -->
     <string name="welcome_title">به کاروین خوش آمدید</string>
     <string name="choose_role_prompt">نوع حساب کاربری خود را انتخاب کنید</string>
     <string name="role_worker_title">ورود به عنوان کارگر</string>
-    <string name="role_worker_desc">یافتن کارهای روزمزد، شیفتی و پروژه‌ای با درآمد منصفانه</string>
+    <string name="role_worker_desc">یافتن کارهای نزدیک و روزمزد بر اساس موقعیت مکانی و مهارت</string>
     <string name="role_employer_title">ورود به عنوان کارفرما</string>
-    <string name="role_employer_desc">ثبت فرصت‌های شغلی و استخدام سریع نیروهای ماهر و مطمئن</string>
+    <string name="role_employer_desc">مشاهده نیروهای آماده به کار روی نقشه و استخدام فوری</string>
 
     <!-- Auth Common -->
     <string name="login_title">ورود به حساب</string>
@@ -55,9 +55,12 @@
     <string name="business_category_label">حوزه فعالیت</string>
     <string name="contact_info_label">شماره تماس ثابت / پشتیبان</string>
 
-    <!-- Navigation Tabs -->
+    <!-- Navigation Tabs (5 Tabs) -->
     <string name="nav_home">خانه</string>
-    <string name="nav_jobs">فرصت‌های کاری</string>
+    <string name="nav_map">نقشه</string>
+    <string name="nav_jobs">کارها</string>
+    <string name="nav_workers">نیروها</string>
+    <string name="nav_messages">پیام‌ها</string>
     <string name="nav_shifts">شیفت‌ها</string>
     <string name="nav_applicants">درخواست‌ها</string>
     <string name="nav_create_job">ثبت نیرو</string>
@@ -72,7 +75,7 @@
     <string name="stat_active_shifts">شیفت‌های فعال</string>
     <string name="stat_earnings">درآمد این ماه</string>
     <string name="stat_rating">امتیاز عملکرد</string>
-    <string name="urgent_jobs_title">فرصت‌های فوری کاری</string>
+    <string name="urgent_jobs_title">فرصت‌های فوری کاری در نزدیکی شما</string>
     <string name="view_all">مشاهده همه</string>
     <string name="view_details">مشاهده جزئیات</string>
     <string name="apply_for_job">درخواست همکاری</string>
@@ -125,7 +128,7 @@
     <string name="shift_upcoming">پیش‌رو</string>
     <string name="shift_in_progress">در حال انجام</string>
     <string name="shift_completed">پایان یافته</string>
-    <string name="shift_start_btn">شروع شیفت (ثبت ورود)</string>
+    <string name="shift_start_btn">شروع شیفت (ثبت ورود با موقعیت)</string>
     <string name="shift_finish_btn">پایان شیفت (ثبت خروج)</string>
 
     <!-- Profile & Common -->

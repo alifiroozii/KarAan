@@ -15,12 +15,15 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0.0"
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // Placeholder for Google Maps API Key
+        manifestPlaceholders["MAPS_API_KEY"] = "AIzaSy_MOCK_KARVIN_MAPS_KEY_DEVELOPMENT"
     }
 
     buildTypes {
@@ -68,6 +71,11 @@ dependencies {
     // Navigation
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.hilt.navigation.compose)
+
+    // Location & Maps
+    implementation(libs.play.services.location)
+    implementation(libs.play.services.maps)
+    implementation(libs.maps.compose)
 
     // Hilt Dependency Injection
     implementation(libs.hilt.android)

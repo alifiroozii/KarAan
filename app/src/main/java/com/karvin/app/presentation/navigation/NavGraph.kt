@@ -11,6 +11,7 @@ import com.karvin.app.presentation.auth.employer_register.EmployerRegisterScreen
 import com.karvin.app.presentation.auth.login.LoginScreen
 import com.karvin.app.presentation.auth.login.OtpVerificationScreen
 import com.karvin.app.presentation.auth.worker_register.WorkerRegisterScreen
+import com.karvin.app.presentation.chat.ChatDetailScreen
 import com.karvin.app.presentation.common.EditProfileScreen
 import com.karvin.app.presentation.common.SettingsScreen
 import com.karvin.app.presentation.employer.EmployerMainContainer
@@ -137,11 +138,14 @@ fun KarvinNavGraph(
             )
         }
 
-        // Worker Main (Hosting Home, Jobs, Shifts, Profile)
+        // Worker Main (Hosting 5 Tabs)
         composable(Screen.WorkerMain.route) {
             WorkerMainContainer(
                 onNavigateToJobDetails = { jobId ->
                     navController.navigate(Screen.JobDetails.createRoute(jobId))
+                },
+                onNavigateToChatDetail = { convId ->
+                    navController.navigate(Screen.ChatDetail.createRoute(convId))
                 },
                 onNavigateToNotifications = {
                     navController.navigate(Screen.Notifications.route)
@@ -160,11 +164,14 @@ fun KarvinNavGraph(
             )
         }
 
-        // Employer Main (Hosting Dashboard, Create Job, Applicants, Shifts, Profile)
+        // Employer Main (Hosting 5 Tabs)
         composable(Screen.EmployerMain.route) {
             EmployerMainContainer(
                 onNavigateToJobDetails = { jobId ->
                     navController.navigate(Screen.JobDetails.createRoute(jobId))
+                },
+                onNavigateToChatDetail = { convId ->
+                    navController.navigate(Screen.ChatDetail.createRoute(convId))
                 },
                 onNavigateToNotifications = {
                     navController.navigate(Screen.Notifications.route)
@@ -195,6 +202,22 @@ fun KarvinNavGraph(
             val jobId = backStackEntry.arguments?.getString("jobId") ?: ""
             JobDetailsScreen(
                 jobId = jobId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // Chat Details
+        composable(
+            route = Screen.ChatDetail.route,
+            arguments = listOf(
+                navArgument("conversationId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val convId = backStackEntry.arguments?.getString("conversationId") ?: "conv_1"
+            ChatDetailScreen(
+                conversationId = convId,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

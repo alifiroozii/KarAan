@@ -19,11 +19,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.karvin.app.domain.model.UserRole
+import com.karvin.app.presentation.chat.ChatListScreen
 import com.karvin.app.presentation.employer.applicants.EmployerApplicantsScreen
 import com.karvin.app.presentation.employer.create_job.CreateJobScreen
 import com.karvin.app.presentation.employer.dashboard.EmployerDashboardScreen
 import com.karvin.app.presentation.employer.profile.EmployerProfileScreen
 import com.karvin.app.presentation.employer.shifts.EmployerShiftsScreen
+import com.karvin.app.presentation.map.MapScreen
 import com.karvin.app.presentation.navigation.BottomNavItem
 import com.karvin.app.presentation.navigation.Screen
 import com.karvin.app.presentation.theme.Emerald600
@@ -32,6 +35,7 @@ import com.karvin.app.presentation.theme.Navy900
 @Composable
 fun EmployerMainContainer(
     onNavigateToJobDetails: (String) -> Unit,
+    onNavigateToChatDetail: (String) -> Unit,
     onNavigateToNotifications: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToEditProfile: () -> Unit,
@@ -41,9 +45,9 @@ fun EmployerMainContainer(
 
     val navItems = listOf(
         BottomNavItem.EmployerDashboard,
-        BottomNavItem.CreateJob,
+        BottomNavItem.EmployerMap,
         BottomNavItem.EmployerApplicants,
-        BottomNavItem.EmployerShifts,
+        BottomNavItem.EmployerChat,
         BottomNavItem.EmployerProfile
     )
 
@@ -105,6 +109,13 @@ fun EmployerMainContainer(
                     onNavigateToNotifications = onNavigateToNotifications
                 )
             }
+            composable(Screen.EmployerMap.route) {
+                MapScreen(
+                    userRole = UserRole.EMPLOYER,
+                    onNavigateToJobDetails = onNavigateToJobDetails,
+                    onNavigateToChat = onNavigateToChatDetail
+                )
+            }
             composable(Screen.CreateJob.route) {
                 CreateJobScreen(
                     onNavigateBack = { bottomNavController.popBackStack() },
@@ -119,6 +130,11 @@ fun EmployerMainContainer(
             composable(Screen.EmployerShifts.route) {
                 EmployerShiftsScreen(
                     onNavigateToNotifications = onNavigateToNotifications
+                )
+            }
+            composable(Screen.EmployerChat.route) {
+                ChatListScreen(
+                    onNavigateToChatDetail = onNavigateToChatDetail
                 )
             }
             composable(Screen.EmployerProfile.route) {

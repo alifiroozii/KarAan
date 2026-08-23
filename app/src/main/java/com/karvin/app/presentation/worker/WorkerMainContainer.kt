@@ -19,6 +19,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.karvin.app.domain.model.UserRole
+import com.karvin.app.presentation.chat.ChatListScreen
+import com.karvin.app.presentation.map.MapScreen
 import com.karvin.app.presentation.navigation.BottomNavItem
 import com.karvin.app.presentation.navigation.Screen
 import com.karvin.app.presentation.theme.Emerald600
@@ -31,6 +34,7 @@ import com.karvin.app.presentation.worker.shifts.WorkerShiftsScreen
 @Composable
 fun WorkerMainContainer(
     onNavigateToJobDetails: (String) -> Unit,
+    onNavigateToChatDetail: (String) -> Unit,
     onNavigateToNotifications: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToEditProfile: () -> Unit,
@@ -40,8 +44,9 @@ fun WorkerMainContainer(
 
     val navItems = listOf(
         BottomNavItem.WorkerHome,
+        BottomNavItem.WorkerMap,
         BottomNavItem.WorkerJobs,
-        BottomNavItem.WorkerShifts,
+        BottomNavItem.WorkerChat,
         BottomNavItem.WorkerProfile
     )
 
@@ -103,6 +108,13 @@ fun WorkerMainContainer(
                     onNavigateToNotifications = onNavigateToNotifications
                 )
             }
+            composable(Screen.WorkerMap.route) {
+                MapScreen(
+                    userRole = UserRole.WORKER,
+                    onNavigateToJobDetails = onNavigateToJobDetails,
+                    onNavigateToChat = onNavigateToChatDetail
+                )
+            }
             composable(Screen.WorkerJobs.route) {
                 WorkerJobsScreen(
                     onNavigateToJobDetails = onNavigateToJobDetails,
@@ -112,6 +124,11 @@ fun WorkerMainContainer(
             composable(Screen.WorkerShifts.route) {
                 WorkerShiftsScreen(
                     onNavigateToNotifications = onNavigateToNotifications
+                )
+            }
+            composable(Screen.WorkerChat.route) {
+                ChatListScreen(
+                    onNavigateToChatDetail = onNavigateToChatDetail
                 )
             }
             composable(Screen.WorkerProfile.route) {

@@ -18,8 +18,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,8 +34,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.karvin.app.domain.model.ApplicationStatus
 import com.karvin.app.domain.model.JobApplication
+import com.karvin.app.domain.model.TrustBadge
 import com.karvin.app.presentation.theme.Amber100
 import com.karvin.app.presentation.theme.Amber500
+import com.karvin.app.presentation.theme.Blue100
+import com.karvin.app.presentation.theme.Blue500
 import com.karvin.app.presentation.theme.Emerald100
 import com.karvin.app.presentation.theme.Emerald600
 import com.karvin.app.presentation.theme.Navy900
@@ -49,6 +54,8 @@ fun ApplicantCard(
     onAcceptClick: () -> Unit,
     onRejectClick: () -> Unit,
     onRateClick: (() -> Unit)? = null,
+    distanceTextFa: String? = "۴۵۰ متر فاصله",
+    matchScorePercentage: Int? = 94,
     modifier: Modifier = Modifier
 ) {
     val (statusBg, statusTextColor, statusText) = when (application.status) {
@@ -68,7 +75,7 @@ fun ApplicantCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Worker Avatar, Name, Rating & Status Badge
+            // Worker Avatar, Name, Distance & Match Score
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -77,7 +84,7 @@ fun ApplicantCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(46.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
                             .background(Navy900.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center
@@ -86,20 +93,31 @@ fun ApplicantCard(
                             imageVector = Icons.Default.Person,
                             contentDescription = null,
                             tint = Navy900,
-                            modifier = Modifier.size(26.dp)
+                            modifier = Modifier.size(28.dp)
                         )
                     }
 
                     Spacer(modifier = Modifier.width(10.dp))
 
                     Column {
-                        Text(
-                            text = application.workerName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = application.workerName,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.Verified,
+                                contentDescription = "Verified",
+                                tint = Emerald600,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+
                         Spacer(modifier = Modifier.height(2.dp))
+
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.Star,
@@ -114,7 +132,7 @@ fun ApplicantCard(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "(${PersianDateFormatter.toPersianDigits(application.workerExperienceYears)} سال سابقه)",
                                 style = MaterialTheme.typography.bodySmall,
@@ -124,22 +142,33 @@ fun ApplicantCard(
                     }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(statusBg)
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = statusText,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = statusTextColor
-                    )
+                Column(horizontalAlignment = Alignment.End) {
+                    if (matchScorePercentage != null) {
+                        MatchScoreBadge(scorePercentage = matchScorePercentage)
+                    }
+                    if (distanceTextFa != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = distanceTextFa,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Blue500
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
+
+            // Trust Badges Row
+            TrustBadgeRow(
+                badges = listOf(
+                    TrustBadge.BADGE_IDENTITY,
+                    TrustBadge.BADGE_PUNCTUAL
+                )
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Job Title
             Text(

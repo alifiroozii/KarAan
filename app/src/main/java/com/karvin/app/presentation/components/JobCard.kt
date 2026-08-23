@@ -18,7 +18,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -31,7 +33,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.karvin.app.domain.model.Job
+import com.karvin.app.presentation.theme.Amber100
 import com.karvin.app.presentation.theme.Amber500
+import com.karvin.app.presentation.theme.Blue100
+import com.karvin.app.presentation.theme.Blue500
+import com.karvin.app.presentation.theme.Emerald100
 import com.karvin.app.presentation.theme.Emerald600
 import com.karvin.app.presentation.theme.Navy900
 import com.karvin.app.presentation.theme.Red100
@@ -58,7 +64,7 @@ fun JobCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Header: Category badge & Urgent badge & Date
+            // Header: Category, Distance badge & AI Match Score
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -79,22 +85,48 @@ fun JobCard(
                         )
                     }
 
+                    if (job.distanceTextFa != null) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Blue100)
+                                .padding(horizontal = 7.dp, vertical = 3.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.NearMe,
+                                    contentDescription = null,
+                                    tint = Blue500,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text(
+                                    text = job.distanceTextFa ?: "",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Blue500
+                                )
+                            }
+                        }
+                    }
+
                     if (job.isUrgent) {
                         Spacer(modifier = Modifier.width(6.dp))
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
                                 .background(Red100)
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .padding(horizontal = 7.dp, vertical = 3.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.Whatshot,
                                     contentDescription = null,
                                     tint = Red500,
-                                    modifier = Modifier.size(12.dp)
+                                    modifier = Modifier.size(11.dp)
                                 )
-                                Spacer(modifier = Modifier.width(3.dp))
+                                Spacer(modifier = Modifier.width(2.dp))
                                 Text(
                                     text = "فوری",
                                     style = MaterialTheme.typography.labelSmall,
@@ -106,11 +138,9 @@ fun JobCard(
                     }
                 }
 
-                Text(
-                    text = PersianDateFormatter.toPersianDigits(job.date),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondaryLight
-                )
+                if (job.matchScorePercentage != null) {
+                    MatchScoreBadge(scorePercentage = job.matchScorePercentage ?: 85)
+                }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -126,20 +156,42 @@ fun JobCard(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Business Name
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Business,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = TextSecondaryLight
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = job.businessName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondaryLight
-                )
+            // Business Name & Employer Rating
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Business,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp),
+                        tint = TextSecondaryLight
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = job.businessName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondaryLight
+                    )
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = Amber500,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Text(
+                        text = PersianDateFormatter.toPersianDigits(job.employerRating),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -158,7 +210,7 @@ fun JobCard(
                     )
                     Spacer(modifier = Modifier.width(3.dp))
                     Text(
-                        text = job.city,
+                        text = job.address.split("،").first(),
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondaryLight
                     )
@@ -218,7 +270,7 @@ fun JobCard(
             ) {
                 Column {
                     Text(
-                        text = "دستمزد:",
+                        text = "دستمزد پیشنهادی:",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextSecondaryLight
                     )

@@ -21,18 +21,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Badge
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,14 +51,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.karvin.app.R
+import com.karvin.app.domain.model.TrustBadge
 import com.karvin.app.presentation.components.KarvinButton
 import com.karvin.app.presentation.components.KarvinButtonType
 import com.karvin.app.presentation.components.KarvinCard
 import com.karvin.app.presentation.components.KarvinSkillBadge
 import com.karvin.app.presentation.components.KarvinTopAppBar
+import com.karvin.app.presentation.components.TrustBadgeRow
 import com.karvin.app.presentation.theme.Amber500
 import com.karvin.app.presentation.theme.Emerald600
-import com.karvin.app.presentation.theme.Navy100
 import com.karvin.app.presentation.theme.Navy900
 import com.karvin.app.presentation.theme.Red500
 import com.karvin.app.presentation.theme.TextSecondaryLight
@@ -166,12 +162,16 @@ fun WorkerProfileScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    Text(
-                        text = profile?.fullName ?: "محمد حسینی",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = profile?.fullName ?: "محمد حسینی",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(Icons.Default.Verified, contentDescription = "Verified", tint = Emerald600, modifier = Modifier.size(18.dp))
+                    }
 
                     Spacer(modifier = Modifier.height(4.dp))
 
@@ -211,7 +211,21 @@ fun WorkerProfileScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Skills & Details Section
+            // Trust System & Badges
+            Text(text = "نشان‌های اعتبار و اعتماد کاروین", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            TrustBadgeRow(
+                badges = listOf(
+                    TrustBadge.BADGE_IDENTITY,
+                    TrustBadge.BADGE_100_JOBS,
+                    TrustBadge.BADGE_PUNCTUAL,
+                    TrustBadge.BADGE_TOP_RATED
+                )
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Skills Section
             Text(text = "مهارت‌ها و تخصص‌های من", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             if (profile?.skills?.isNotEmpty() == true) {

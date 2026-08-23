@@ -15,10 +15,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class JobSortOption(val titleFa: String) {
+    DISTANCE("نزدیک‌ترین"),
+    SALARY("بیشترین دستمزد"),
+    RATING("امتیاز کارفرما"),
+    SMART_MATCH("تطابق هوشمند"),
+    NEWEST("جدیدترین")
+}
+
 data class WorkerJobsUiState(
     val searchQuery: String = "",
     val selectedCategoryId: String? = null,
     val selectedCity: String? = null,
+    val selectedSort: JobSortOption = JobSortOption.DISTANCE,
     val categories: List<JobCategory> = emptyList(),
     val jobs: List<Job> = emptyList(),
     val selectedJob: Job? = null,
@@ -53,7 +62,14 @@ class WorkerJobsViewModel @Inject constructor(
         val state = _uiState.value
         viewModelScope.launch {
             getNearbyJobsUseCase(state.selectedCity, state.selectedCategoryId, state.searchQuery).collect { list ->
-                _uiState.value = _uiState.value.copy(jobs = list)
+                val sorted = when (state.selectedSort) {
+                    JobSortOption.DISTANCE -> list.sortedBy { it.distanceMeters ?: Int.MAX_VALUE }
+                    JobSortOption.SALARY -> list.sortedByDescending { it.salaryToman }
+                    JobSortOption.RATING -> list.sortedByDescending { it.employerRating }
+                    JobSortOption.SMART_MATCH -> list.sortedByDescending { it.matchScorePercentage ?: 0 }
+                    JobSortOption.NEWEST -> list.sortedByDescending { it.createdAt }
+                }
+                _uiState.value = _uiState.value.copy(jobs = sorted)
             }
         }
     }
@@ -66,6 +82,11 @@ class WorkerJobsViewModel @Inject constructor(
     fun onCategorySelect(categoryId: String?) {
         val newCat = if (_uiState.value.selectedCategoryId == categoryId) null else categoryId
         _uiState.value = _uiState.value.copy(selectedCategoryId = newCat)
+        loadJobs()
+    }
+
+    fun onSortSelect(sort: JobSortOption) {
+        _uiState.value = _uiState.value.copy(selectedSort = sort)
         loadJobs()
     }
 
