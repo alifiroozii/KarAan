@@ -19,22 +19,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.NearMe
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.Work
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,15 +48,16 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.karvin.app.domain.model.ChatMessage
 import com.karvin.app.domain.model.MessageType
-import com.karvin.app.domain.model.UserRole
-import com.karvin.app.presentation.components.KarvinCard
+import com.karvin.app.presentation.components.KarvinButton
+import com.karvin.app.presentation.components.KarvinButtonType
 import com.karvin.app.presentation.components.KarvinTopAppBar
-import com.karvin.app.presentation.theme.Amber500
 import com.karvin.app.presentation.theme.BorderLight
+import com.karvin.app.presentation.theme.Emerald100
 import com.karvin.app.presentation.theme.Emerald600
 import com.karvin.app.presentation.theme.Navy900
 import com.karvin.app.presentation.theme.TextSecondaryLight
 import com.karvin.app.utils.PersianDateFormatter
+import com.karvin.app.utils.PriceFormatter
 
 @Composable
 fun ChatDetailScreen(
@@ -62,6 +66,7 @@ fun ChatDetailScreen(
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(conversationId) {
         viewModel.openConversation(conversationId)
@@ -135,7 +140,8 @@ fun ChatDetailScreen(
                     )
                 }
             }
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -174,7 +180,7 @@ private fun MessageBubble(message: ChatMessage) {
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.82f)
+                .fillMaxWidth(0.85f)
                 .clip(
                     RoundedCornerShape(
                         topStart = 16.dp,
@@ -239,6 +245,39 @@ private fun MessageBubble(message: ChatMessage) {
                             color = if (isMe) Color.White.copy(alpha = 0.6f) else TextSecondaryLight,
                             fontSize = 10.sp,
                             modifier = Modifier.align(Alignment.End)
+                        )
+                    }
+                }
+                MessageType.JOB_OFFER -> {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Work, contentDescription = null, tint = Emerald600, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "پیشنهاد همکاری مستقیم",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = textColor
+                            )
+                        }
+
+                        if (message.jobTitle != null) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(text = message.jobTitle, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = textColor)
+                        }
+
+                        if (message.jobSalaryToman != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(text = "دستمزد: ${PriceFormatter.formatToman(message.jobSalaryToman)}", style = MaterialTheme.typography.bodySmall, color = Emerald600, fontWeight = FontWeight.Bold)
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        KarvinButton(
+                            text = "مشاهده و تایید همکاری",
+                            onClick = {},
+                            type = KarvinButtonType.SECONDARY,
+                            height = 36.dp,
+                            shapeRadius = 8.dp
                         )
                     }
                 }
