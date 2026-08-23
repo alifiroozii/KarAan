@@ -22,8 +22,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,6 +46,9 @@ import com.karvin.app.presentation.components.JobCard
 import com.karvin.app.presentation.components.KarvinFilterChip
 import com.karvin.app.presentation.components.KarvinTextField
 import com.karvin.app.presentation.components.KarvinTopAppBar
+import com.karvin.app.presentation.theme.Emerald600
+import com.karvin.app.presentation.theme.Navy900
+import com.karvin.app.presentation.theme.TextSecondaryLight
 
 @Composable
 fun WorkerJobsScreen(
@@ -64,7 +71,7 @@ fun WorkerJobsScreen(
     Scaffold(
         topBar = {
             KarvinTopAppBar(
-                title = stringResource(id = R.string.nav_jobs),
+                title = "فرصت‌های شغلی بازار کار",
                 actions = {
                     IconButton(onClick = onNavigateToNotifications) {
                         Icon(
@@ -83,96 +90,131 @@ fun WorkerJobsScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Search Bar
-            KarvinTextField(
-                value = state.searchQuery,
-                onValueChange = viewModel::onSearchQueryChange,
-                placeholder = "جستجوی عنوان شغلی، مهارت یا محله...",
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+            // Top Tab Row: All, Saved, Applied, Accepted, Completed
+            ScrollableTabRow(
+                selectedTabIndex = state.selectedTab.ordinal,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = Navy900,
+                indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(
+                        Modifier.tabIndicatorOffset(tabPositions[state.selectedTab.ordinal]),
+                        color = Emerald600
                     )
                 },
-                modifier = Modifier.fillMaxWidth()
-            )
+                edgePadding = 16.dp
+            ) {
+                JobTabOption.values().forEach { tab ->
+                    Tab(
+                        selected = state.selectedTab == tab,
+                        onClick = { viewModel.onTabSelect(tab) },
+                        text = {
+                            Text(
+                                text = tab.titleFa,
+                                fontWeight = if (state.selectedTab == tab) FontWeight.Bold else FontWeight.Normal,
+                                color = if (state.selectedTab == tab) Navy900 else TextSecondaryLight
+                            )
+                        }
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Categories Filter Chips
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(categoriesScroll),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                KarvinFilterChip(
-                    text = "همه دسته‌ها",
-                    isSelected = state.selectedCategoryId == null,
-                    onClick = { viewModel.onCategorySelect(null) }
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                // Search Bar
+                KarvinTextField(
+                    value = state.searchQuery,
+                    onValueChange = viewModel::onSearchQueryChange,
+                    placeholder = "جستجوی عنوان شغلی، مهارت، کارفرما یا محله...",
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
                 )
-                state.categories.forEach { category ->
-                    KarvinFilterChip(
-                        text = category.nameFa,
-                        isSelected = state.selectedCategoryId == category.id,
-                        onClick = { viewModel.onCategorySelect(category.id) }
-                    )
-                }
-            }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-            // Sort Options Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(sortScroll),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Sort,
-                    contentDescription = "Sort",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(end = 4.dp)
-                )
-                JobSortOption.values().forEach { option ->
-                    KarvinFilterChip(
-                        text = option.titleFa,
-                        isSelected = state.selectedSort == option,
-                        onClick = { viewModel.onSortSelect(option) }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Jobs List
-            if (state.jobs.isEmpty()) {
-                EmptyStateView(
-                    title = "فرصت شغلی یافت نشد",
-                    message = "برای فیلترهای انتخابی شما در حال حاضر فرصت فعالی وجود ندارد.",
-                    icon = Icons.Default.WorkOutline
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                // Categories Filter Chips
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(categoriesScroll),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(state.jobs) { job ->
-                        JobCard(
-                            job = job,
-                            onClick = { onNavigateToJobDetails(job.id) },
-                            onApplyClick = { viewModel.applyForJob(job.id) }
+                    KarvinFilterChip(
+                        text = "همه دسته‌ها",
+                        isSelected = state.selectedCategoryId == null,
+                        onClick = { viewModel.onCategorySelect(null) }
+                    )
+                    state.categories.forEach { category ->
+                        KarvinFilterChip(
+                            text = category.nameFa,
+                            isSelected = state.selectedCategoryId == category.id,
+                            onClick = { viewModel.onCategorySelect(category.id) }
                         )
                     }
-                    item {
-                        Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Sort Options Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(sortScroll),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Sort,
+                        contentDescription = "Sort",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                    JobSortOption.values().forEach { option ->
+                        KarvinFilterChip(
+                            text = option.titleFa,
+                            isSelected = state.selectedSort == option,
+                            onClick = { viewModel.onSortSelect(option) }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Jobs List
+                if (state.displayJobs.isEmpty()) {
+                    EmptyStateView(
+                        title = "فرصت شغلی در این بخش یافت نشد",
+                        message = "فیلترهای انتخابی را تغییر دهید یا به برگه «همه فرصت‌ها» بازگردید.",
+                        icon = Icons.Default.WorkOutline
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(state.displayJobs) { job ->
+                            JobCard(
+                                job = job,
+                                onClick = { onNavigateToJobDetails(job.id) },
+                                onApplyClick = {
+                                    if (job.hasApplied) {
+                                        viewModel.cancelApplication(job.id)
+                                    } else {
+                                        viewModel.applyForJob(job.id)
+                                    }
+                                }
+                            )
+                        }
+                        item {
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
                     }
                 }
             }

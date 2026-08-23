@@ -207,7 +207,8 @@ fun ComposeInteractiveMap(
                 val pinY = centerY - (latDiff * 8000f * scale).toFloat()
 
                 val isSelected = selectedJob?.id == job.id
-                val pinColor = if (job.isUrgent) Red500 else if (job.categoryId == "cat_1") Amber500 else Emerald600
+                val orangeColor = Color(0xFFF97316) // Vibrant Orange for Jobs
+                val pinColor = if (job.isUrgent) Red500 else orangeColor
                 val pinRadius = if (isSelected) 18f * scale else 13f * scale
 
                 // Marker shadow
@@ -222,7 +223,7 @@ fun ComposeInteractiveMap(
                     radius = pinRadius,
                     center = Offset(pinX, pinY)
                 )
-                // Inner solid pin
+                // Inner solid pin (Orange for Jobs)
                 drawCircle(
                     color = pinColor,
                     radius = pinRadius * 0.75f,

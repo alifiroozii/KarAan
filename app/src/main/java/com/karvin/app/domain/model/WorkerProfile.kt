@@ -15,6 +15,7 @@ data class WorkerProfile(
     val avatarUrl: String? = null,
     val skills: List<Skill> = emptyList(),
     val categories: List<JobCategory> = emptyList(),
+    val primarySkill: String = "استادکار فنی",
     val experienceYears: Int = 0,
     val city: String = "تهران",
     val address: String = "",
@@ -31,6 +32,8 @@ data class WorkerProfile(
     val completedJobsCount: Int = 0,
     val isAvailableForWork: Boolean = true,
     val isAvailableNow: Boolean = true,
+    val availabilityStatus: WorkerAvailabilityStatus = WorkerAvailabilityStatus.AVAILABLE,
     val trustBadges: List<TrustBadge> = emptyList(),
-    val totalEarningsToman: Long = 0
+    val totalEarningsToman: Long = 0,
+    val bio: String = "استادکار متخصص و با انگیزه در پلتفرم کاروین"
 )

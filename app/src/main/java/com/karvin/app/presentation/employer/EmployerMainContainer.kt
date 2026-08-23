@@ -26,6 +26,7 @@ import com.karvin.app.presentation.employer.create_job.CreateJobScreen
 import com.karvin.app.presentation.employer.dashboard.EmployerDashboardScreen
 import com.karvin.app.presentation.employer.profile.EmployerProfileScreen
 import com.karvin.app.presentation.employer.shifts.EmployerShiftsScreen
+import com.karvin.app.presentation.employer.workers.AvailableWorkersScreen
 import com.karvin.app.presentation.map.MapScreen
 import com.karvin.app.presentation.navigation.BottomNavItem
 import com.karvin.app.presentation.navigation.Screen
@@ -35,6 +36,7 @@ import com.karvin.app.presentation.theme.Navy900
 @Composable
 fun EmployerMainContainer(
     onNavigateToJobDetails: (String) -> Unit,
+    onNavigateToWorkerProfile: (String) -> Unit,
     onNavigateToChatDetail: (String) -> Unit,
     onNavigateToNotifications: () -> Unit,
     onNavigateToSettings: () -> Unit,
@@ -123,8 +125,8 @@ fun EmployerMainContainer(
                 )
             }
             composable(Screen.EmployerApplicants.route) {
-                EmployerApplicantsScreen(
-                    onNavigateToNotifications = onNavigateToNotifications
+                AvailableWorkersScreen(
+                    onNavigateToWorkerProfile = onNavigateToWorkerProfile
                 )
             }
             composable(Screen.EmployerShifts.route) {

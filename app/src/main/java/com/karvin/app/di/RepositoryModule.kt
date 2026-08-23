@@ -1,9 +1,11 @@
 package com.karvin.app.di
 
+import com.karvin.app.data.repository.ApplicationRepositoryImpl
 import com.karvin.app.data.repository.AttendanceRepositoryImpl
 import com.karvin.app.data.repository.AuthRepositoryImpl
 import com.karvin.app.data.repository.ChatRepositoryImpl
 import com.karvin.app.data.repository.EmployerRepositoryImpl
+import com.karvin.app.data.repository.InvitationRepositoryImpl
 import com.karvin.app.data.repository.JobRepositoryImpl
 import com.karvin.app.data.repository.LocationRepositoryImpl
 import com.karvin.app.data.repository.MatchingRepositoryImpl
@@ -11,10 +13,12 @@ import com.karvin.app.data.repository.NotificationRepositoryImpl
 import com.karvin.app.data.repository.PaymentRepositoryImpl
 import com.karvin.app.data.repository.WalletRepositoryImpl
 import com.karvin.app.data.repository.WorkerRepositoryImpl
+import com.karvin.app.domain.repository.ApplicationRepository
 import com.karvin.app.domain.repository.AttendanceRepository
 import com.karvin.app.domain.repository.AuthRepository
 import com.karvin.app.domain.repository.ChatRepository
 import com.karvin.app.domain.repository.EmployerRepository
+import com.karvin.app.domain.repository.InvitationRepository
 import com.karvin.app.domain.repository.JobRepository
 import com.karvin.app.domain.repository.LocationRepository
 import com.karvin.app.domain.repository.MatchingRepository
@@ -75,4 +79,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAttendanceRepository(impl: AttendanceRepositoryImpl): AttendanceRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindApplicationRepository(impl: ApplicationRepositoryImpl): ApplicationRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindInvitationRepository(impl: InvitationRepositoryImpl): InvitationRepository
 }

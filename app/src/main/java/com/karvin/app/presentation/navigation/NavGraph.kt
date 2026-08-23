@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.karvin.app.domain.model.UserRole
+import com.karvin.app.presentation.attendance.ActiveShiftScreen
 import com.karvin.app.presentation.auth.employer_register.EmployerRegisterScreen
 import com.karvin.app.presentation.auth.login.LoginScreen
 import com.karvin.app.presentation.auth.login.OtpVerificationScreen
@@ -15,6 +16,7 @@ import com.karvin.app.presentation.chat.ChatDetailScreen
 import com.karvin.app.presentation.common.EditProfileScreen
 import com.karvin.app.presentation.common.SettingsScreen
 import com.karvin.app.presentation.employer.EmployerMainContainer
+import com.karvin.app.presentation.employer.workers.WorkerPublicProfileScreen
 import com.karvin.app.presentation.notifications.NotificationScreen
 import com.karvin.app.presentation.role_selection.RoleSelectionScreen
 import com.karvin.app.presentation.splash.SplashScreen
@@ -174,6 +176,9 @@ fun KarvinNavGraph(
                 onNavigateToJobDetails = { jobId ->
                     navController.navigate(Screen.JobDetails.createRoute(jobId))
                 },
+                onNavigateToWorkerProfile = { workerId ->
+                    navController.navigate(Screen.WorkerPublicProfile.createRoute(workerId))
+                },
                 onNavigateToChatDetail = { convId ->
                     navController.navigate(Screen.ChatDetail.createRoute(convId))
                 },
@@ -210,6 +215,25 @@ fun KarvinNavGraph(
             )
         }
 
+        // Worker Public Profile (for Employer view & invite)
+        composable(
+            route = Screen.WorkerPublicProfile.route,
+            arguments = listOf(
+                navArgument("workerId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val workerId = backStackEntry.arguments?.getString("workerId") ?: ""
+            WorkerPublicProfileScreen(
+                workerId = workerId,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToChat = { wId ->
+                    navController.navigate(Screen.ChatDetail.createRoute("conv_$wId"))
+                }
+            )
+        }
+
         // Chat Details
         composable(
             route = Screen.ChatDetail.route,
@@ -235,7 +259,7 @@ fun KarvinNavGraph(
 
         // Active Shift & Attendance
         composable(Screen.ActiveShift.route) {
-            com.karvin.app.presentation.attendance.ActiveShiftScreen(
+            ActiveShiftScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
