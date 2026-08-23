@@ -14,37 +14,51 @@ android {
         applicationId = "com.karvin.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.1.0"
+        versionCode = 2
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
 
-        // Placeholder for Google Maps API Key
+        // Placeholder for Google Maps API Key (to be supplied in local.properties or CI/CD)
         manifestPlaceholders["MAPS_API_KEY"] = "AIzaSy_MOCK_KARVIN_MAPS_KEY_DEVELOPMENT"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
+        debug {
+            isMinifyEnabled = false
+            applicationIdSuffix = ".debug"
+        }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlinOptions {
         jvmTarget = "17"
+        freeCompilerArgs += listOf(
+            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+            "-opt-in=androidx.compose.foundation.layout.ExperimentalLayoutApi"
+        )
     }
+
     buildFeatures {
         compose = true
+        buildConfig = true
     }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
