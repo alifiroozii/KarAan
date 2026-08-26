@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">کاروین</string>
+    <string name="location_permission_title">فعال‌سازی موقعیت مکانی</string>
+    <string name="location_permission_message">برای نمایش کارها و نیروهای نزدیک، اجازه دسترسی به موقعیت مکانی لازم است.</string>
+    <string name="notification_permission_title">فعال‌سازی اعلان‌ها</string>
+    <string name="notification_permission_message">برای اطلاع از درخواست‌ها، پیام‌ها و تغییر وضعیت کارها اعلان‌ها را فعال کنید.</string>
+</resources>
