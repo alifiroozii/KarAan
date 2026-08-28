@@ -16,8 +16,8 @@ class DistanceCalculatorTest {
 
     @Test
     fun distanceFilterUsesInclusiveBoundary() {
-        assertTrue(DistanceCalculator.matches(3.0, DistanceFilter.UNDER_THREE))
-        assertTrue(!DistanceCalculator.matches(3.01, DistanceFilter.UNDER_THREE))
+        assertTrue(DistanceCalculator.matches(5.0, DistanceFilter.UNDER_FIVE))
+        assertTrue(!DistanceCalculator.matches(5.01, DistanceFilter.UNDER_FIVE))
         assertTrue(DistanceCalculator.matches(100.0, DistanceFilter.ALL))
     }
 

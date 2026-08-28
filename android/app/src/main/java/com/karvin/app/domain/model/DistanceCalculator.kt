@@ -54,5 +54,5 @@ fun String.toPersianDigits(): String = buildString(length) {
 
 fun Number.toPersianDigits(): String = toString().toPersianDigits()
 
-fun Long.toTomanString(): String =
-    "%,d تومان".format(java.util.Locale.US, this).toPersianDigits()
+fun Long.toRialString(): String =
+    "%,d ریال".format(java.util.Locale.US, this).toPersianDigits()

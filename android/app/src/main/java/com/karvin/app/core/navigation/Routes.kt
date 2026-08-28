@@ -18,6 +18,7 @@ object Routes {
     const val Profile = "profile"
     const val Notifications = "notifications"
     const val Settings = "settings"
+    const val WorkArea = "provider/work-area"
     const val CreateJob = "employer/create-job"
     const val CreateJobDestination = "employer/create-job?workerId={workerId}"
     const val Applications = "employer/applications/{jobId}"
@@ -25,8 +26,10 @@ object Routes {
     const val WorkerDetails = "worker/{workerId}"
     const val Conversation = "conversation/{conversationId}"
     const val Rating = "rating/{targetId}"
+    const val RequestSent = "request/sent?provider={provider}"
 
     fun jobDetails(id: String, employerMode: Boolean = false) = "job/$id?employerMode=$employerMode"
+    fun requestSent(provider: Boolean = false) = "request/sent?provider=$provider"
     fun createJob(workerId: String? = null) = workerId?.let { "employer/create-job?workerId=$it" } ?: CreateJob
     fun workerDetails(id: String) = "worker/$id"
     fun applications(id: String) = "employer/applications/$id"
@@ -39,7 +42,7 @@ data class BottomDestination(val route: String, val title: String, val icon: Str
 fun bottomDestinations(role: UserRole): List<BottomDestination> = if (role == UserRole.WORKER) {
     listOf(
         BottomDestination(Routes.WorkerHome, "خانه", "⌂"),
-        BottomDestination(Routes.WorkerJobs, "کارها", "▣"),
+        BottomDestination(Routes.WorkerJobs, "درخواست‌ها", "▣"),
         BottomDestination(Routes.WorkerMap, "نقشه", "⌖"),
         BottomDestination(Routes.Chat, "پیام‌ها", "◌"),
         BottomDestination(Routes.Profile, "پروفایل", "♙"),
@@ -48,7 +51,7 @@ fun bottomDestinations(role: UserRole): List<BottomDestination> = if (role == Us
     listOf(
         BottomDestination(Routes.EmployerHome, "خانه", "⌂"),
         BottomDestination(Routes.EmployerJobs, "درخواست‌ها", "▣"),
-        BottomDestination(Routes.EmployerMap, "نقشه نیروها", "⌖"),
+        BottomDestination(Routes.EmployerMap, "متخصص‌ها", "⌖"),
         BottomDestination(Routes.Chat, "پیام‌ها", "◌"),
         BottomDestination(Routes.Profile, "پروفایل", "♙"),
     )

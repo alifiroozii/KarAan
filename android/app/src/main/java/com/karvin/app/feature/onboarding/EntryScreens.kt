@@ -32,7 +32,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,18 +60,17 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun SplashScreen(onFinished: () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(22.dp)) {
-            Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(94.dp)) {
-                Box(contentAlignment = Alignment.Center) { Text("ک", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.onSecondary, fontWeight = FontWeight.Bold) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(650)
+        onFinished()
+    }
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Surface(shape = RoundedCornerShape(26.dp), color = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(88.dp)) {
+                Box(contentAlignment = Alignment.Center) { Text("ک", style = MaterialTheme.typography.displaySmall, color = Color.White, fontWeight = FontWeight.Bold) }
             }
             Text("کاروین", style = MaterialTheme.typography.displaySmall, color = Color.White, fontWeight = FontWeight.Bold)
-            Text("کار نزدیک، زندگی روان‌تر", style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = .82f))
-            Spacer(Modifier.height(12.dp))
-            TextButton(onClick = onFinished) { Text("شروع", color = Color.White) }
+            Text("متخصص مورد نظرت را پیدا کن", style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = .82f))
         }
     }
 }
@@ -77,9 +80,9 @@ private data class OnboardingPage(val title: String, val body: String, val icon:
 @Composable
 fun OnboardingScreen(onFinished: () -> Unit) {
     val pages = listOf(
-        OnboardingPage("کار نزدیکت را پیدا کن", "درخواست‌های کاری اطراف خودت را ببین و با چند لمس برایشان درخواست همکاری بفرست.") { Icon(Icons.Default.BusinessCenter, null, modifier = Modifier.size(72.dp), tint = MaterialTheme.colorScheme.primary) },
-        OnboardingPage("نیروی مناسب را پیدا کن", "اگر کارفرما هستی، نیروهای آماده به کار را روی نقشه ببین و سریع انتخاب کن.") { Icon(Icons.Default.Handyman, null, modifier = Modifier.size(72.dp), tint = MaterialTheme.colorScheme.primary) },
-        OnboardingPage("اعتماد، دوطرفه ساخته می‌شود", "امتیازها و نظرهای واقعی کمک می‌کنند همکاری‌های بعدی مطمئن‌تر شکل بگیرند.") { Icon(Icons.Default.Star, null, modifier = Modifier.size(72.dp), tint = Color(0xFFE2A63B)) },
+        OnboardingPage("خدمت نزدیکت را پیدا کن", "متخصص‌های اطراف را روی نقشه ببین و با چند لمس خدمت مناسب را انتخاب کن.") { Icon(Icons.Default.Search, null, modifier = Modifier.size(72.dp), tint = MaterialTheme.colorScheme.primary) },
+        OnboardingPage("خدمتت را ارائه بده", "اگر مهارتی داری، درخواست‌های نزدیک را ببین و فرصت‌های مناسب را پیدا کن.") { Icon(Icons.Default.BusinessCenter, null, modifier = Modifier.size(72.dp), tint = MaterialTheme.colorScheme.secondary) },
+        OnboardingPage("انتخابی ساده و مطمئن", "حالت استفاده‌ات را هر زمان خواستی تغییر بده؛ کاروین برای هر دو مسیر آماده است.") { Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(72.dp), tint = MaterialTheme.colorScheme.tertiary) },
     )
     val pager = rememberPagerState(pageCount = { pages.size })
     val scope = rememberCoroutineScope()
@@ -114,12 +117,12 @@ fun AuthScreen(onSubmit: (String) -> Unit) {
     Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 30.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         KarvinLogo()
         Spacer(Modifier.height(32.dp))
-        Text("ورود یا ثبت‌نام", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("برای شروع شماره موبایل خود را وارد کنید.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("شروع کنید", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("برای این نسخه نمایشی نیازی به ورود یا شماره موبایل نیست.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         OutlinedTextField(
             value = phone,
             onValueChange = { value -> phone = value.filter { it.isDigit() || it == '+' }.take(13); error = null },
-            label = { Text("شماره موبایل") },
+            label = { Text("شماره موبایل (اختیاری)") },
             placeholder = { Text("۰۹۱۲۱۲۳۴۵۶۷") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
@@ -128,9 +131,9 @@ fun AuthScreen(onSubmit: (String) -> Unit) {
             supportingText = error?.let { { Text(it) } },
         )
         Spacer(Modifier.weight(1f))
-        Text("با ادامه دادن، قوانین استفاده از کاروین را می‌پذیرید.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("در این نسخه، اطلاعات شما فقط روی دستگاه نگهداری می‌شود.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         PrimaryButton("ادامه", onClick = {
-            if (phone.filter(Char::isDigit).length < 10) error = "شماره موبایل را کامل وارد کنید." else onSubmit(phone)
+            onSubmit(phone.ifBlank { "09000000000" })
         }, modifier = Modifier.fillMaxWidth())
     }
 }
@@ -140,27 +143,28 @@ fun RoleScreen(onRoleSelected: (UserRole) -> Unit) {
     Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 30.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         KarvinLogo()
         Spacer(Modifier.height(35.dp))
-        Text("چطور از کاروین استفاده می‌کنی؟", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("نقش اصلی خودت را انتخاب کن؛ هر زمان خواستی از تنظیمات قابل تغییر است.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("چه کاری می‌خواهید انجام دهید؟", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("حالت استفاده‌تان را انتخاب کنید؛ هر زمان خواستید می‌توانید تغییرش دهید.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(14.dp))
-        RoleCard("من کارگر هستم", "کارهای نزدیک را پیدا می‌کنم و برایشان درخواست می‌فرستم.", Icons.Default.Handyman) { onRoleSelected(UserRole.WORKER) }
-        RoleCard("من کارفرما هستم", "برای کارم نیروی مناسب و نزدیک پیدا می‌کنم.", Icons.Default.BusinessCenter) { onRoleSelected(UserRole.EMPLOYER) }
+        RoleCard("حالت", "ارائه می‌دهم", "ارائه‌ی هر نوع خدمت خانگی و ارائه مهارت.", Icons.Default.BusinessCenter, MaterialTheme.colorScheme.secondary) { onRoleSelected(UserRole.WORKER) }
+        RoleCard("حالت", "می‌خواهم", "برای خودم یا دیگران درخواست خدمت ثبت کنید.", Icons.Default.Search, MaterialTheme.colorScheme.primary) { onRoleSelected(UserRole.EMPLOYER) }
     }
 }
 
 @Composable
-private fun RoleCard(title: String, body: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+private fun RoleCard(caption: String, title: String, body: String, icon: androidx.compose.ui.graphics.vector.ImageVector, accent: Color, onClick: () -> Unit) {
+    Card(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = .08f))) {
         Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(58.dp)) {
-                Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer) }
+            Surface(shape = RoundedCornerShape(14.dp), color = accent.copy(alpha = .16f), modifier = Modifier.size(58.dp)) {
+                Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = accent) }
             }
             Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(caption, style = MaterialTheme.typography.labelSmall, color = accent)
                 Text(title, style = MaterialTheme.typography.titleLarge)
                 Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "انتخاب", tint = MaterialTheme.colorScheme.primary)
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "انتخاب", tint = accent)
         }
     }
 }

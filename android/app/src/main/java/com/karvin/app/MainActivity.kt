@@ -10,7 +10,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -39,7 +38,9 @@ import com.karvin.app.feature.jobs.JobDetailsScreen
 import com.karvin.app.feature.jobs.JobsScreen
 import com.karvin.app.feature.jobs.MyApplicationsScreen
 import com.karvin.app.feature.map.MapScreen
+import com.karvin.app.feature.map.RequestSentScreen
 import com.karvin.app.feature.map.WorkersMapScreen
+import com.karvin.app.feature.map.WorkAreaScreen
 import com.karvin.app.feature.notifications.NotificationsScreen
 import com.karvin.app.feature.onboarding.AuthScreen
 import com.karvin.app.feature.onboarding.OnboardingScreen
@@ -122,10 +123,12 @@ private fun KarvinNavHost(
         composable(Routes.EmployerJobs) { JobsScreen(navController, employerMode = true) }
         composable(Routes.WorkerMap) { MapScreen(navController, workerMode = true) }
         composable(Routes.EmployerMap) { WorkersMapScreen(navController) }
+        composable(Routes.RequestSent, arguments = listOf(navArgument("provider") { type = NavType.BoolType; defaultValue = false })) { entry -> RequestSentScreen(navController, providerMode = entry.arguments?.getBoolean("provider") ?: false) }
         composable(Routes.Chat) { ChatListScreen(navController, role = role ?: UserRole.WORKER) }
         composable(Routes.Profile) { ProfileScreen(navController) }
         composable(Routes.Notifications) { NotificationsScreen(navController) }
         composable(Routes.Settings) { SettingsScreen(navController) }
+        composable(Routes.WorkArea) { WorkAreaScreen(navController) }
         composable(
             Routes.CreateJobDestination,
             arguments = listOf(navArgument("workerId") { type = NavType.StringType; defaultValue = "" }),

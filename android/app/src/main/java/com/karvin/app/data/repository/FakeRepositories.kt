@@ -234,18 +234,21 @@ class FakeWorkerRepository(private val store: FakeRepositoryStore) : WorkerRepos
                 .any { it.contains(filter.query, ignoreCase = true) }
             val categoryMatches = filter.categoryId == null || worker.skills.any { it == FakeData.categories.firstOrNull { category -> category.id == filter.categoryId }?.title }
             val ratingMatches = filter.minimumRating == null || worker.rating >= filter.minimumRating
+            val onlineMatches = !filter.onlineOnly || worker.isAvailable
+            val verifiedMatches = !filter.verifiedOnly || worker.isVerified
+            val serviceMatches = filter.service == null || worker.services.any { it.contains(filter.service) }
             val distanceMatches = com.karvin.app.domain.model.DistanceCalculator.matches(
                 com.karvin.app.domain.model.DistanceCalculator.distanceInKm(userPoint, worker.point),
                 filter.distance,
             )
-            worker.isAvailable && searchMatches && categoryMatches && ratingMatches && distanceMatches
+            searchMatches && categoryMatches && ratingMatches && onlineMatches && verifiedMatches && serviceMatches && distanceMatches
         }.sortedBy { com.karvin.app.domain.model.DistanceCalculator.distanceInKm(userPoint, it.point) }
         AppResult.Success(result)
     }
 
     override fun observeWorker(workerId: String): Flow<AppResult<User>> = store.workers.map { workers ->
         workers.firstOrNull { it.id == workerId }?.let { AppResult.Success(it) }
-            ?: AppResult.Error("پروفایل نیرو پیدا نشد")
+            ?: AppResult.Error("پروفایل متخصص پیدا نشد")
     }
 
     override fun observeReviews(workerId: String): Flow<AppResult<List<Review>>> =

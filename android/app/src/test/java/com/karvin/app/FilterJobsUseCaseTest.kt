@@ -12,9 +12,9 @@ class FilterJobsUseCaseTest {
 
     @Test
     fun queryMatchesTitleAndCategory() {
-        val result = useCase(FakeData.jobs, JobFilter(query = "کولر"), FakeData.center)
+        val result = useCase(FakeData.jobs, JobFilter(query = "ماساژ درمانی ورزشی"), FakeData.center)
         assertTrue(result.isNotEmpty())
-        assertTrue(result.all { it.title.contains("کولر") })
+        assertTrue(result.all { it.title.contains("ماساژ درمانی ورزشی") })
     }
 
     @Test

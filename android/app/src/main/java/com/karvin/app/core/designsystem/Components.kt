@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -50,7 +49,7 @@ import com.karvin.app.domain.model.GeoPoint
 import com.karvin.app.domain.model.Job
 import com.karvin.app.domain.model.User
 import com.karvin.app.domain.model.toPersianDigits
-import com.karvin.app.domain.model.toTomanString
+import com.karvin.app.domain.model.toRialString
 import com.karvin.app.domain.usecase.label
 import java.time.LocalDate
 import java.time.LocalTime
@@ -167,7 +166,7 @@ fun JobCard(job: Job, userPoint: GeoPoint, onClick: () -> Unit, onSave: () -> Un
             }
             Text(job.description, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(job.amount.toTomanString(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                Text(job.amount.toRialString(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                 Text("${job.startTime.toPersianTime()} · ${DistanceCalculator.format(distance)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -177,6 +176,22 @@ fun JobCard(job: Job, userPoint: GeoPoint, onClick: () -> Unit, onSave: () -> Un
                 RatingLine(job.employer.rating)
             }
         }
+    }
+}
+
+@Composable
+fun OnlinePill(isOnline: Boolean, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        color = if (isOnline) Color(0xFF17A673).copy(alpha = .16f) else MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(8.dp),
+    ) {
+        Text(
+            if (isOnline) "آنلاین" else "آفلاین",
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = if (isOnline) Color(0xFF128A5E) else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -195,15 +210,18 @@ fun WorkerCard(worker: User, userPoint: GeoPoint, onClick: () -> Unit, onFavorit
                         Icon(Icons.Default.CheckCircle, contentDescription = "احراز هویت شده", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(17.dp))
                     }
                 }
-                Text(worker.skills.take(2).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(worker.skills.firstOrNull() ?: "متخصص خدمات", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(5.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                     RatingLine(worker.rating)
                     Text(DistanceCalculator.format(distance), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            IconButton(onClick = onFavorite, modifier = Modifier.semantics { contentDescription = "افزودن به علاقه‌مندی‌ها" }) {
-                Text("♡", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.secondary)
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                OnlinePill(worker.isAvailable)
+                IconButton(onClick = onFavorite, modifier = Modifier.size(34.dp).semantics { contentDescription = "افزودن به علاقه‌مندی‌ها" }) {
+                    Text("♡", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary)
+                }
             }
         }
     }

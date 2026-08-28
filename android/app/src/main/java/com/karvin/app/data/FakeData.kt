@@ -23,88 +23,117 @@ import java.time.LocalTime
 object FakeData {
     val center = GeoPoint(35.7219, 51.3347)
 
+    /** دسته‌بندی‌های خدمات سلامت مطابق طرح؛ چهار مورد اول تب‌های نقشه را می‌سازند. */
     val categories = listOf(
-        Category("general", "کارگر ساده", "کار"),
-        Category("electrician", "برقکار", "برق"),
-        Category("plumber", "لوله‌کش", "آب"),
-        Category("painter", "نقاش ساختمان", "رنگ"),
-        Category("mason", "بنا", "ساخت"),
-        Category("welder", "جوشکار", "فلز"),
-        Category("repair", "تعمیرکار", "تعمیر"),
-        Category("driver", "راننده", "رانندگی"),
-        Category("cleaning", "نظافت", "خانه"),
-        Category("cooking", "آشپزی", "آشپزی"),
-        Category("services", "خدمات", "خدمت"),
-        Category("shop", "کار فروشگاهی", "فروش"),
-        Category("warehouse", "انبارداری", "انبار"),
-        Category("moving", "باربری", "بار"),
-        Category("gardening", "باغبانی", "باغ"),
-        Category("office", "کار اداری", "اداری"),
-        Category("other", "سایر", "سایر"),
+        Category("paramedical", "پیراپزشکی", "پارا"),
+        Category("nursing", "پرستاری", "پرستار"),
+        Category("physio", "فیزیوتراپی", "فیزیو"),
+        Category("medical", "طبابت", "طب"),
+        Category("lab", "آزمایش", "آزمایش"),
+        Category("elderly", "مراقبت از سالمند", "سالمند"),
+        Category("injection", "تزریقات", "تزریق"),
+        Category("dressing", "پانسمان", "پانسمان"),
+    )
+
+    /** خدمات ارائه شده توسط متخصص‌ها (چیپ‌های «خدمات ارائه شده»). */
+    val services = listOf(
+        "ویزیت در منزل",
+        "ویزیت بیمارستان",
+        "ویزیت آنلاین",
+        "آزمایش در منزل",
+        "تزریقات در منزل",
+        "پانسمان و بخیه",
+        "فیزیوتراپی در منزل",
+        "مراقبت شبانه",
+    )
+
+    private val specialties = mapOf(
+        "پیراپزشکی" to listOf("شنوایی‌سنجی", "بینایی‌سنجی", "تغذیه بالینی", "روانشناسی", "کاردرمانی"),
+        "پرستاری" to listOf("تزریقات", "پانسمان", "سرم درمانی", "مراقبت از سالمند"),
+        "فیزیوتراپی" to listOf("کمردرد", "بیماری‌های ورزشی", "ناهنجاری", "ماساژ درمانی"),
+        "طبابت" to listOf("طب عمومی", "طب خانواده", "پیگیری درمان", "مشاوره دارویی"),
+        "آزمایش" to listOf("آزمایش خون", "نمونه‌گیری در منزل", "آزمایش ادرار"),
+        "مراقبت از سالمند" to listOf("مراقبت شبانه", "یادآوری دارو", "حمام سالمند"),
+        "تزریقات" to listOf("تزریق عضلانی", "تزریق وریدی", "سرم درمانی"),
+        "پانسمان" to listOf("پانسمان زخم", "کشیدن بخیه", "مراقبت پس از جراحی"),
     )
 
     private val firstNames = listOf(
-        "امیر", "رضا", "سینا", "مهدی", "علی", "حسین", "نوید", "فرهاد", "مجتبی", "یاسر",
-        "نگار", "سارا", "مریم", "نسترن", "الهام", "سمیه", "کیانا", "حمید", "پویان", "آرمان",
-        "شهاب", "میلاد", "فرشاد", "پرهام", "احسان", "بهزاد", "کاوه", "آتنا", "لیلا", "سهیل",
+        "محمد", "علی", "زهرا", "امیر", "فاطمه", "رضا", "مریم", "حسین", "سارا", "مهدی",
+        "نگار", "نرگس", "حمید", "الهام", "پویان", "سمیه", "کیانا", "آرمان", "لیلا", "سهیل",
+        "شهاب", "میلاد", "فرشاد", "پریسا", "احسان", "بهزاد", "آتنا", "نوید", "مرضیه", "بهنام",
     )
 
-    private val employerNames = listOf(
-        "فروشگاه آریا", "کافه خانه سبز", "شرکت نوآوران", "ساختمان پزشکان بهار", "رستوران نارنج",
-        "کارگاه چوبین", "دفتر خدمات شهری", "مجموعه ورزشی هیراد", "فروشگاه مرکزی", "گروه ساختمانی سپهر",
+    private val lastNames = listOf(
+        "رضایی", "مرادی", "احمدی", "حسینی", "کریمی", "موسوی", "صادقی", "جعفری",
+        "نوروزی", "اکبری", "طاهری", "حیدری",
     )
 
-    private val jobTitles = listOf(
-        "نصب کولر", "کمک در اسباب‌کشی", "نظافت واحد اداری", "تعمیر شیر آب", "رنگ‌آمیزی اتاق",
-        "چیدمان انبار", "تحویل سفارش با خودرو", "کمک آشپز", "سیم‌کشی ساختمان", "هرس درختان",
+    private val requesterNames = listOf(
+        "امیر", "سارا", "نرگس", "حسین", "مریم", "علی", "شیما", "رضا", "مینا", "کاربر مهمان",
     )
 
-    private val descriptions = listOf(
-        "به نیروی دقیق و مسئولیت‌پذیر برای همکاری کوتاه‌مدت نیاز داریم.",
-        "محل کار آماده است و پرداخت در پایان کار انجام می‌شود.",
-        "سابقه مرتبط مزیت محسوب می‌شود اما آموزش اولیه ارائه خواهد شد.",
-        "لطفاً فقط در صورت امکان حضور در زمان اعلام شده درخواست دهید.",
+    private val requestTitles = listOf(
+        "ویزیت در منزل",
+        "تزریقات و سرم در منزل",
+        "پانسمان زخم",
+        "فیزیوتراپی کمردرد",
+        "آزمایش خون در منزل",
+        "مراقبت از سالمند",
+        "ویزیت پزشک عمومی",
+        "ماساژ درمانی ورزشی",
+        "مراقبت پس از جراحی",
+        "مشاوره تغذیه",
+    )
+
+    private val requestDescriptions = listOf(
+        "برای بیمار کمتحرک ویزیت در منزل نیاز دارم؛ لطفاً بعدازظهر در دسترس باشید.",
+        "به پرستار مجرب برای تزریق سرم در منزل نیاز داریم؛ تجهیزات موجود است.",
+        "دوره فیزیوتراپی پس از جراحی زانو؛ جلسات در منزل بیمار انجام می‌شود.",
+        "لطفاً پیش از مراجعه هماهنگ کنید و زمان دقیق حضور را اعلام بفرمایید.",
     )
 
     private val addresses = listOf(
-        "تهران، بلوار کشاورز", "تهران، یوسف‌آباد", "تهران، میدان ونک", "تهران، جردن", "تهران، صادقیه",
-        "تهران، ستارخان", "تهران، امیرآباد", "تهران، تهرانپارس", "تهران، پاسداران", "تهران، شهرک غرب",
+        "تهران، ولنجک", "تهران، سعادت‌آباد", "تهران، ونک", "تهران، جردن", "تهران، شهرک غرب",
+        "تهران، پاسداران", "تهران، نیاوران", "تهران، یوسف‌آباد", "تهران، امیرآباد", "تهران، زعفرانیه",
     )
-
 
     val workers: List<User> = firstNames.mapIndexed { index, name ->
         val category = categories[index % categories.size]
+        val specialtyPool = specialties[category.title].orEmpty()
+        val servicesForWorker = listOf(services[index % services.size], services[(index + 2) % services.size]).distinct()
         User(
             id = "worker-${index + 1}",
-            name = "$name ${if (index % 2 == 0) "محمدی" else "کاظمی"}",
+            name = "$name ${lastNames[index % lastNames.size]}",
             role = UserRole.WORKER,
-            city = if (index % 3 == 0) "تهران" else "کرج",
+            city = if (index % 3 == 0) "تهران، ولنجک" else "تهران",
             phone = "۰۹۱۲۱۲۳۴${(10 + index).toString().takeLast(2)}",
-            rating = 4.2 + (index % 8) * 0.1,
-            completedJobs = 8 + index * 3,
+            rating = 4.5 + (index % 5) * 0.1,
+            completedJobs = 30 + index * 7,
             isVerified = index % 5 != 0,
             isAvailable = index % 4 != 0,
             point = pointFor(index, 0.008),
-            skills = listOf(category.title, if (index % 2 == 0) "منظم" else "سریع", "مورد اعتماد"),
-            bio = "متخصص ${category.title} با سابقه کار پروژه‌ای و روزانه.",
-            reviewCount = 12 + index,
+            skills = listOf(category.title) + specialtyPool.take(3),
+            services = servicesForWorker,
+            bio = "متخصص ${category.title} با تجربه ویزیت در منزل و برخورد حرفه‌ای با بیماران.",
+            reviewCount = 120 + index * 9,
         )
     }
 
     val employers: List<User> = (0 until 30).map { index ->
-        val baseName = employerNames[index % employerNames.size]
-        val displayName = if (index < employerNames.size) baseName else "$baseName، شعبه ${(index / employerNames.size + 1).toString().toPersianDigits()}"
+        val baseName = requesterNames[index % requesterNames.size]
+        val displayName = if (index < requesterNames.size) baseName else "$baseName ${(index / requesterNames.size + 1).toString().toPersianDigits()}"
         User(
             id = "employer-${index + 1}",
             name = displayName,
             role = UserRole.EMPLOYER,
             city = "تهران",
-            phone = "۰۲۱۴۴۴۴${(10 + index).toString().takeLast(2)}",
+            phone = "۰۹۱۲۴۴۴${(10 + index).toString().takeLast(2)}",
             rating = 4.4 + (index % 5) * 0.1,
-            completedJobs = 4 + index * 2,
+            completedJobs = 2 + index,
             point = pointFor(index + 3, 0.012),
-            bio = "کارفرمای تایید شده در پلتفرم کاروین.",
-            reviewCount = 8 + index,
+            bio = "کاربر تایید شده کاروین.",
+            reviewCount = 3 + index,
         )
     }
 
@@ -114,21 +143,21 @@ object FakeData {
         val urgent = index % 6 == 0
         Job(
             id = "job-${index + 1}",
-            title = jobTitles[index % jobTitles.size],
+            title = requestTitles[index % requestTitles.size],
             category = category,
-            description = descriptions[index % descriptions.size],
+            description = requestDescriptions[index % requestDescriptions.size],
             employer = employer,
-            requiredWorkers = if (index % 7 == 0) 2 else 1,
+            requiredWorkers = 1,
             genderRequirement = GenderRequirement.ANY,
-            date = LocalDate.now().plusDays((index % 4).toLong()),
-            startTime = LocalTime.of(9 + index % 9, if (index % 2 == 0) 0 else 30),
-            durationHours = listOf(2.0, 4.0, 6.0, 8.0)[index % 4],
-            amount = 450_000L + (index % 10) * 125_000L,
+            date = LocalDate.now().plusDays((index % 3).toLong()),
+            startTime = LocalTime.of(14 + index % 6, if (index % 2 == 0) 0 else 30),
+            durationHours = listOf(1.0, 2.0, 3.0, 4.0)[index % 4],
+            amount = 350_000L + (index % 10) * 85_000L,
             paymentType = PaymentType.values()[index % PaymentType.values().size],
             address = addresses[index % addresses.size],
             point = pointFor(index, 0.01),
             isUrgent = urgent,
-            requiredSkills = listOf(category.title, if (index % 2 == 0) "تجربه مرتبط" else "توان بدنی"),
+            requiredSkills = listOf(category.title, services[(index + 1) % services.size]),
             status = listOf(
                 JobStatus.OPEN,
                 JobStatus.APPLIED,
@@ -150,27 +179,27 @@ object FakeData {
             worker = workers[(index * 2) % workers.size],
             status = listOf(ApplicationStatus.PENDING, ApplicationStatus.ACCEPTED, ApplicationStatus.REJECTED)[index % 3],
             createdAt = LocalDateTime.now().minusHours((index + 1).toLong()),
-            message = if (index % 2 == 0) "سلام، آماده شروع کار در زمان اعلام شده هستم." else "سابقه مشابه این پروژه را دارم.",
+            message = if (index % 2 == 0) "سلام، در زمان اعلام شده در دسترس هستم و می‌توانم مراجعه کنم." else "تجربه مشابه این خدمت را دارم؛ آماده مراجعه هستم.",
         )
     }
 
     val reviews: Map<String, List<Review>> = workers.associate { worker ->
         worker.id to listOf(
-            Review("review-${worker.id}-1", "مریم رضایی", 5, "کار تمیز و برخورد حرفه‌ای.", LocalDate.now().minusDays(3)),
-            Review("review-${worker.id}-2", "شرکت نوآوران", 4, "سر وقت و مسئولیت‌پذیر.", LocalDate.now().minusDays(11)),
+            Review("review-${worker.id}-1", "مریم رضایی", 5, "برخورد حرفه‌ای و منظم بودند؛ خیالم راحت شد.", LocalDate.now().minusDays(3)),
+            Review("review-${worker.id}-2", "حسین کریمی", 4, "سر وقت آمدند و توضیحات کامل دادند.", LocalDate.now().minusDays(11)),
         )
     }
 
     val messages: List<ChatMessage> = listOf(
-        ChatMessage("message-1", "conversation-1", employers.first().id, "سلام، برای جزئیات کار در خدمتم.", LocalDateTime.now().minusMinutes(24), true),
-        ChatMessage("message-2", "conversation-1", workers.first().id, "ممنون، ساعت شروع برای من مناسب است.", LocalDateTime.now().minusMinutes(18), true),
-        ChatMessage("message-3", "conversation-2", employers[1].id, "لطفاً نمونه کارهای قبلی را ارسال کنید.", LocalDateTime.now().minusHours(3), false),
+        ChatMessage("message-1", "conversation-1", employers.first().id, "سلام، برای ویزیت در منزل هماهنگی کنید لطفاً.", LocalDateTime.now().minusMinutes(24), true),
+        ChatMessage("message-2", "conversation-1", workers.first().id, "ممنون، فردا بعدازظهر در دسترسم است.", LocalDateTime.now().minusMinutes(18), true),
+        ChatMessage("message-3", "conversation-2", employers[1].id, "لطفاً مدارک و تخصص‌های خود را ارسال کنید.", LocalDateTime.now().minusHours(3), false),
     )
 
     val notifications: List<AppNotification> = listOf(
-        AppNotification("notification-1", NotificationType.JOB_NEARBY, "درخواست نزدیک شما", "یک کار جدید در فاصله ۲٫۳ کیلومتری منتشر شد.", LocalDateTime.now().minusMinutes(12), false),
-        AppNotification("notification-2", NotificationType.APPLICATION_UPDATE, "درخواست شما پذیرفته شد", "کارفرما درخواست همکاری شما را تایید کرد.", LocalDateTime.now().minusHours(2), false),
-        AppNotification("notification-3", NotificationType.RATING, "زمان امتیازدهی", "تجربه آخرین کار خود را ثبت کنید.", LocalDateTime.now().minusDays(1), true),
+        AppNotification("notification-1", NotificationType.JOB_NEARBY, "درخواست نزدیک شما", "یک درخواست ویزیت در فاصله ۲٫۳ کیلومتری ثبت شد.", LocalDateTime.now().minusMinutes(12), false),
+        AppNotification("notification-2", NotificationType.APPLICATION_UPDATE, "درخواست شما تایید شد", "متخصص درخواست شما را پذیرفت و زمان مراجعه را اعلام کرد.", LocalDateTime.now().minusHours(2), false),
+        AppNotification("notification-3", NotificationType.RATING, "زمان امتیازدهی", "تجربه آخرین ویزیت خود را ثبت کنید.", LocalDateTime.now().minusDays(1), true),
     )
 
     fun conversations(currentUserId: String): List<Conversation> = employers.take(3).mapIndexed { index, employer ->

@@ -36,8 +36,8 @@ fun JobStatus.label(): String = when (this) {
     JobStatus.OPEN -> "باز"
     JobStatus.APPLIED -> "در انتظار بررسی"
     JobStatus.ACCEPTED -> "پذیرفته شده"
-    JobStatus.WORKER_ON_THE_WAY -> "نیرو در مسیر است"
-    JobStatus.ARRIVED -> "نیرو رسید"
+    JobStatus.WORKER_ON_THE_WAY -> "متخصص در مسیر است"
+    JobStatus.ARRIVED -> "متخصص رسید"
     JobStatus.IN_PROGRESS -> "در حال انجام"
     JobStatus.COMPLETED -> "تکمیل شده"
     JobStatus.RATED -> "امتیازدهی شده"
@@ -45,10 +45,10 @@ fun JobStatus.label(): String = when (this) {
 }
 
 fun DistanceFilter.label(): String = when (this) {
-    DistanceFilter.UNDER_ONE -> "زیر ۱ کیلومتر"
-    DistanceFilter.UNDER_THREE -> "زیر ۳ کیلومتر"
-    DistanceFilter.UNDER_FIVE -> "زیر ۵ کیلومتر"
-    DistanceFilter.UNDER_TEN -> "زیر ۱۰ کیلومتر"
+    DistanceFilter.UNDER_ONE -> "تا ۱ کیلومتر"
+    DistanceFilter.UNDER_FIVE -> "تا ۵ کیلومتر"
+    DistanceFilter.UNDER_TEN -> "تا ۱۰ کیلومتر"
+    DistanceFilter.UNDER_TWENTY -> "تا ۲۰ کیلومتر"
     DistanceFilter.ALL -> "همه فاصله‌ها"
 }
 

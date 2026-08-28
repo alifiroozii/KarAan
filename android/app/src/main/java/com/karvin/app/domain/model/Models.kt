@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.UUID
 
-/** Shared domain contract used by both worker and employer experiences. */
+/** Shared domain contract used by both provider and requester experiences. */
 enum class UserRole { WORKER, EMPLOYER }
 
 enum class JobStatus {
@@ -28,14 +28,14 @@ enum class GenderRequirement { ANY, MALE, FEMALE }
 
 enum class NotificationType { JOB_NEARBY, APPLICATION_UPDATE, MESSAGE, WORKFLOW, RATING }
 
-enum class LocationState { LocationDisabled, PermissionDenied, Loading, Available, Error }
+enum class LocationState { PermissionDenied, LocationDisabled, Loading, Available, Error }
 
-enum class DistanceFilter(val maxKm: Double?) {
-    UNDER_ONE(1.0),
-    UNDER_THREE(3.0),
-    UNDER_FIVE(5.0),
-    UNDER_TEN(10.0),
-    ALL(null),
+enum class DistanceFilter(val maxKm: Double?, val label: String) {
+    UNDER_ONE(1.0, "۱ کیلومتر"),
+    UNDER_FIVE(5.0, "۵ کیلومتر"),
+    UNDER_TEN(10.0, "۱۰ کیلومتر"),
+    UNDER_TWENTY(20.0, "۲۰ کیلومتر"),
+    ALL(null, "همه"),
 }
 
 data class GeoPoint(
@@ -62,6 +62,7 @@ data class User(
     val isAvailable: Boolean = false,
     val point: GeoPoint = GeoPoint(35.7219, 51.3347),
     val skills: List<String> = emptyList(),
+    val services: List<String> = emptyList(),
     val bio: String = "",
     val reviewCount: Int = 0,
 )
@@ -145,6 +146,9 @@ data class WorkerFilter(
     val categoryId: String? = null,
     val distance: DistanceFilter = DistanceFilter.ALL,
     val minimumRating: Double? = null,
+    val onlineOnly: Boolean = false,
+    val verifiedOnly: Boolean = false,
+    val service: String? = null,
 )
 
 data class CreateJobInput(

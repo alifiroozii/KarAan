@@ -74,7 +74,7 @@ import com.karvin.app.domain.model.JobFilter
 import com.karvin.app.domain.model.JobStatus
 import com.karvin.app.domain.model.PaymentType
 import com.karvin.app.domain.model.toPersianDigits
-import com.karvin.app.domain.model.toTomanString
+import com.karvin.app.domain.model.toRialString
 import com.karvin.app.domain.usecase.label
 import java.time.LocalDate
 import java.time.LocalTime
@@ -89,14 +89,14 @@ fun JobsScreen(navController: NavHostController, employerMode: Boolean, viewMode
         if (employerMode) com.karvin.app.domain.model.UserRole.EMPLOYER else com.karvin.app.domain.model.UserRole.WORKER,
         content = { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-        AppTopBar(if (employerMode) "درخواست‌های من" else "پیدا کردن کار", onBack = { navController.popBackStack() }, actions = {
+        AppTopBar(if (employerMode) "درخواست‌های من" else "درخواست‌های نزدیک", onBack = { navController.popBackStack() }, actions = {
             if (!employerMode) IconButton(onClick = { showFilters = true }, modifier = Modifier.semantics { contentDescription = "فیلترها" }) { Icon(Icons.Default.FilterList, "فیلترها") }
         })
         if (!employerMode) {
             OutlinedTextField(
                 value = state.filter.query,
                 onValueChange = { viewModel.updateFilter(state.filter.copy(query = it)) },
-                label = { Text("جستجو در عنوان، مهارت یا دسته‌بندی") },
+                label = { Text("جستجو در عنوان یا دسته‌بندی") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
             )
@@ -131,7 +131,7 @@ private fun FilterDialog(filter: JobFilter, onApply: (JobFilter) -> Unit, onDism
         title = { Text("فیلتر درخواست‌ها") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("امتیاز کارفرما: ${if (minimumRating == 0.0) "همه" else minimumRating.toString().toPersianDigits()}")
+                Text("حداقل امتیاز درخواست‌دهنده: ${if (minimumRating == 0.0) "همه" else minimumRating.toString().toPersianDigits()}")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf(0.0, 4.0, 4.5).forEach { value -> FilterChip(selected = minimumRating == value, onClick = { minimumRating = value }, label = { Text(if (value == 0.0) "همه" else "بیشتر از ${value.toString().toPersianDigits()}") }) } }
                 FilterChip(selected = urgent, onClick = { urgent = !urgent }, label = { Text("فقط فوری") })
             }
@@ -145,17 +145,17 @@ private fun FilterDialog(filter: JobFilter, onApply: (JobFilter) -> Unit, onDism
 fun MyApplicationsScreen(navController: NavHostController, viewModel: MyApplicationsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize()) {
-        AppTopBar("کارهای من", onBack = { navController.popBackStack() })
+        AppTopBar("درخواست‌های من", onBack = { navController.popBackStack() })
         when {
             state.loading -> LoadingState()
             state.error != null -> ErrorState(state.error.orEmpty()) { viewModel.reload() }
-            state.applications.isEmpty() -> EmptyState("هنوز درخواستی ارسال نکرده‌اید", "از صفحه کارها یک درخواست مناسب انتخاب کنید.")
+            state.applications.isEmpty() -> EmptyState("هنوز درخواستی ارسال نکرده‌اید", "از صفحه درخواست‌ها یک مورد مناسب انتخاب کنید.")
             else -> LazyColumn(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(state.applications, key = { it.id }) { application ->
                     Card(onClick = { navController.navigate(Routes.jobDetails(application.jobId)) }, modifier = Modifier.fillMaxWidth(), shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)) {
                         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(FakeData.jobs.firstOrNull { it.id == application.jobId }?.title ?: "درخواست کاری", style = MaterialTheme.typography.titleMedium)
+                                Text(FakeData.jobs.firstOrNull { it.id == application.jobId }?.title ?: "درخواست خدمت", style = MaterialTheme.typography.titleMedium)
                                 Text(application.message.ifBlank { "بدون توضیح" }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             StatusPill(application.status.name)
@@ -187,13 +187,13 @@ fun JobDetailsScreen(navController: NavHostController, jobId: String, employerMo
                         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)) {
                             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Row(verticalAlignment = Alignment.Top) { Column(Modifier.weight(1f)) { Text(job.title, style = MaterialTheme.typography.headlineSmall); Text(job.category.title, color = MaterialTheme.colorScheme.primary) }; if (job.isUrgent) StatusPill("فوری") }
-                                Text(job.amount.toTomanString(), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+                                Text(job.amount.toRialString(), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
                                 Text("${job.date.toPersianDate()} · ${job.startTime.toPersianTime()} · ${job.durationHours.toString().toPersianDigits()} ساعت", style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                     }
                     item { InfoRow("محل انجام", job.address); InfoRow("فاصله", DistanceCalculator.format(DistanceCalculator.distanceInKm(FakeData.center, job.point))); InfoRow("نوع پرداخت", job.paymentType.label()) }
-                    item { Text("درباره کار", style = MaterialTheme.typography.titleLarge); Text(job.description, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    item { Text("درباره درخواست", style = MaterialTheme.typography.titleLarge); Text(job.description, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     item { Text("مهارت‌های مورد نیاز", style = MaterialTheme.typography.titleLarge); Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) { job.requiredSkills.forEach { CategoryChip(it, true) {} } } }
                     item { EmployerSummary(job) }
                     if (job.status != JobStatus.OPEN && job.status != JobStatus.CANCELLED) {
@@ -205,12 +205,11 @@ fun JobDetailsScreen(navController: NavHostController, jobId: String, employerMo
                                 Text("مشاهده متقاضیان${if (job.applicantCount > 0) " (${job.applicantCount.toPersianDigits()})" else ""}")
                             }
                         } else if (state.applicationSent) {
-                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer), shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)) { Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Check, "ارسال شد"); Spacer(Modifier.width(8.dp)); Text("درخواست همکاری شما ارسال شد.") } }
-                        }                        else if (job.status == JobStatus.OPEN) {
-                            PrimaryButton("ارسال درخواست همکاری", { showApply = true }, Modifier.fillMaxWidth())
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer), shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)) { Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Check, "ارسال شد"); Spacer(Modifier.width(8.dp));                                Text("آمادگی شما برای این درخواست ثبت شد.") } }                        } else if (job.status == JobStatus.OPEN) {
+                            PrimaryButton("اعلام آمادگی", { showApply = true }, Modifier.fillMaxWidth())
                         } else {
                             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)) {
-                                Text("این درخواست در حال حاضر پذیرش نیروی جدید ندارد.", Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("این درخواست در حال حاضر پذیرش جدید ندارد.", Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
 
@@ -226,12 +225,12 @@ fun JobDetailsScreen(navController: NavHostController, jobId: String, employerMo
 @Composable
 private fun ApplyDialog(onDismiss: () -> Unit, onApply: (String) -> Unit) {
     var message by remember { mutableStateOf("") }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("ارسال درخواست همکاری") }, text = { OutlinedTextField(message, { message = it }, label = { Text("پیام برای کارفرما (اختیاری)") }, minLines = 3) }, confirmButton = { Button(onClick = { onApply(message) }) { Text("ارسال") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("انصراف") } })
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("اعلام آمادگی") }, text = { OutlinedTextField(message, { message = it }, label = { Text("پیام برای درخواست‌دهنده (اختیاری)") }, minLines = 3) }, confirmButton = { Button(onClick = { onApply(message) }) { Text("ارسال") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("انصراف") } })
 }
 
 @Composable
 private fun EmployerSummary(job: com.karvin.app.domain.model.Job) {
-    Card(shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)) { Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Avatar(job.employer, size = 48.dp); Spacer(Modifier.width(12.dp)); Column(Modifier.weight(1f)) { Text(job.employer.name, style = MaterialTheme.typography.titleMedium); Text("کارفرما · ${job.employer.completedJobs.toString().toPersianDigits()} کار تکمیل‌شده", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }; RatingLine(job.employer.rating, job.employer.reviewCount) } }
+    Card(shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)) { Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Avatar(job.employer, size = 48.dp); Spacer(Modifier.width(12.dp)); Column(Modifier.weight(1f)) {                Text("کاربر ${job.employer.name}", style = MaterialTheme.typography.titleMedium); Text("درخواست‌دهنده · ${job.employer.completedJobs.toString().toPersianDigits()} درخواست ثبت‌شده", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }; RatingLine(job.employer.rating, job.employer.reviewCount) } }
 }
 
 @Composable
@@ -266,7 +265,8 @@ fun JobApplicationsScreen(navController: NavHostController, jobId: String, viewM
 
 @Composable
 private fun ApplicantCard(application: com.karvin.app.domain.model.Application, onAccept: () -> Unit, onProfile: () -> Unit) {
-    Card(shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { Row(verticalAlignment = Alignment.CenterVertically) { Avatar(application.worker, size = 48.dp); Spacer(Modifier.width(10.dp)); Column(Modifier.weight(1f)) { Text(application.worker.name, style = MaterialTheme.typography.titleMedium); RatingLine(application.worker.rating, application.worker.reviewCount) }; StatusPill(application.status.name) }; Text(application.message, color = MaterialTheme.colorScheme.onSurfaceVariant); Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { OutlinedButton(onClick = onProfile, modifier = Modifier.weight(1f)) { Text("پروفایل") }; Button(onClick = onAccept, modifier = Modifier.weight(1f), enabled = application.status == ApplicationStatus.PENDING) { Text("انتخاب نیرو") } } } }
+    Card(shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { Row(verticalAlignment = Alignment.CenterVertically) { Avatar(application.worker, size = 48.dp); Spacer(Modifier.width(10.dp)); Column(Modifier.weight(1f)) { Text(application.worker.name, style = MaterialTheme.typography.titleMedium); RatingLine(application.worker.rating, application.worker.reviewCount) }; StatusPill(application.status.name) }; Text(application.message, color = MaterialTheme.colorScheme.onSurfaceVariant); Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { OutlinedButton(onClick = onProfile, modifier = Modifier.weight(1f)) { Text("پروفایل") }; Button(onClick = onAccept, modifier = Modifier.weight(1f), enabled = application.status == ApplicationStatus.PENDING) {Text("انتخاب متخصص") } } }
+ }
 }
 
 @Composable
@@ -284,16 +284,16 @@ fun CreateJobScreen(navController: NavHostController, workerId: String? = null, 
     var selectedCategory by remember { mutableStateOf(FakeData.categories.first()) }
     var urgent by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
-        AppTopBar("ثبت درخواست کار", onBack = { navController.popBackStack() })
+        AppTopBar("ثبت درخواست خدمت", onBack = { navController.popBackStack() })
         LazyColumn(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item { Text(if (workerId.isNullOrBlank()) "جزئیات کار را وارد کنید" else "جزئیات پیشنهاد برای نیروی منتخب را وارد کنید", style = MaterialTheme.typography.titleLarge) }
-            item { OutlinedTextField(title, { title = it }, label = { Text("عنوان کار") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+            item { Text(if (workerId.isNullOrBlank()) "جزئیات درخواست را وارد کنید" else "جزئیات درخواست برای متخصص منتخب را وارد کنید", style = MaterialTheme.typography.titleLarge) }
+            item { OutlinedTextField(title, { title = it }, label = { Text("عنوان درخواست") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
             item { Text("دسته‌بندی", style = MaterialTheme.typography.titleMedium) }
             item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) { FakeData.categories.take(8).forEach { CategoryChip(it.title, it.id == selectedCategory.id) { selectedCategory = it } } } }
             item { OutlinedTextField(description, { description = it }, label = { Text("توضیحات") }, modifier = Modifier.fillMaxWidth(), minLines = 4) }
-            item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { OutlinedTextField(amount, { amount = it.filter(Char::isDigit) }, label = { Text("مبلغ (تومان)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f), singleLine = true); OutlinedTextField(workers, { workers = it.filter(Char::isDigit) }, label = { Text("تعداد نیرو") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.width(125.dp), singleLine = true) } }
-            item { OutlinedTextField(address, { address = it }, label = { Text("محل انجام کار") }, leadingIcon = { Icon(Icons.Default.LocationOn, null) }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
-            item { FilterChip(selected = urgent, onClick = { urgent = !urgent }, label = { Text("این کار فوری است") }) }
+            item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { OutlinedTextField(amount, { amount = it.filter(Char::isDigit) }, label = { Text("مبلغ (ریال)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f), singleLine = true); OutlinedTextField(workers, { workers = it.filter(Char::isDigit) }, label = { Text("تعداد مراجعه") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.width(125.dp), singleLine = true) } }
+            item { OutlinedTextField(address, { address = it }, label = { Text("محل ارائه خدمت") }, leadingIcon = { Icon(Icons.Default.LocationOn, null) }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+            item { FilterChip(selected = urgent, onClick = { urgent = !urgent }, label = { Text("این درخواست فوری است") }) }
             item { Text("محل روی نقشه در نسخه backend با انتخاب دقیق مختصات ذخیره می‌شود.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             item { PrimaryButton("انتشار درخواست", { val parsedAmount = amount.toLongOrNull() ?: 0L; if (title.isNotBlank() && parsedAmount > 0) viewModel.publish(CreateJobInput(title, selectedCategory, description.ifBlank { "توضیحات تکمیلی پس از هماهنگی اعلام می‌شود." }, workers.toIntOrNull() ?: 1, GenderRequirement.ANY, LocalDate.now(), LocalTime.of(16, 0), 4.0, parsedAmount, PaymentType.CASH, address, FakeData.center, urgent, listOf(selectedCategory.title))); }, Modifier.fillMaxWidth(), enabled = !state.loading) }
             if (state.error != null) item { Text(state.error.orEmpty(), color = MaterialTheme.colorScheme.error) }
@@ -301,7 +301,7 @@ fun CreateJobScreen(navController: NavHostController, workerId: String? = null, 
         }
     }
     if (state.published != null) {
-        AlertDialog(onDismissRequest = { navController.navigate(Routes.EmployerHome) { popUpTo(Routes.CreateJob) { inclusive = true } } }, title = { Text("درخواست منتشر شد") }, text = { Text("درخواست شما با موفقیت منتشر شد و برای نیروهای اطراف قابل مشاهده است.") }, confirmButton = { Button(onClick = { navController.navigate(Routes.EmployerHome) { popUpTo(Routes.CreateJob) { inclusive = true } } }) { Text("بازگشت به خانه") } })
+        AlertDialog(onDismissRequest = { navController.navigate(Routes.EmployerHome) { popUpTo(Routes.CreateJob) { inclusive = true } } }, title = { Text("درخواست منتشر شد") }, text = { Text("درخواست شما با موفقیت منتشر شد و برای متخصص‌های اطراف قابل مشاهده است.") }, confirmButton = { Button(onClick = { navController.navigate(Routes.EmployerHome) { popUpTo(Routes.CreateJob) { inclusive = true } } }) { Text("بازگشت به خانه") } })
     }
 }
 

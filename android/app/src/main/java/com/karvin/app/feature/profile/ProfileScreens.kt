@@ -55,17 +55,20 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
         if (state.user == null) EmptyState("پروفایل آماده نیست", "بعد از ورود اطلاعات شما اینجا نمایش داده می‌شود.") else {
             val user = state.user!!
             androidx.compose.foundation.lazy.LazyColumn(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                item { Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), shape = RoundedCornerShape(20.dp)) { Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) { Avatar(user, size = 72.dp); Column(Modifier.padding(horizontal = 14.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) { Text(user.name, style = MaterialTheme.typography.headlineSmall); Text("${user.city} · ${if (user.role == UserRole.WORKER) "کارگر" else "کارفرما"}", color = MaterialTheme.colorScheme.onSurfaceVariant); RatingLine(user.rating, user.reviewCount) }; Icon(Icons.Default.Edit, "ویرایش پروفایل", tint = MaterialTheme.colorScheme.primary) } } }
+                item { Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), shape = RoundedCornerShape(20.dp)) { Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) { Avatar(user, size = 72.dp); Column(Modifier.padding(horizontal = 14.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) { Text(user.name, style = MaterialTheme.typography.headlineSmall); Text("${user.city} · ${if (user.role == UserRole.WORKER) "متخصص" else "متقاضی خدمت"}", color = MaterialTheme.colorScheme.onSurfaceVariant); RatingLine(user.rating, user.reviewCount) }; Icon(Icons.Default.Edit, "ویرایش پروفایل", tint = MaterialTheme.colorScheme.primary) } } }
                 if (user.role == UserRole.WORKER) item { EarningsCard(user.completedJobs) }
-                item { ProfileAction("نقش فعلی", if (user.role == UserRole.WORKER) "کارگر" else "کارفرما") { showRoleDialog = true } }
+                item { ProfileAction("حالت فعلی", if (user.role == UserRole.WORKER) "ارائه می‌دهم" else "می‌خواهم") { showRoleDialog = true } }
                 item { ProfileAction("تنظیمات و حریم خصوصی", "اعلان‌ها، ظاهر و دسترسی‌ها") { navController.navigate(Routes.Settings) } }
                 item { ProfileAction("اعلان‌ها", "مرکز اعلان‌ها") { navController.navigate(Routes.Notifications) } }
-                if (user.role == UserRole.WORKER) item { ProfileAction("درخواست‌های من", "پیگیری وضعیت درخواست‌های همکاری") { navController.navigate(Routes.WorkerApplications) } }
+                if (user.role == UserRole.WORKER) {
+                    item { ProfileAction("درخواست‌های من", "پیگیری وضعیت درخواست‌های همکاری") { navController.navigate(Routes.WorkerApplications) } }
+                    item { ProfileAction("محدوده فعالیت", "انتخاب شعاع نمایش درخواست‌ها") { navController.navigate(Routes.WorkArea) } }
+                }
                 item { Spacer(Modifier.height(20.dp)); OutlinedButton(onClick = viewModel::signOut, modifier = Modifier.fillMaxWidth()) { Icon(Icons.AutoMirrored.Filled.Logout, null); Text("خروج از حساب", Modifier.padding(start = 7.dp)) } }
             }
         }
     }
-    if (showRoleDialog) AlertDialog(onDismissRequest = { showRoleDialog = false }, title = { Text("تغییر نقش") }, text = { Column { listOf(UserRole.WORKER, UserRole.EMPLOYER).forEach { role -> Row(verticalAlignment = Alignment.CenterVertically) { RadioButton(selected = state.user?.role == role, onClick = { viewModel.setRole(role); showRoleDialog = false }); Text(if (role == UserRole.WORKER) "کارگر" else "کارفرما") } } } }, confirmButton = { TextButton(onClick = { showRoleDialog = false }) { Text("بستن") } })
+    if (showRoleDialog) AlertDialog(onDismissRequest = { showRoleDialog = false }, title = { Text("تغییر حالت استفاده") }, text = { Column { listOf(UserRole.WORKER, UserRole.EMPLOYER).forEach { role -> Row(verticalAlignment = Alignment.CenterVertically) { RadioButton(selected = state.user?.role == role, onClick = { viewModel.setRole(role); showRoleDialog = false }); Text(if (role == UserRole.WORKER) "ارائه می‌دهم" else "می‌خواهم") } } } }, confirmButton = { TextButton(onClick = { showRoleDialog = false }) { Text("بستن") } })
 }
 
 @Composable
@@ -86,7 +89,7 @@ fun SettingsScreen(navController: NavHostController, viewModel: ProfileViewModel
             ThemeOption("بر اساس تنظیمات گوشی", "system", state.themeMode, Icons.Default.Settings) { viewModel.setTheme("system") }
             Spacer(Modifier.height(10.dp))
             Text("دسترسی‌ها", style = MaterialTheme.typography.titleLarge)
-            ProfileAction("موقعیت مکانی", "برای نمایش کارها و نیروهای نزدیک") { navController.navigate(Routes.WorkerMap) }
+            ProfileAction("موقعیت مکانی", "برای نمایش درخواست‌ها و متخصص‌های نزدیک") { navController.navigate(Routes.WorkerMap) }
             ProfileAction("اعلان‌ها", "برای دریافت تغییرات درخواست‌ها") { navController.navigate(Routes.Notifications) }
             Text("نسخه ۱٫۰٫۰ · کاروین", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 20.dp))
         }
