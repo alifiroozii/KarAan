@@ -45,13 +45,15 @@ import com.karvin.app.core.designsystem.EmptyState
 import com.karvin.app.core.designsystem.RatingLine
 import com.karvin.app.core.navigation.Routes
 import com.karvin.app.domain.model.UserRole
+import com.karvin.app.core.designsystem.KarvinScaffold
 import com.karvin.app.domain.model.toPersianDigits
 
 @Composable
 fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showRoleDialog by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize()) {
+    KarvinScaffold(navController, state.user?.role ?: UserRole.WORKER, content = { padding ->
+    Column(Modifier.fillMaxSize().padding(padding)) {
         AppTopBar("پروفایل", onBack = { navController.popBackStack() }, actions = { IconButton(onClick = { navController.navigate(Routes.Settings) }) { Icon(Icons.Default.Settings, "تنظیمات") } })
         if (state.user == null) EmptyState("پروفایل آماده نیست", "بعد از ورود اطلاعات شما اینجا نمایش داده می‌شود.") else {
             val user = state.user!!
@@ -69,6 +71,7 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
             }
         }
     }
+    })
     if (showRoleDialog) AlertDialog(onDismissRequest = { showRoleDialog = false }, title = { Text("تغییر حالت استفاده") }, text = { Column { listOf(UserRole.WORKER, UserRole.EMPLOYER).forEach { role -> Row(verticalAlignment = Alignment.CenterVertically) { RadioButton(selected = state.user?.role == role, onClick = { viewModel.setRole(role); showRoleDialog = false; navController.navigate(if (role == UserRole.WORKER) Routes.ProviderHome else Routes.RequesterHome) { popUpTo(navController.graph.findStartDestination().id) { inclusive = true }; launchSingleTop = true } }); Text(if (role == UserRole.WORKER) "ارائه می‌دهم" else "می‌خواهم") } } } }, confirmButton = { TextButton(onClick = { showRoleDialog = false }) { Text("بستن") } })
 }
 

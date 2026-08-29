@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.WorkOutline
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -73,7 +74,7 @@ private fun DestinationIcon(destination: BottomDestination) {
         Routes.ProviderMap, Routes.RequesterMap -> Icons.Default.Map
         Routes.Chat -> Icons.Default.ChatBubbleOutline
         Routes.Profile -> Icons.Default.Person
-        else -> Icons.Default.Home
+        else -> Icons.Default.MoreHoriz
     }
     Icon(icon, contentDescription = destination.title)
 }

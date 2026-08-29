@@ -11,14 +11,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF0F4C81),
+    primary = Color(0xFF12355B),
     onPrimary = Color.White,
     primaryContainer = Color(0xFFD7EAF9),
     onPrimaryContainer = Color(0xFF062B4A),
-    secondary = Color(0xFFF59E0B),
-    onSecondary = Color(0xFF3D2500),
-    secondaryContainer = Color(0xFFFFE8B5),
-    onSecondaryContainer = Color(0xFF4A2B00),
+    secondary = Color(0xFF00BFA6),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFCCF5EF),
+    onSecondaryContainer = Color(0xFF003A32),
     tertiary = Color(0xFF16A34A),
     background = Color(0xFFFAFAF8),
     surface = Color.White,

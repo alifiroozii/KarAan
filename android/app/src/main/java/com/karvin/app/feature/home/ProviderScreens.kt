@@ -77,7 +77,6 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
-import com.karvin.app.BuildConfig
 import com.karvin.app.core.designsystem.AppTopBar
 import com.karvin.app.core.designsystem.KarvinFab
 import com.karvin.app.core.designsystem.OnlinePill
@@ -345,7 +344,7 @@ fun ProviderMapScreen(
     viewModel: ProviderHomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.mapState.collectAsStateWithLifecycle()
-    var listMode by remember { mutableStateOf(BuildConfig.MAPS_API_KEY.isBlank()) }
+    var listMode by remember { mutableStateOf(false) }
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(
             LatLng(state.userPoint.latitude, state.userPoint.longitude),
@@ -357,7 +356,7 @@ fun ProviderMapScreen(
 
     Box(Modifier.fillMaxSize()) {
         // Map or List
-        if (listMode || BuildConfig.MAPS_API_KEY.isBlank()) {
+        if (listMode) {
             LazyColumn(
                 Modifier
                     .fillMaxSize()

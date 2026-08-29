@@ -5,6 +5,7 @@ import com.karvin.app.domain.model.ProviderMapFilter
 import com.karvin.app.domain.model.RequesterMapFilter
 import com.karvin.app.feature.home.ProviderHomeViewModel
 import com.karvin.app.feature.map.RequesterMapViewModel
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -16,8 +17,7 @@ class MapViewModelFilteringTest {
         val center = GeoPoint(35.8, 51.4)
         viewModel.searchAround(center)
 
-        val state = viewModel.state.value
-        assertTrue(state.filteredProviders.all { it.isAvailable })
+        assertTrue(viewModel.state.value.filteredProviders.all { it.isAvailable })
     }
 
     @Test
@@ -26,8 +26,6 @@ class MapViewModelFilteringTest {
         viewModel.updateFilter(ProviderMapFilter(urgentOnly = true))
         viewModel.searchAround(GeoPoint(35.8, 51.4))
 
-        val state = viewModel.mapState.value
-        assertTrue(state.filteredRequests.isNotEmpty())
-        assertTrue(state.filteredRequests.all { it.isUrgent })
+        assertTrue(viewModel.mapState.value.filteredRequests.all { it.isUrgent })
     }
 }

@@ -53,6 +53,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.karvin.app.core.designsystem.AppTopBar
+import com.karvin.app.core.designsystem.KarvinScaffold
 import com.karvin.app.core.designsystem.CategoryChip
 import com.karvin.app.core.designsystem.EmptyState
 import com.karvin.app.core.designsystem.ErrorState
@@ -73,6 +74,7 @@ import com.karvin.app.domain.model.GenderRequirement
 import com.karvin.app.domain.model.JobFilter
 import com.karvin.app.domain.model.JobStatus
 import com.karvin.app.domain.model.PaymentType
+import com.karvin.app.domain.model.UserRole
 import com.karvin.app.domain.model.toPersianDigits
 import com.karvin.app.domain.model.toRialString
 import com.karvin.app.domain.usecase.label
@@ -144,7 +146,8 @@ private fun FilterDialog(filter: JobFilter, onApply: (JobFilter) -> Unit, onDism
 @Composable
 fun MyApplicationsScreen(navController: NavHostController, viewModel: MyApplicationsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    Column(Modifier.fillMaxSize()) {
+    KarvinScaffold(navController, UserRole.EMPLOYER, content = { padding ->
+    Column(Modifier.fillMaxSize().padding(padding)) {
         AppTopBar("درخواست‌های من", onBack = { navController.popBackStack() })
         when {
             state.loading -> LoadingState()
@@ -165,6 +168,7 @@ fun MyApplicationsScreen(navController: NavHostController, viewModel: MyApplicat
             }
         }
     }
+    })
 }
 
 @Composable

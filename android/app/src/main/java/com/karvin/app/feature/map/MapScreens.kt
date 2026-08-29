@@ -85,7 +85,6 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
-import com.karvin.app.BuildConfig
 import com.karvin.app.core.designsystem.Avatar
 import com.karvin.app.core.designsystem.JobCard
 import com.karvin.app.core.designsystem.OnlinePill
@@ -149,7 +148,7 @@ fun MapScreen(navController: NavHostController, workerMode: Boolean = true, view
         }
     }
     Box(Modifier.fillMaxSize()) {
-        if (listMode || BuildConfig.MAPS_API_KEY.isBlank()) {
+        if (listMode) {
             LazyColumn(Modifier.fillMaxSize().background(Color(0xFFF5F4F9)).padding(top = 128.dp, start = 16.dp, end = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(jobs, key = { it.id }) { JobCard(it, userPoint, { selectedJob = it }, {}, showSave = false) }
             }
@@ -241,7 +240,7 @@ fun WorkersMapScreen(navController: NavHostController, viewModel: WorkersViewMod
     val state by viewModel.state.collectAsStateWithLifecycle()
     var explanation by remember { mutableStateOf(true) }
     var radiusMode by remember { mutableStateOf(false) }
-    var listMode by remember { mutableStateOf(BuildConfig.MAPS_API_KEY.isBlank()) }
+    var listMode by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<User?>(null) }
     var showFilters by remember { mutableStateOf(false) }
     val filter = state.filter

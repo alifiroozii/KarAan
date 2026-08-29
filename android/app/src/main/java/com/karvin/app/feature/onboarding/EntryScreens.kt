@@ -120,7 +120,7 @@ fun ModeSelectionScreen(onModeSelected: (AppMode) -> Unit) {
             title = "خدمت ارائه می‌دهم",
             subtitle = "درخواست‌های نزدیک خود را ببینید",
             icon = Icons.Default.Handyman,
-            accent = MaterialTheme.colorScheme.secondary,
+            accent = Color(0xFFFFB703),
             onClick = { onModeSelected(AppMode.PROVIDER) },
         )
 

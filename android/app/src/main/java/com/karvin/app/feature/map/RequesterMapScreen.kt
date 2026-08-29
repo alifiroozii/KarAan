@@ -88,7 +88,6 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
-import com.karvin.app.BuildConfig
 import com.karvin.app.core.designsystem.OnlinePill
 import com.karvin.app.core.designsystem.PrimaryButton
 import com.karvin.app.core.designsystem.RatingLine
@@ -118,7 +117,6 @@ data class RequesterMapUiState(
     val userPoint: GeoPoint = GeoPoint(35.7219, 51.3347),
     val selectedProvider: NearbyProvider? = null,
     val loading: Boolean = true,
-    val radiusKm: Double? = null,
 )
 
 @HiltViewModel
@@ -169,10 +167,6 @@ class RequesterMapViewModel @Inject constructor() : ViewModel() {
         _state.update { it.copy(selectedProvider = provider) }
     }
 
-    fun setRadius(km: Double?) {
-        _state.update { it.copy(radiusKm = km) }
-    }
-
     fun searchAround(center: GeoPoint) {
         val providers = FakeNearbyData.generateProviders(center)
         _state.update {
@@ -194,7 +188,7 @@ fun RequesterMapScreen(
     viewModel: RequesterMapViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var listMode by remember { mutableStateOf(BuildConfig.MAPS_API_KEY.isBlank()) }
+    var listMode by remember { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
     var showPermissionDialog by remember { mutableStateOf(false) }
     var showLocationExplanation by remember { mutableStateOf(true) }
@@ -214,7 +208,7 @@ fun RequesterMapScreen(
 
     Box(Modifier.fillMaxSize()) {
         // Map or List
-        if (listMode || BuildConfig.MAPS_API_KEY.isBlank()) {
+        if (listMode) {
             // List view
             LazyColumn(
                 Modifier
@@ -229,7 +223,7 @@ fun RequesterMapScreen(
                             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text("⌁", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.primary)
                                 Text("متخصصی در این محدوده پیدا نشد", style = MaterialTheme.typography.titleMedium)
-                                OutlinedButton(onClick = { viewModel.setRadius(20.0) }) { Text("افزایش محدوده") }
+                                OutlinedButton(onClick = { viewModel.updateFilter(state.filter.copy(distanceFilter = DistanceFilter.ALL)) }) { Text("افزایش محدوده") }
                             }
                         }
                     }
@@ -321,8 +315,8 @@ fun RequesterMapScreen(
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(1.0, 3.0, 5.0, 10.0, 20.0).forEach { km ->
                     FilterChip(
-                        selected = state.radiusKm == km,
-                        onClick = { viewModel.setRadius(if (state.radiusKm == km) null else km) },
+                        selected = state.filter.distanceFilter.maxKm == km,
+                        onClick = { viewModel.updateFilter(state.filter.copy(distanceFilter = DistanceFilter.values().first { it.maxKm == km })) },
                         label = { Text("${km.toInt().toString().toPersianDigits()} کیلومتر") },
                     )
                 }
@@ -355,10 +349,10 @@ fun RequesterMapScreen(
         }
 
         // Radius circle on map
-        if (!listMode && state.radiusKm != null && BuildConfig.MAPS_API_KEY.isNotBlank()) {
+        if (!listMode && state.filter.distanceFilter != DistanceFilter.ALL) {
             Circle(
                 center = LatLng(state.userPoint.latitude, state.userPoint.longitude),
-                radius = state.radiusKm!! * 1000.0,
+                radius = state.filter.distanceFilter.maxKm!! * 1000.0,
                 strokeColor = MaterialTheme.colorScheme.primary,
                 strokeWidth = 3f,
                 fillColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
