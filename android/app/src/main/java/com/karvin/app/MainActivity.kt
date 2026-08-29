@@ -10,9 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -22,6 +19,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.karvin.app.core.designsystem.KarvinTheme
 import com.karvin.app.core.navigation.Routes
 import com.karvin.app.domain.model.AppMode
@@ -40,6 +39,7 @@ import com.karvin.app.feature.onboarding.LocationExplanationScreen
 import com.karvin.app.feature.onboarding.ModeSelectionScreen
 import com.karvin.app.feature.onboarding.SplashScreen
 import com.karvin.app.feature.profile.ProfileScreen
+import com.karvin.app.feature.profile.ProfileViewModel
 import com.karvin.app.feature.profile.SettingsScreen
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -53,8 +53,13 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun KarvinApp() {
-    var darkTheme by remember { mutableStateOf(false) }
+fun KarvinApp(profileViewModel: ProfileViewModel = hiltViewModel()) {
+    val profileState by profileViewModel.state.collectAsStateWithLifecycle()
+    val darkTheme = when (profileState.themeMode) {
+        "light" -> false
+        "dark" -> true
+        else -> isSystemInDarkTheme()
+    }
 
     KarvinTheme(darkTheme = darkTheme) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {

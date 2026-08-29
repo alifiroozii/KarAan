@@ -149,7 +149,7 @@ fun MapScreen(navController: NavHostController, workerMode: Boolean = true, view
     }
     Box(Modifier.fillMaxSize()) {
         if (listMode) {
-            LazyColumn(Modifier.fillMaxSize().background(Color(0xFFF5F4F9)).padding(top = 128.dp, start = 16.dp, end = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyColumn(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(top = 128.dp, start = 16.dp, end = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(jobs, key = { it.id }) { JobCard(it, userPoint, { selectedJob = it }, {}, showSave = false) }
             }
         } else {
@@ -248,7 +248,7 @@ fun WorkersMapScreen(navController: NavHostController, viewModel: WorkersViewMod
     val filtersActive = filter.distance != DistanceFilter.ALL || filter.minimumRating != null || filter.onlineOnly || filter.verifiedOnly || filter.service != null
     Box(Modifier.fillMaxSize()) {
         if (listMode) {
-            LazyColumn(Modifier.fillMaxSize().background(Color(0xFFF5F4F9)).padding(top = 128.dp, start = 16.dp, end = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyColumn(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(top = 128.dp, start = 16.dp, end = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (state.workers.isEmpty()) item {
                     Text("متخصصی با این فیلترها پیدا نشد.", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -326,7 +326,7 @@ private fun SpecialistSheet(worker: User, onViewProfile: () -> Unit, onSendReque
         }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(worker.city, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("٪${((worker.rating / 5 * 100).toInt()).toPersianDigits()} رضایت", style = MaterialTheme.typography.bodySmall, color = Color(0xFF128A5E))
+            Text("٪${((worker.rating / 5 * 100).toInt()).toPersianDigits()} رضایت", style = MaterialTheme.typography.bodySmall, color = com.karvin.app.core.designsystem.OnlineGreenDark)
         }
         Text("خدمات ارائه شده", style = MaterialTheme.typography.titleMedium)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -376,7 +376,7 @@ private fun AdvancedFiltersSheet(current: WorkerFilter, onApply: (WorkerFilter) 
 private fun FilterSwitchRow(title: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onChange, colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFF17A673)))
+        Switch(checked = checked, onCheckedChange = onChange, colors = SwitchDefaults.colors(checkedTrackColor = com.karvin.app.core.designsystem.OnlineGreen))
     }
 }
 

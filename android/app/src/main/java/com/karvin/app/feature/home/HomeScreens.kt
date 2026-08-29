@@ -78,13 +78,13 @@ fun WorkerHomeScreen(navController: NavHostController, viewModel: WorkerHomeView
             }
             item {
                 // آنلاین هستم — طرح صفحه ۱ مسیر ارائه‌دهنده
-                Card(colors = CardDefaults.cardColors(containerColor = if (state.isAvailable) Color(0xFF17A673).copy(alpha = .14f) else MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(18.dp)) {
+                Card(colors = CardDefaults.cardColors(containerColor = if (state.isAvailable) com.karvin.app.core.designsystem.OnlineGreen.copy(alpha = .14f) else MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(18.dp)) {
                     Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Text(if (state.isAvailable) "آنلاین هستم" else "آفلاین هستید", style = MaterialTheme.typography.titleMedium, color = if (state.isAvailable) Color(0xFF128A5E) else MaterialTheme.colorScheme.onSurface)
+                            Text(if (state.isAvailable) "آنلاین هستم" else "آفلاین هستید", style = MaterialTheme.typography.titleMedium, color = if (state.isAvailable) com.karvin.app.core.designsystem.OnlineGreenDark else MaterialTheme.colorScheme.onSurface)
                             Text(if (state.isAvailable) "درخواست‌دهنده‌ها می‌توانند شما را ببینند." else "برای دریافت درخواست‌های نزدیک، وضعیتت را فعال کن.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Switch(checked = state.isAvailable, onCheckedChange = { viewModel.onEvent(WorkerHomeEvent.ToggleAvailability(it)) }, colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFF17A673)), modifier = Modifier.semantics { contentDescription = "وضعیت آنلاین" })
+                        Switch(checked = state.isAvailable, onCheckedChange = { viewModel.onEvent(WorkerHomeEvent.ToggleAvailability(it)) }, colors = SwitchDefaults.colors(checkedTrackColor = com.karvin.app.core.designsystem.OnlineGreen), modifier = Modifier.semantics { contentDescription = "وضعیت آنلاین" })
                     }
                 }
             }

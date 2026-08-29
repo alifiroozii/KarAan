@@ -1,3 +1,4 @@
 <resources>
-    <color name="karvin_splash">#0E3B43</color>
+    <color name="karvin_splash">#12355B</color>
+    <color name="ic_launcher_background">#12355B</color>
 </resources>

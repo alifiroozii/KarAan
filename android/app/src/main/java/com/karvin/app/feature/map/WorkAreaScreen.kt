@@ -52,7 +52,7 @@ fun WorkAreaScreen(navController: NavHostController) {
     Column(Modifier.fillMaxSize()) {
         AppTopBar("محدوده فعالیت شما", onBack = { navController.popBackStack() })
         Box(
-            Modifier.weight(1f).fillMaxWidth().background(Color(0xFFF1EFFF)),
+            Modifier.weight(1f).fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
             Card(

@@ -56,6 +56,12 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+// Shared brand accents used across screens (theme-safe in light and dark).
+val StarGold = Color(0xFFE2A63B)
+val OnlineGreen = Color(0xFF17A673)
+val OnlineGreenDark = Color(0xFF128A5E)
+val ProviderAmber = Color(0xFFFFB703)
+
 @Composable
 fun KarvinLogo(modifier: Modifier = Modifier) {
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
@@ -121,7 +127,7 @@ fun Avatar(
 @Composable
 fun RatingLine(rating: Double, reviewCount: Int? = null) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Default.Star, contentDescription = "امتیاز", tint = Color(0xFFE2A63B), modifier = Modifier.size(18.dp))
+        Icon(Icons.Default.Star, contentDescription = "امتیاز", tint = StarGold, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(4.dp))
         Text(String.format(Locale.US, "%.1f", rating).toPersianDigits(), style = MaterialTheme.typography.labelLarge)
         if (reviewCount != null) {
@@ -160,7 +166,7 @@ fun JobCard(job: Job, userPoint: GeoPoint, onClick: () -> Unit, onSave: () -> Un
                 }
                 if (showSave) {
                     IconButton(onClick = onSave, modifier = Modifier.semantics { contentDescription = if (job.isSaved) "حذف از ذخیره‌ها" else "ذخیره درخواست" }) {
-                        Text(if (job.isSaved) "★" else "☆", style = MaterialTheme.typography.headlineSmall, color = if (job.isSaved) Color(0xFFE2A63B) else MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(if (job.isSaved) "★" else "☆", style = MaterialTheme.typography.headlineSmall, color = if (job.isSaved) StarGold else MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -183,14 +189,14 @@ fun JobCard(job: Job, userPoint: GeoPoint, onClick: () -> Unit, onSave: () -> Un
 fun OnlinePill(isOnline: Boolean, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
-        color = if (isOnline) Color(0xFF17A673).copy(alpha = .16f) else MaterialTheme.colorScheme.surfaceVariant,
+        color = if (isOnline) OnlineGreen.copy(alpha = .16f) else MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(8.dp),
     ) {
         Text(
             if (isOnline) "آنلاین" else "آفلاین",
             modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
             style = MaterialTheme.typography.labelSmall,
-            color = if (isOnline) Color(0xFF128A5E) else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (isOnline) OnlineGreenDark else MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

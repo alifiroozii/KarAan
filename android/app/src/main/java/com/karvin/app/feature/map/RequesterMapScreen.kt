@@ -213,7 +213,7 @@ fun RequesterMapScreen(
             LazyColumn(
                 Modifier
                     .fillMaxSize()
-                    .background(Color(0xFFF5F4F9))
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(top = 130.dp, start = 16.dp, end = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
@@ -692,11 +692,11 @@ private fun RequesterFilterSheet(
             // Toggles
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("فقط افراد آنلاین", Modifier.weight(1f))
-                Switch(checked = availableOnly, onCheckedChange = { availableOnly = it }, colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFF17A673)))
+                Switch(checked = availableOnly, onCheckedChange = { availableOnly = it }, colors = SwitchDefaults.colors(checkedTrackColor = com.karvin.app.core.designsystem.OnlineGreen))
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("فقط افراد تایید شده", Modifier.weight(1f))
-                Switch(checked = verifiedOnly, onCheckedChange = { verifiedOnly = it }, colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFF17A673)))
+                Switch(checked = verifiedOnly, onCheckedChange = { verifiedOnly = it }, colors = SwitchDefaults.colors(checkedTrackColor = com.karvin.app.core.designsystem.OnlineGreen))
             }
 
             // Rating

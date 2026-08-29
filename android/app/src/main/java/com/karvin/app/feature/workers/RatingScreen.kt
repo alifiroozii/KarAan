@@ -50,7 +50,7 @@ fun RatingScreen(
                 Icon(
                     Icons.Default.Star,
                     contentDescription = "امتیاز $value",
-                    tint = if (value <= rating) Color(0xFFE2A63B) else MaterialTheme.colorScheme.outline,
+                    tint = if (value <= rating) com.karvin.app.core.designsystem.StarGold else MaterialTheme.colorScheme.outline,
                     modifier = Modifier.padding(6.dp).height(42.dp).clickable { rating = value },
                 )
             }

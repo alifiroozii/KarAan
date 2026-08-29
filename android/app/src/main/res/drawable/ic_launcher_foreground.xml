@@ -1,4 +1,10 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#E9C46A" android:pathData="M27,26h54a7,7 0,0 1,7 7v42a7,7 0,0 1,-7 7H27a7,7 0,0 1,-7 -7V33a7,7 0,0 1,7 -7z" />
-    <path android:fillColor="#0E3B43" android:pathData="M34,39h40v8H34zM34,54h29v8H34zM34,69h20v8H34z" />
+    <!-- Pin: centered in the safe zone (66x66 around 54,54) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,30 C45.2,30 38,37.2 38,46 C38,52.6 42.2,58.4 48,60.8 L48,74 A6,6 0,0 0,60,74 L60,60.8 C65.8,58.4 70,52.6 70,46 C70,37.2 62.8,30 54,30 Z" />
+    <!-- Turquoise dot inside the pin head -->
+    <path
+        android:fillColor="#00BFA6"
+        android:pathData="M54,40 A6,6 0,1 0,54,52 A6,6 0,1 0,54,40 Z" />
 </vector>

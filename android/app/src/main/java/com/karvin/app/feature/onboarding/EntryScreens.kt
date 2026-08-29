@@ -69,7 +69,7 @@ fun ModeSelectionScreen(onModeSelected: (AppMode) -> Unit) {
     Column(
         Modifier
             .fillMaxSize()
-            .background(Color(0xFFFAFAF8))
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 24.dp, vertical = 32.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
@@ -120,7 +120,7 @@ fun ModeSelectionScreen(onModeSelected: (AppMode) -> Unit) {
             title = "خدمت ارائه می‌دهم",
             subtitle = "درخواست‌های نزدیک خود را ببینید",
             icon = Icons.Default.Handyman,
-            accent = Color(0xFFFFB703),
+            accent = com.karvin.app.core.designsystem.ProviderAmber,
             onClick = { onModeSelected(AppMode.PROVIDER) },
         )
 
@@ -148,7 +148,7 @@ private fun ModeCard(
             .fillMaxWidth()
             .semantics { contentDescription = title },
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, accent.copy(alpha = .18f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
     ) {
