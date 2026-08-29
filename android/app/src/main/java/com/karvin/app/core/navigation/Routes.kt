@@ -78,6 +78,14 @@ fun providerBottomDestinations(): List<BottomDestination> = listOf(
     BottomDestination(Routes.Profile, "پروفایل", "♙"),
 )
 
+// Bottom destinations for the map-first KARVIN home screens (provider = کارجو، requester = متقاضی خدمت)
+fun providerHomeDestinations(): List<BottomDestination> = listOf(
+    BottomDestination(Routes.ProviderHome, "خانه", "⌂"),
+    BottomDestination(Routes.ProviderMap, "نقشه کار", "⌖"),
+    BottomDestination(Routes.Chat, "پیام‌ها", "◌"),
+    BottomDestination(Routes.Profile, "پروفایل", "♙"),
+)
+
 // Legacy compat
 fun bottomDestinations(role: UserRole): List<BottomDestination> = if (role == UserRole.WORKER) {
     listOf(

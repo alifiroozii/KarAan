@@ -28,6 +28,7 @@ import com.karvin.app.core.navigation.BottomDestination
 import com.karvin.app.core.navigation.Routes
 import com.karvin.app.core.navigation.providerBottomDestinations
 import com.karvin.app.core.navigation.requesterBottomDestinations
+import com.karvin.app.core.navigation.providerHomeDestinations
 import com.karvin.app.domain.model.UserRole
 
 @Composable
@@ -84,4 +85,46 @@ fun KarvinFab(label: String, onClick: () -> Unit) {
     FloatingActionButton(onClick = onClick, modifier = Modifier.semantics { contentDescription = label }) {
         Text("+")
     }
+}
+
+/**
+ * Bottom navigation scaffold for the map-first KARVIN home screens
+ * (ProviderHomeScreen / RequesterHomeScreen). Renders a bottom menu with
+ * the given destinations and keeps the selected state in sync with the
+ * current route.
+ */
+@Composable
+fun KarvinHomeScaffold(
+    navController: NavHostController,
+    providerMode: Boolean,
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
+    val destinations = if (providerMode) providerHomeDestinations() else requesterBottomDestinations()
+    val homeRoute = if (providerMode) Routes.ProviderHome else Routes.RequesterHome
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        bottomBar = {
+            NavigationBar {
+                destinations.forEach { destination ->
+                    NavigationBarItem(
+                        selected = currentRoute == destination.route,
+                        onClick = {
+                            navController.navigate(destination.route) {
+                                popUpTo(homeRoute) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        icon = { DestinationIcon(destination) },
+                        label = { Text(destination.title) },
+                        modifier = Modifier.semantics { contentDescription = destination.title },
+                    )
+                }
+            }
+        },
+        content = content,
+    )
 }

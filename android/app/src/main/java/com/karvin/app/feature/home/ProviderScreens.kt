@@ -79,6 +79,7 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.karvin.app.core.designsystem.AppTopBar
 import com.karvin.app.core.designsystem.KarvinFab
+import com.karvin.app.core.designsystem.KarvinHomeScaffold
 import com.karvin.app.core.designsystem.OnlinePill
 import com.karvin.app.core.designsystem.PrimaryButton
 import com.karvin.app.core.designsystem.RatingLine
@@ -189,19 +190,21 @@ fun ProviderHomeScreen(
 ) {
     val state by viewModel.homeState.collectAsStateWithLifecycle()
 
-    LazyColumn(
-        Modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        item {
-            AppTopBar("خانه", actions = {
-                IconButton(onClick = { navController.navigate(Routes.Notifications) }) {
-                    Text("🔔", fontSize = 20.sp)
-                }
-            })
-        }
+    KarvinHomeScaffold(navController, providerMode = true) { padding ->
+        LazyColumn(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            item {
+                AppTopBar("خانه", actions = {
+                    IconButton(onClick = { navController.navigate(Routes.Notifications) }) {
+                        Text("🔔", fontSize = 20.sp)
+                    }
+                })
+            }
 
         item {
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -311,7 +314,8 @@ fun ProviderHomeScreen(
             }
         }
 
-        item { Spacer(Modifier.height(84.dp)) }
+            item { Spacer(Modifier.height(84.dp)) }
+        }
     }
 }
 
@@ -761,30 +765,32 @@ fun RequesterHomeScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    LazyColumn(
-        Modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        item {
-            AppTopBar("خانه", actions = {
-                IconButton(onClick = { navController.navigate(Routes.Notifications) }) {
-                    Text("🔔", fontSize = 20.sp)
-                }
-            })
-        }
-
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text("سلام 👋", style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    "چه خدمتی نیاز دارید؟",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+    KarvinHomeScaffold(navController, providerMode = false) { padding ->
+        LazyColumn(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            item {
+                AppTopBar("خانه", actions = {
+                    IconButton(onClick = { navController.navigate(Routes.Notifications) }) {
+                        Text("🔔", fontSize = 20.sp)
+                    }
+                })
             }
-        }
+
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text("سلام 👋", style = MaterialTheme.typography.headlineSmall)
+                    Text(
+                        "چه خدمتی نیاز دارید؟",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
 
         // Search card
         item {
@@ -848,7 +854,8 @@ fun RequesterHomeScreen(
             }
         }
 
-        item { Spacer(Modifier.height(84.dp)) }
+            item { Spacer(Modifier.height(84.dp)) }
+        }
     }
 }
 
