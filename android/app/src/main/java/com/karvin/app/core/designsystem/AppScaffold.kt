@@ -25,7 +25,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.karvin.app.core.navigation.BottomDestination
 import com.karvin.app.core.navigation.Routes
-import com.karvin.app.core.navigation.bottomDestinations
+import com.karvin.app.core.navigation.providerBottomDestinations
+import com.karvin.app.core.navigation.requesterBottomDestinations
 import com.karvin.app.domain.model.UserRole
 
 @Composable
@@ -37,17 +38,18 @@ fun KarvinScaffold(
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+    val destinations = if (role == UserRole.WORKER) providerBottomDestinations() else requesterBottomDestinations()
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         floatingActionButton = { floatingActionButton?.invoke() },
         bottomBar = {
             NavigationBar {
-                bottomDestinations(role).forEach { destination ->
+                destinations.forEach { destination ->
                     NavigationBarItem(
                         selected = currentRoute == destination.route,
                         onClick = {
                             navController.navigate(destination.route) {
-                                popUpTo(if (role == UserRole.WORKER) Routes.WorkerHome else Routes.EmployerHome) { saveState = true }
+                                popUpTo(if (role == UserRole.WORKER) Routes.ProviderHome else Routes.RequesterHome) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -66,9 +68,9 @@ fun KarvinScaffold(
 @Composable
 private fun DestinationIcon(destination: BottomDestination) {
     val icon = when (destination.route) {
-        Routes.WorkerHome, Routes.EmployerHome -> Icons.Default.Home
-        Routes.WorkerJobs, Routes.EmployerJobs -> if (destination.route == Routes.EmployerJobs) Icons.Default.Business else Icons.Default.WorkOutline
-        Routes.WorkerMap, Routes.EmployerMap -> Icons.Default.Map
+        Routes.ProviderHome, Routes.RequesterHome -> Icons.Default.Home
+        Routes.ProviderJobs, Routes.RequesterJobs -> if (destination.route == Routes.ProviderJobs) Icons.Default.WorkOutline else Icons.Default.Business
+        Routes.ProviderMap, Routes.RequesterMap -> Icons.Default.Map
         Routes.Chat -> Icons.Default.ChatBubbleOutline
         Routes.Profile -> Icons.Default.Person
         else -> Icons.Default.Home

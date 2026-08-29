@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import com.karvin.app.core.designsystem.AppTopBar
 import com.karvin.app.core.designsystem.Avatar
@@ -68,7 +69,7 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
             }
         }
     }
-    if (showRoleDialog) AlertDialog(onDismissRequest = { showRoleDialog = false }, title = { Text("تغییر حالت استفاده") }, text = { Column { listOf(UserRole.WORKER, UserRole.EMPLOYER).forEach { role -> Row(verticalAlignment = Alignment.CenterVertically) { RadioButton(selected = state.user?.role == role, onClick = { viewModel.setRole(role); showRoleDialog = false }); Text(if (role == UserRole.WORKER) "ارائه می‌دهم" else "می‌خواهم") } } } }, confirmButton = { TextButton(onClick = { showRoleDialog = false }) { Text("بستن") } })
+    if (showRoleDialog) AlertDialog(onDismissRequest = { showRoleDialog = false }, title = { Text("تغییر حالت استفاده") }, text = { Column { listOf(UserRole.WORKER, UserRole.EMPLOYER).forEach { role -> Row(verticalAlignment = Alignment.CenterVertically) { RadioButton(selected = state.user?.role == role, onClick = { viewModel.setRole(role); showRoleDialog = false; navController.navigate(if (role == UserRole.WORKER) Routes.ProviderHome else Routes.RequesterHome) { popUpTo(navController.graph.findStartDestination().id) { inclusive = true }; launchSingleTop = true } }); Text(if (role == UserRole.WORKER) "ارائه می‌دهم" else "می‌خواهم") } } } }, confirmButton = { TextButton(onClick = { showRoleDialog = false }) { Text("بستن") } })
 }
 
 @Composable

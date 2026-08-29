@@ -19,10 +19,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Healing
-import androidx.compose.material.icons.filled.MedicalServices
+import androidx.compose.material.icons.filled.Work
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Vaccines
+import androidx.compose.material.icons.filled.Carpenter
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -101,14 +101,14 @@ fun WorkerProfileScreen(navController: NavHostController, workerId: String, view
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("نمونه‌کارها", style = MaterialTheme.typography.titleLarge)
                             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                PortfolioTile(Icons.Default.MedicalServices, MaterialTheme.colorScheme.primaryContainer)
-                                PortfolioTile(Icons.Default.Vaccines, MaterialTheme.colorScheme.secondaryContainer)
-                                PortfolioTile(Icons.Default.Healing, MaterialTheme.colorScheme.tertiary.copy(alpha = .22f))
+                                PortfolioTile(Icons.Default.Work, MaterialTheme.colorScheme.primaryContainer)
+                                PortfolioTile(Icons.Default.Build, MaterialTheme.colorScheme.secondaryContainer)
+                                PortfolioTile(Icons.Default.Carpenter, MaterialTheme.colorScheme.tertiary.copy(alpha = .22f))
                             }
                         }
                     }
                     item { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { Text("درباره متخصص", style = MaterialTheme.typography.titleLarge); Text(worker.bio, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
-                    item { Text("نظر بیماران", style = MaterialTheme.typography.titleLarge) }
+                    item { Text("نظرات مشتریان", style = MaterialTheme.typography.titleLarge) }
                     if (state.reviews.isEmpty()) item { EmptyState("هنوز نظری ثبت نشده", "پس از اولین خدمت، نظرها اینجا دیده می‌شوند.") } else items(state.reviews, key = { it.id }) { review -> ReviewCard(review) }
                     item {
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

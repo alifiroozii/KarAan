@@ -282,7 +282,7 @@ fun WorkersMapScreen(navController: NavHostController, viewModel: WorkersViewMod
                 Button(onClick = { radiusMode = false }, modifier = Modifier.align(Alignment.CenterHorizontally), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) { Text("جستجو در محدوده") }
             } else {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("ویزیت در منزل", "ویزیت بیمارستان", "ویزیت آنلاین").forEach { service ->
+                    listOf("سرویس سریع", "حضور در محل", "پروژه بلندمدت").forEach { service ->
                         FilterChip(selected = filter.service == service, onClick = { viewModel.updateFilter(filter.copy(service = if (filter.service == service) null else service)) }, label = { Text(service) })
                     }
                 }
@@ -400,7 +400,7 @@ fun RequestSentScreen(navController: NavHostController, providerMode: Boolean) {
         Spacer(Modifier.height(10.dp))
         Text(
             if (providerMode) "در صورت تایید نهایی درخواست‌دهنده، جزئیات مراجعه برای شما ارسال می‌شود."
-            else "متخصص انتخابی در اولین فرصت برای هماهنگی ویزیت با شما تماس خواهد گرفت.",
+            else "متخصص انتخابی در اولین فرصت برای هماهنگی با شما تماس خواهد گرفت.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
