@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AssistChip
@@ -57,10 +58,10 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 // Shared brand accents used across screens (theme-safe in light and dark).
-val StarGold = Color(0xFFE2A63B)
-val OnlineGreen = Color(0xFF17A673)
-val OnlineGreenDark = Color(0xFF128A5E)
-val ProviderAmber = Color(0xFFFFB703)
+val StarGold: Color @Composable get() = MaterialTheme.colorScheme.star
+val OnlineGreen: Color @Composable get() = MaterialTheme.colorScheme.online
+val OnlineGreenDark: Color @Composable get() = MaterialTheme.colorScheme.online
+val ProviderAmber: Color @Composable get() = MaterialTheme.colorScheme.provider
 
 @Composable
 fun KarvinLogo(modifier: Modifier = Modifier) {
@@ -93,7 +94,7 @@ fun AppTopBar(
     ) {
         if (onBack != null) {
             IconButton(onClick = onBack, modifier = Modifier.semantics { contentDescription = "بازگشت" }) {
-                Text("‹", style = MaterialTheme.typography.headlineSmall)
+                Icon(Icons.Rounded.ArrowBack, contentDescription = "بازگشت")
             }
             Spacer(Modifier.width(4.dp))
         }

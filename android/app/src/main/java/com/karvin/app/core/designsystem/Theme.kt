@@ -10,22 +10,18 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// ── KARVIN brand palette ────────────────────────────────────────────
-// Ocean Navy  #12355B  brand / primary actions
-// Turquoise   #00BFA6  discovery / map / secondary
-// Amber Gold  #FFB703  provider accent
-// Emerald     #16A34A  success / online
 
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF12355B),
+    primary = KarvinLightPrimary,
+    scrim = Color(0x66000000),
     onPrimary = Color.White,
     primaryContainer = Color(0xFFD3E3F4),
     onPrimaryContainer = Color(0xFF062B4A),
-    secondary = Color(0xFF00BFA6),
+    secondary = KarvinLightSecondary,
     onSecondary = Color(0xFF00332C),
     secondaryContainer = Color(0xFFCCF5EF),
     onSecondaryContainer = Color(0xFF003A32),
-    tertiary = Color(0xFF16A34A),
+    tertiary = KarvinLightTertiary,
     onTertiary = Color.White,
     tertiaryContainer = Color(0xFFDCFCE7),
     onTertiaryContainer = Color(0xFF14532D),
@@ -42,15 +38,15 @@ private val LightColors = lightColorScheme(
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFF8FB8E8),
+    primary = KarvinDarkPrimary,
     onPrimary = Color(0xFF0B2440),
     primaryContainer = Color(0xFF1B4470),
     onPrimaryContainer = Color(0xFFD3E3F4),
-    secondary = Color(0xFF2BD9C0),
+    secondary = KarvinDarkSecondary,
     onSecondary = Color(0xFF00332C),
     secondaryContainer = Color(0xFF00514A),
     onSecondaryContainer = Color(0xFFB8F1E8),
-    tertiary = Color(0xFF6FDB8F),
+    tertiary = KarvinDarkTertiary,
     onTertiary = Color(0xFF0B3D1F),
     tertiaryContainer = Color(0xFF14532D),
     onTertiaryContainer = Color(0xFFDCFCE7),
@@ -80,7 +76,10 @@ fun KarvinTheme(
             titleMedium = androidx.compose.material3.Typography().titleMedium.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, letterSpacing = 0.sp),
             bodyLarge = androidx.compose.material3.Typography().bodyLarge.copy(fontFamily = FontFamily.SansSerif, lineHeight = 28.sp, letterSpacing = 0.sp),
             bodyMedium = androidx.compose.material3.Typography().bodyMedium.copy(fontFamily = FontFamily.SansSerif, lineHeight = 24.sp, letterSpacing = 0.sp),
+            headlineMedium = androidx.compose.material3.Typography().headlineMedium.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold, letterSpacing = 0.sp),
+            bodySmall = androidx.compose.material3.Typography().bodySmall.copy(fontFamily = FontFamily.SansSerif, lineHeight = 20.sp, letterSpacing = 0.sp),
             labelLarge = androidx.compose.material3.Typography().labelLarge.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, letterSpacing = 0.sp),
+            labelSmall = androidx.compose.material3.Typography().labelSmall.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Medium, letterSpacing = 0.sp),
         ),
         content = content,
     )

@@ -88,7 +88,7 @@ fun JobsScreen(navController: NavHostController, employerMode: Boolean, viewMode
     var showFilters by remember { mutableStateOf(false) }
     com.karvin.app.core.designsystem.KarvinScaffold(
         navController,
-        if (employerMode) com.karvin.app.domain.model.UserRole.EMPLOYER else com.karvin.app.domain.model.UserRole.WORKER,
+        if (employerMode) com.karvin.app.domain.model.UserRole.REQUESTER else com.karvin.app.domain.model.UserRole.PROVIDER,
         content = { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
         AppTopBar(if (employerMode) "درخواست‌های من" else "درخواست‌های نزدیک", onBack = { navController.popBackStack() }, actions = {
@@ -146,7 +146,7 @@ private fun FilterDialog(filter: JobFilter, onApply: (JobFilter) -> Unit, onDism
 @Composable
 fun MyApplicationsScreen(navController: NavHostController, viewModel: MyApplicationsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    KarvinScaffold(navController, UserRole.EMPLOYER, content = { padding ->
+    KarvinScaffold(navController, UserRole.REQUESTER, content = { padding ->
     Column(Modifier.fillMaxSize().padding(padding)) {
         AppTopBar("درخواست‌های من", onBack = { navController.popBackStack() })
         when {
@@ -305,7 +305,7 @@ fun CreateJobScreen(navController: NavHostController, workerId: String? = null, 
         }
     }
     if (state.published != null) {
-        AlertDialog(onDismissRequest = { navController.navigate(Routes.EmployerHome) { popUpTo(Routes.CreateJob) { inclusive = true } } }, title = { Text("درخواست منتشر شد") }, text = { Text("درخواست شما با موفقیت منتشر شد و برای متخصص‌های اطراف قابل مشاهده است.") }, confirmButton = { Button(onClick = { navController.navigate(Routes.EmployerHome) { popUpTo(Routes.CreateJob) { inclusive = true } } }) { Text("بازگشت به خانه") } })
+        AlertDialog(onDismissRequest = { navController.navigate(Routes.RequesterHome) { popUpTo(Routes.CreateJob) { inclusive = true } } }, title = { Text("درخواست منتشر شد") }, text = { Text("درخواست شما با موفقیت منتشر شد و برای متخصص‌های اطراف قابل مشاهده است.") }, confirmButton = { Button(onClick = { navController.navigate(Routes.RequesterHome) { popUpTo(Routes.CreateJob) { inclusive = true } } }) { Text("بازگشت به خانه") } })
     }
 }
 

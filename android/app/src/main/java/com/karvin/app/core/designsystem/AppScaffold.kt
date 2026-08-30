@@ -19,6 +19,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -26,7 +27,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.karvin.app.core.navigation.BottomDestination
 import com.karvin.app.core.navigation.Routes
-import com.karvin.app.core.navigation.providerBottomDestinations
+import com.karvin.app.core.navigation.providerHomeDestinations
 import com.karvin.app.core.navigation.requesterBottomDestinations
 import com.karvin.app.core.navigation.providerHomeDestinations
 import com.karvin.app.domain.model.UserRole
@@ -40,7 +41,7 @@ fun KarvinScaffold(
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val destinations = if (role == UserRole.WORKER) providerBottomDestinations() else requesterBottomDestinations()
+    val destinations = if (role == UserRole.PROVIDER) providerHomeDestinations() else requesterBottomDestinations()
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         floatingActionButton = { floatingActionButton?.invoke() },
@@ -51,7 +52,7 @@ fun KarvinScaffold(
                         selected = currentRoute == destination.route,
                         onClick = {
                             navController.navigate(destination.route) {
-                                popUpTo(if (role == UserRole.WORKER) Routes.ProviderHome else Routes.RequesterHome) { saveState = true }
+                                popUpTo(if (role == UserRole.PROVIDER) Routes.ProviderHome else Routes.RequesterHome) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -101,6 +102,8 @@ fun KarvinHomeScaffold(
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+    // Use the same destinations everywhere so the menu remains visible and
+    // consistent when switching between the home and map-first screens.
     val destinations = if (providerMode) providerHomeDestinations() else requesterBottomDestinations()
     val homeRoute = if (providerMode) Routes.ProviderHome else Routes.RequesterHome
 
@@ -113,7 +116,10 @@ fun KarvinHomeScaffold(
                         selected = currentRoute == destination.route,
                         onClick = {
                             navController.navigate(destination.route) {
-                                popUpTo(homeRoute) { saveState = true }
+                                popUpTo(homeRoute) {
+                                    saveState = true
+                                    inclusive = false
+                                }
                                 launchSingleTop = true
                                 restoreState = true
                             }

@@ -356,7 +356,8 @@ fun ProviderMapScreen(
 
     val categories = remember { FakeData.categories.take(6) }
 
-    Box(Modifier.fillMaxSize()) {
+    KarvinHomeScaffold(navController, providerMode = true) { padding ->
+    Box(Modifier.fillMaxSize().padding(padding)) {
         // Map or List
         if (listMode) {
             LazyColumn(
@@ -488,9 +489,10 @@ fun ProviderMapScreen(
                 Surface(Modifier.width(150.dp).height(16.dp), shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceVariant) {}
             }
         }
-    }
+    }    }
 
-    // Request bottom sheet
+        // Request bottom sheet
+
     state.selectedRequest?.let { request ->
         RequestBottomSheet(
             request = request,

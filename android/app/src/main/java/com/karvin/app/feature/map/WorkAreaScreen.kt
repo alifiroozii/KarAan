@@ -41,6 +41,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.karvin.app.core.designsystem.AppTopBar
+import com.karvin.app.core.designsystem.KarvinScaffold
+import com.karvin.app.domain.model.UserRole
 import com.karvin.app.domain.model.toPersianDigits
 import com.karvin.app.feature.home.DefaultHomePoint
 
@@ -49,7 +51,8 @@ import com.karvin.app.feature.home.DefaultHomePoint
 fun WorkAreaScreen(navController: NavHostController) {
     var radius by remember { mutableStateOf(5) }
     var saved by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize()) {
+    KarvinScaffold(navController, UserRole.PROVIDER, content = { padding ->
+    Column(Modifier.fillMaxSize().padding(padding)) {
         AppTopBar("محدوده فعالیت شما", onBack = { navController.popBackStack() })
         Box(
             Modifier.weight(1f).fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant),
@@ -100,4 +103,5 @@ fun WorkAreaScreen(navController: NavHostController) {
             ) { Text(if (saved) "ذخیره شد ✓" else "ذخیره", color = MaterialTheme.colorScheme.onSecondary) }
         }
     }
+    })
 }

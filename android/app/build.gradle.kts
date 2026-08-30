@@ -8,6 +8,10 @@ if (localPropertiesFile.exists()) {
 val mapsApiKey = providers.gradleProperty("MAPS_API_KEY")
     .orElse(localProperties.getProperty("MAPS_API_KEY", ""))
     .get()
+val releaseStoreFile = providers.gradleProperty("KARVIN_RELEASE_STORE_FILE").orNull
+val releaseStorePassword = providers.gradleProperty("KARVIN_RELEASE_STORE_PASSWORD").orNull
+val releaseKeyAlias = providers.gradleProperty("KARVIN_RELEASE_KEY_ALIAS").orNull
+val releaseKeyPassword = providers.gradleProperty("KARVIN_RELEASE_KEY_PASSWORD").orNull
 
 plugins {
     id("com.android.application")
@@ -38,12 +42,19 @@ android {
             // A release APK must be signed before it can be installed directly.
             // Use the standard debug key for this demo build; replace it with a
             // private upload/release key before publishing to production.
-            val debugKeystore = file("${System.getProperty("user.home")}/.android/debug.keystore")
-            if (debugKeystore.exists()) {
-                storeFile = debugKeystore
-                storePassword = "android"
-                keyAlias = "AndroidDebugKey"
-                keyPassword = "android"
+            if (releaseStoreFile != null && releaseStorePassword != null && releaseKeyAlias != null && releaseKeyPassword != null) {
+                storeFile = file(releaseStoreFile)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            } else {
+                val debugKeystore = file("${System.getProperty("user.home")}/.android/debug.keystore")
+                if (debugKeystore.exists()) {
+                    storeFile = debugKeystore
+                    storePassword = "android"
+                    keyAlias = "AndroidDebugKey"
+                    keyPassword = "android"
+                }
             }
         }
     }
@@ -105,6 +116,7 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.57.1")
     kapt("com.google.dagger:hilt-compiler:2.57.1")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
     implementation("androidx.work:work-runtime-ktx:2.10.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
@@ -122,6 +134,10 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
 
     implementation("com.google.firebase:firebase-messaging:25.0.0")
+    implementation("com.google.firebase:firebase-crashlytics:20.0.3")
+    implementation("com.jakewharton.timber:timber:5.0.1")
+
+    testImplementation("io.mockk:mockk:1.14.5")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")

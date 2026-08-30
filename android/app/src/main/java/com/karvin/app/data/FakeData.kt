@@ -89,7 +89,7 @@ object FakeData {
         User(
             id = "worker-${index + 1}",
             name = "$name ${lastNames[index % lastNames.size]}",
-            role = UserRole.WORKER,
+            role = UserRole.PROVIDER,
             city = if (index % 3 == 0) "تهران" else "کرج",
             phone = "۰۹۱۲۱۲۳۴${(10 + index).toString().takeLast(2)}",
             rating = 4.2 + (index % 8) * 0.1,
@@ -110,7 +110,7 @@ object FakeData {
         User(
             id = "employer-${index + 1}",
             name = displayName,
-            role = UserRole.EMPLOYER,
+            role = UserRole.REQUESTER,
             city = "تهران",
             phone = "۰۲۱۴۴۴۴${(10 + index).toString().takeLast(2)}",
             rating = 4.4 + (index % 5) * 0.1,

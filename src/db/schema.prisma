@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  REQUESTER
+  PROVIDER
+  ADMIN
+}
+
+enum JobStatus {
+  OPEN
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  PAYMENT
+  REFUND
+  EARNING
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  phone        String        @unique
+  fullName     String?
+  role         UserRole      @default(REQUESTER)
+  wallet       Wallet?
+  jobs         JobRequest[]  @relation("RequesterJobs")
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model JobRequest {
+  id          String    @id @default(cuid())
+  requesterId String
+  requester   User      @relation("RequesterJobs", fields: [requesterId], references: [id])
+  title       String
+  category    String
+  description String?
+  latitude    Decimal   @db.Decimal(10, 7)
+  longitude   Decimal   @db.Decimal(10, 7)
+  address     String?
+  budget      BigInt?
+  status      JobStatus @default(OPEN)
+  isUrgent    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([latitude, longitude])
+}
+
+model Wallet {
+  id           String        @id @default(cuid())
+  userId       String        @unique
+  user         User          @relation(fields: [userId], references: [id])
+  balance      BigInt        @default(0)
+  transactions Transaction[]
+  updatedAt    DateTime      @updatedAt
+}
+
+model Transaction {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id])
+  walletId    String?
+  wallet      Wallet?           @relation(fields: [walletId], references: [id])
+  amount      BigInt
+  type        TransactionType
+  status      TransactionStatus @default(PENDING)
+  reference   String?           @unique
+  description String?
+  createdAt   DateTime          @default(now())
+
+  @@index([userId, createdAt])
+}

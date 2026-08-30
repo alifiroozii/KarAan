@@ -32,6 +32,7 @@ import com.karvin.app.feature.home.AvailabilityDeclaredScreen
 import com.karvin.app.feature.home.ProviderMapScreen
 import com.karvin.app.feature.map.ProviderProfileScreen
 import com.karvin.app.feature.map.RequesterMapScreen
+import com.karvin.app.feature.jobs.CreateJobScreen
 import com.karvin.app.feature.map.RequestSentScreen
 import com.karvin.app.feature.map.WorkAreaScreen
 import com.karvin.app.feature.notifications.NotificationsScreen
@@ -101,17 +102,17 @@ fun KarvinApp(profileViewModel: ProfileViewModel = hiltViewModel()) {
                         description = "برای یافتن متخصص‌های نزدیک و نمایش آنها بر اساس موقعیت مکانی، KARVIN به موقعیت شما نیاز دارد.",
                         accent = androidx.compose.material3.MaterialTheme.colorScheme.primary,
                         onContinue = {
-                            navController.navigate(Routes.RequesterMap) {
+                            navController.navigate(Routes.RequesterHome) {
                                 popUpTo(Routes.RequesterLocationExplanation) { inclusive = true }
                             }
                         },
                         onDemo = {
-                            navController.navigate(Routes.RequesterMap) {
+                            navController.navigate(Routes.RequesterHome) {
                                 popUpTo(Routes.RequesterLocationExplanation) { inclusive = true }
                             }
                         },
                         onLater = {
-                            navController.navigate(Routes.RequesterMap) {
+                            navController.navigate(Routes.RequesterHome) {
                                 popUpTo(Routes.RequesterLocationExplanation) { inclusive = true }
                             }
                         },
@@ -127,13 +128,16 @@ fun KarvinApp(profileViewModel: ProfileViewModel = hiltViewModel()) {
                 }
 
                 composable(Routes.RequesterJobs) {
-                    // Placeholder - will show request history
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
                     ) {
                         androidx.compose.material3.Text("درخواست‌های من")
                     }
+                }
+
+                composable(Routes.CreateJob) {
+                    CreateJobScreen(navController)
                 }
 
                 // ─── Provider Flow ───

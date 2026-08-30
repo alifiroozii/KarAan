@@ -106,8 +106,8 @@ class FakeAuthRepository(private val preferences: PreferencesStore) : AuthReposi
     override val selectedRole: Flow<UserRole?> = preferences.role
     override val currentUser: Flow<User?> = combine(preferences.isAuthenticated, preferences.role) { authenticated, role ->
         if (!authenticated) null else when (role) {
-            UserRole.WORKER -> FakeData.workers.first()
-            UserRole.EMPLOYER -> FakeData.employers.first()
+            UserRole.PROVIDER -> FakeData.workers.first()
+            UserRole.REQUESTER -> FakeData.employers.first()
             null -> null
         }
     }

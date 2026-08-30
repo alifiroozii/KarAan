@@ -88,6 +88,7 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import com.karvin.app.core.designsystem.KarvinHomeScaffold
 import com.karvin.app.core.designsystem.OnlinePill
 import com.karvin.app.core.designsystem.PrimaryButton
 import com.karvin.app.core.designsystem.RatingLine
@@ -191,7 +192,7 @@ fun RequesterMapScreen(
     var listMode by remember { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
     var showPermissionDialog by remember { mutableStateOf(false) }
-    var showLocationExplanation by remember { mutableStateOf(true) }
+    var showLocationExplanation by remember { mutableStateOf(false) }
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(
             LatLng(state.userPoint.latitude, state.userPoint.longitude),
@@ -206,7 +207,8 @@ fun RequesterMapScreen(
     // Category chips from FakeData
     val categories = remember { FakeData.categories.take(6) }
 
-    Box(Modifier.fillMaxSize()) {
+    KarvinHomeScaffold(navController, providerMode = false) { padding ->
+    Box(Modifier.fillMaxSize().padding(padding)) {
         // Map or List
         if (listMode) {
             // List view
@@ -372,13 +374,17 @@ fun RequesterMapScreen(
         }
     }
 
+    }
+
     // Location explanation dialog
     if (showLocationExplanation) {
         LocationExplanationDialog(
             accent = MaterialTheme.colorScheme.primary,
             onContinue = {
                 showLocationExplanation = false
-                launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                runCatching {
+                    launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                }
             },
             onDemo = { showLocationExplanation = false },
             onLater = { showLocationExplanation = false },
@@ -394,7 +400,9 @@ fun RequesterMapScreen(
             confirmButton = {
                 Button(onClick = {
                     showPermissionDialog = false
+                    runCatching {
                     launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                }
                 }) { Text("فعال کردن موقعیت") }
             },
             dismissButton = {

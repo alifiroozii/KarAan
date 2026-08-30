@@ -21,9 +21,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import okhttp3.OkHttpClient
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 
 @Module
@@ -59,23 +56,10 @@ object AppModule {
     @Singleton
     fun provideWorkerRepository(store: FakeRepositoryStore): WorkerRepository = FakeWorkerRepository(store)
 
-    @Provides
-    @Singleton
-    fun provideChatRepository(store: FakeRepositoryStore): ChatRepository = FakeChatRepository(store)
+
 
     @Provides
     @Singleton
     fun provideNotificationRepository(store: FakeRepositoryStore): NotificationRepository = FakeNotificationRepository(store)
 
-    @Provides
-    @Singleton
-    fun provideOkHttpClient(): OkHttpClient = OkHttpClient.Builder().build()
-
-    @Provides
-    @Singleton
-    fun provideRetrofit(client: OkHttpClient): Retrofit = Retrofit.Builder()
-        .baseUrl("https://api.karvin.app/")
-        .client(client)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
 }

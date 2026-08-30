@@ -6,7 +6,7 @@ import java.time.LocalTime
 import java.util.UUID
 
 /** Shared domain contract used by both provider and requester experiences. */
-enum class UserRole { WORKER, EMPLOYER }
+enum class UserRole { PROVIDER, REQUESTER }
 
 enum class JobStatus {
     OPEN,

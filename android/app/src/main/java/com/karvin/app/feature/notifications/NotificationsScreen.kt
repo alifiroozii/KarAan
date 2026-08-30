@@ -33,6 +33,8 @@ import com.karvin.app.core.designsystem.AppTopBar
 import com.karvin.app.core.designsystem.EmptyState
 import com.karvin.app.core.designsystem.ErrorState
 import com.karvin.app.core.designsystem.LoadingState
+import com.karvin.app.core.designsystem.KarvinScaffold
+import com.karvin.app.domain.model.UserRole
 import com.karvin.app.domain.model.NotificationType
 import com.karvin.app.domain.model.toPersianDigits
 import java.time.format.DateTimeFormatter
@@ -41,10 +43,12 @@ import java.util.Locale
 @Composable
 fun NotificationsScreen(navController: NavHostController, viewModel: NotificationsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    Column(Modifier.fillMaxSize()) {
+    KarvinScaffold(navController, UserRole.PROVIDER, content = { padding ->
+    Column(Modifier.fillMaxSize().padding(padding)) {
         AppTopBar("اعلان‌ها", onBack = { navController.popBackStack() }, actions = { TextButton(onClick = viewModel::markAllRead) { Text("خواندن همه") } })
         when { state.loading -> LoadingState(); state.error != null -> ErrorState(state.error.orEmpty()) { }; state.notifications.isEmpty() -> EmptyState("اعلان جدیدی ندارید", "تغییرات مهم حساب و درخواست‌ها اینجا نمایش داده می‌شود."); else -> LazyColumn(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { items(state.notifications, key = { it.id }) { notification -> NotificationCard(notification.isRead, notification.type, notification.title, notification.message, notification.createdAt.format(DateTimeFormatter.ofPattern("MM/dd - HH:mm", Locale.US)).toPersianDigits()) { viewModel.markRead(notification.id) } } } }
     }
+    })
 }
 
 @Composable

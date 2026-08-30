@@ -56,7 +56,7 @@ import java.util.Locale
 @Composable
 fun ChatListScreen(
     navController: NavHostController,
-    role: UserRole = UserRole.WORKER,
+    role: UserRole = UserRole.PROVIDER,
     viewModel: ChatListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -75,7 +75,8 @@ fun ConversationScreen(navController: NavHostController, conversationId: String,
     val listState = rememberLazyListState()
     LaunchedEffect(conversationId) { viewModel.load(conversationId) }
     LaunchedEffect(state.messages.size) { if (state.messages.isNotEmpty()) listState.animateScrollToItem(state.messages.lastIndex) }
-    Column(Modifier.fillMaxSize().imePadding()) {
+    KarvinScaffold(navController, UserRole.PROVIDER, content = { padding ->
+    Column(Modifier.fillMaxSize().padding(padding).imePadding()) {
         AppTopBar("گفت‌وگو", onBack = { navController.popBackStack() })
         when {
             state.loading -> LoadingState()
@@ -88,6 +89,7 @@ fun ConversationScreen(navController: NavHostController, conversationId: String,
             IconButton(onClick = { viewModel.send(conversationId, text); text = "" }, enabled = text.isNotBlank(), modifier = Modifier.semantics { contentDescription = "ارسال پیام" }) { Icon(Icons.AutoMirrored.Filled.Send, "ارسال") }
         }
     }
+    })
 }
 
 @Composable

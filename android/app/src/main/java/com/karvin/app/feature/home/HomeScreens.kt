@@ -62,7 +62,7 @@ fun WorkerHomeScreen(navController: NavHostController, viewModel: WorkerHomeView
     val state by viewModel.state.collectAsStateWithLifecycle()
     val openRequests = state.jobs.count { it.status == JobStatus.OPEN }
     val inProgress = state.jobs.count { it.status == JobStatus.IN_PROGRESS || it.status == JobStatus.ACCEPTED }
-    KarvinScaffold(navController, UserRole.WORKER, content = { padding ->
+    KarvinScaffold(navController, UserRole.PROVIDER, content = { padding ->
         LazyColumn(Modifier.padding(padding).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item {
                 AppTopBar("خانه", actions = {
@@ -90,7 +90,7 @@ fun WorkerHomeScreen(navController: NavHostController, viewModel: WorkerHomeView
             }
             item {
                 // محدوده فعالیت — آمار درخواست‌ها
-                Card(onClick = { navController.navigate(Routes.WorkArea) }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), shape = RoundedCornerShape(18.dp)) {
+                Card(onClick = { navController.navigate(Routes.ProviderWorkArea) }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), shape = RoundedCornerShape(18.dp)) {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
@@ -109,7 +109,7 @@ fun WorkerHomeScreen(navController: NavHostController, viewModel: WorkerHomeView
             item {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("درخواست‌های نزدیک", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { navController.navigate(Routes.WorkerJobs) }) { Text("مشاهده همه", color = MaterialTheme.colorScheme.primary) }
+                    TextButton(onClick = { navController.navigate(Routes.ProviderJobs) }) { Text("مشاهده همه", color = MaterialTheme.colorScheme.primary) }
                 }
             }
             when {
@@ -159,7 +159,7 @@ fun EmployerHomeScreen(navController: NavHostController, viewModel: EmployerHome
     val candidates = state.myJobs.sumOf { it.applicantCount }
     val inProgress = state.myJobs.count { it.status == JobStatus.IN_PROGRESS }
     val completed = state.myJobs.count { it.status == JobStatus.COMPLETED || it.status == JobStatus.RATED }
-    KarvinScaffold(navController, UserRole.EMPLOYER, content = { padding ->
+    KarvinScaffold(navController, UserRole.REQUESTER, content = { padding ->
         LazyColumn(Modifier.padding(padding).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item { AppTopBar("خانه", actions = { IconButton(onClick = { navController.navigate(Routes.Notifications) }) { Icon(Icons.Default.NotificationsNone, "اعلان‌ها") }; IconButton(onClick = { navController.navigate(Routes.Profile) }) { Icon(Icons.Default.Person, "پروفایل") } }) }
             item { Column(verticalArrangement = Arrangement.spacedBy(5.dp)) { Text("سلام ${state.user.name.substringBefore(' ')} 👋", style = MaterialTheme.typography.headlineSmall); Text("به متخصص مورد نظرت نزدیک شو.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) } }

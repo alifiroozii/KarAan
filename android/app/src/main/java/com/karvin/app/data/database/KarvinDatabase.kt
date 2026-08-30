@@ -10,9 +10,10 @@ import androidx.room.RoomDatabase
         CachedMessageEntity::class,
         FavoriteEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class KarvinDatabase : RoomDatabase() {
     abstract fun karvinDao(): KarvinDao
+    abstract fun chatMessageDao(): ChatMessageDao
 }

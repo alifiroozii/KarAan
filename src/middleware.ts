@@ -1,26 +1,11 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-  const sessionToken = req.cookies.get("karaan_session")?.value;
-
-  // Protected route prefixes
-  const isWorkerRoute = pathname.startsWith("/worker");
-  const isEmployerRoute = pathname.startsWith("/employer");
-  const isAdminRoute = pathname.startsWith("/admin");
-
-  if (isWorkerRoute || isEmployerRoute || isAdminRoute) {
-    if (!sessionToken) {
-      const loginUrl = new URL("/login", req.url);
-      loginUrl.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-  }
-
+export function middleware(request: NextRequest) {
+  if (!request.nextUrl.pathname.startsWith("/admin")) return NextResponse.next();
+  const token = request.cookies.get("karaan_session")?.value;
+  const role = request.cookies.get("karaan_role")?.value;
+  if (!token || role !== "ADMIN") return NextResponse.redirect(new URL("/login?callbackUrl=/admin", request.url));
   return NextResponse.next();
 }
 
-export const config = {
-  matcher: ["/worker/:path*", "/employer/:path*", "/admin/:path*"],
-};
+export const config = { matcher: ["/admin/:path*"] };

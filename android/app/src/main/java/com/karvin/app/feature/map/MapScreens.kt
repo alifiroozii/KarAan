@@ -406,7 +406,7 @@ fun RequestSentScreen(navController: NavHostController, providerMode: Boolean) {
         )
         Spacer(Modifier.height(36.dp))
         if (!providerMode) {
-            Button(onClick = { navController.navigate(Routes.EmployerJobs) { popUpTo(Routes.EmployerHome) { inclusive = false } } }, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(14.dp)) { Text("مشاهده درخواست‌ها") }
+            Button(onClick = { navController.navigate(Routes.RequesterJobs) { popUpTo(Routes.RequesterHome) { saveState = true } } }, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(14.dp)) { Text("مشاهده درخواست‌ها") }
             Spacer(Modifier.height(10.dp))
         }
         Button(
