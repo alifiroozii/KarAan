@@ -112,7 +112,7 @@ fun WorkerProfileScreen(navController: NavHostController, workerId: String, view
                     if (state.reviews.isEmpty()) item { EmptyState("هنوز نظری ثبت نشده", "پس از اولین خدمت، نظرها اینجا دیده می‌شوند.") } else items(state.reviews, key = { it.id }) { review -> ReviewCard(review) }
                     item {
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            OutlinedButton(onClick = { navController.navigate(Routes.conversation("conversation-1")) }, modifier = Modifier.weight(1f)) { Text("پیام دادن") }
+                            OutlinedButton(onClick = { navController.navigate(Routes.conversation("conv_${worker.id}")) }, modifier = Modifier.weight(1f)) { Text("پیام دادن") }
                             PrimaryButton("ارسال درخواست", { navController.navigate(Routes.requestSent(provider = false)) }, Modifier.weight(1f))
                         }
                     }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Star
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -67,7 +69,15 @@ fun ProviderProfileScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            AppTopBar("پروفایل متخصص", onBack = { navController.popBackStack() })
+            AppTopBar(
+                title = "پروفایل متخصص",
+                onBack = { navController.popBackStack() },
+                actions = {
+                    IconButton(onClick = { navController.navigate(Routes.conversation("conv_${provider.id}")) }) {
+                        Icon(Icons.Default.ChatBubbleOutline, contentDescription = "گفت‌وگو", tint = MaterialTheme.colorScheme.primary)
+                    }
+                },
+            )
         }
 
         // Profile header
@@ -220,7 +230,7 @@ fun ProviderProfileScreen(
                 ) {
                     Text("قیمت پایه", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
                     Text(
-                        "${provider.basePrice.toString().toPersianDigits()} ریال",
+                        "${provider.basePrice.toString().toPersianDigits()} تومان",
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.primary,
                     )

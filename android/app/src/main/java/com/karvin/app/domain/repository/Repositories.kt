@@ -21,6 +21,7 @@ interface AuthRepository {
     val selectedRole: Flow<UserRole?>
     suspend fun signIn(phone: String): AppResult<User>
     suspend fun setRole(role: UserRole): AppResult<Unit>
+    suspend fun updateProfile(user: User): AppResult<User>
     suspend fun signOut()
 }
 

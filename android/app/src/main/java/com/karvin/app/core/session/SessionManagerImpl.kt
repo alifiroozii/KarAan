@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.karvin.app.core.security.SecureTokenStore
 import com.karvin.app.domain.model.UserRole
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -23,6 +24,7 @@ private val Context.sessionDataStore by preferencesDataStore(name = "karvin_sess
 @Singleton
 class SessionManagerImpl @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val secureTokenStore: SecureTokenStore,
 ) : SessionManager {
     private val _state = MutableStateFlow(SessionState())
     override val state: StateFlow<SessionState> = _state.asStateFlow()
@@ -33,13 +35,15 @@ class SessionManagerImpl @Inject constructor(
             context.sessionDataStore.data
                 .catch { emit(androidx.datastore.preferences.core.emptyPreferences()) }
                 .map { preferences ->
+                    val secureToken = secureTokenStore.get()
+                    val role = preferences[ROLE_KEY]?.let { value ->
+                        runCatching { UserRole.valueOf(value) }.getOrNull()
+                    }
                     SessionState(
                         isLoading = false,
-                        isLoggedIn = preferences[TOKEN_KEY] != null,
-                        token = preferences[TOKEN_KEY],
-                        role = preferences[ROLE_KEY]?.let { value ->
-                            runCatching { UserRole.valueOf(value) }.getOrNull()
-                        },
+                        isLoggedIn = !secureToken.isNullOrBlank(),
+                        token = secureToken,
+                        role = role,
                     )
                 }
                 .collect { _state.value = it }
@@ -47,25 +51,28 @@ class SessionManagerImpl @Inject constructor(
     }
 
     override suspend fun setSession(token: String, role: UserRole) {
+        secureTokenStore.save(token)
         context.sessionDataStore.edit {
-            it[TOKEN_KEY] = token
             it[ROLE_KEY] = role.name
         }
+        _state.value = SessionState(isLoading = false, isLoggedIn = true, token = token, role = role)
     }
 
     override suspend fun setRole(role: UserRole) {
         context.sessionDataStore.edit { it[ROLE_KEY] = role.name }
+        _state.value = _state.value.copy(role = role)
     }
 
     override suspend fun clearSession() {
+        secureTokenStore.clear()
         context.sessionDataStore.edit {
-            it.remove(TOKEN_KEY)
             it.remove(ROLE_KEY)
         }
+        _state.value = SessionState(isLoading = false, isLoggedIn = false, token = null, role = null)
     }
 
     private companion object {
-        val TOKEN_KEY = stringPreferencesKey("token")
         val ROLE_KEY = stringPreferencesKey("role")
     }
 }
+

@@ -103,23 +103,42 @@ class FakeRepositoryStore(private val dao: KarvinDao? = null) {
 }
 
 class FakeAuthRepository(private val preferences: PreferencesStore) : AuthRepository {
+    private val customWorker = MutableStateFlow(FakeData.workers.first())
+    private val customEmployer = MutableStateFlow(FakeData.employers.first())
+
     override val selectedRole: Flow<UserRole?> = preferences.role
-    override val currentUser: Flow<User?> = combine(preferences.isAuthenticated, preferences.role) { authenticated, role ->
+    override val currentUser: Flow<User?> = combine(
+        preferences.isAuthenticated,
+        preferences.role,
+        customWorker,
+        customEmployer,
+    ) { authenticated, role, worker, employer ->
         if (!authenticated) null else when (role) {
-            UserRole.PROVIDER -> FakeData.workers.first()
-            UserRole.REQUESTER -> FakeData.employers.first()
+            UserRole.PROVIDER -> worker
+            UserRole.REQUESTER -> employer
             null -> null
         }
     }
 
     override suspend fun signIn(phone: String): AppResult<User> {
         preferences.setAuthenticated(true)
-        return AppResult.Success(FakeData.workers.first().copy(phone = phone))
+        val user = customWorker.value.copy(phone = phone)
+        customWorker.value = user
+        return AppResult.Success(user)
     }
 
     override suspend fun setRole(role: UserRole): AppResult<Unit> {
         preferences.setRole(role)
         return AppResult.Success(Unit)
+    }
+
+    override suspend fun updateProfile(user: User): AppResult<User> {
+        if (user.role == UserRole.PROVIDER) {
+            customWorker.value = user
+        } else {
+            customEmployer.value = user
+        }
+        return AppResult.Success(user)
     }
 
     override suspend fun signOut() {

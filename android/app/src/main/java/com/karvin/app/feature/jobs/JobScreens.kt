@@ -13,14 +13,20 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Payment
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -282,30 +288,228 @@ fun CreateJobScreen(navController: NavHostController, workerId: String? = null, 
     }
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var amount by remember { mutableStateOf("") }
+    var baseRatePerHour by remember { mutableStateOf(150000L) }
+    var hours by remember { mutableStateOf(2) }
+    var workerCount by remember { mutableStateOf(1) }
     var address by remember { mutableStateOf("تهران، بلوار کشاورز") }
-    var workers by remember { mutableStateOf("۱") }
     var selectedCategory by remember { mutableStateOf(FakeData.categories.first()) }
     var urgent by remember { mutableStateOf(false) }
+    var selectedPayment by remember { mutableStateOf(PaymentType.WALLET) }
+    var hasPhotoAttached by remember { mutableStateOf(false) }
+
+    val calculatedAmount = baseRatePerHour * hours * workerCount
+
     Column(Modifier.fillMaxSize()) {
         AppTopBar("ثبت درخواست خدمت", onBack = { navController.popBackStack() })
-        LazyColumn(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item { Text(if (workerId.isNullOrBlank()) "جزئیات درخواست را وارد کنید" else "جزئیات درخواست برای متخصص منتخب را وارد کنید", style = MaterialTheme.typography.titleLarge) }
-            item { OutlinedTextField(title, { title = it }, label = { Text("عنوان درخواست") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
-            item { Text("دسته‌بندی", style = MaterialTheme.typography.titleMedium) }
-            item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) { FakeData.categories.take(8).forEach { CategoryChip(it.title, it.id == selectedCategory.id) { selectedCategory = it } } } }
-            item { OutlinedTextField(description, { description = it }, label = { Text("توضیحات") }, modifier = Modifier.fillMaxWidth(), minLines = 4) }
-            item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { OutlinedTextField(amount, { amount = it.filter(Char::isDigit) }, label = { Text("مبلغ (ریال)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f), singleLine = true); OutlinedTextField(workers, { workers = it.filter(Char::isDigit) }, label = { Text("تعداد مراجعه") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.width(125.dp), singleLine = true) } }
-            item { OutlinedTextField(address, { address = it }, label = { Text("محل ارائه خدمت") }, leadingIcon = { Icon(Icons.Default.LocationOn, null) }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
-            item { FilterChip(selected = urgent, onClick = { urgent = !urgent }, label = { Text("این درخواست فوری است") }) }
-            item { Text("محل روی نقشه در نسخه backend با انتخاب دقیق مختصات ذخیره می‌شود.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            item { PrimaryButton("انتشار درخواست", { val parsedAmount = amount.toLongOrNull() ?: 0L; if (title.isNotBlank() && parsedAmount > 0) viewModel.publish(CreateJobInput(title, selectedCategory, description.ifBlank { "توضیحات تکمیلی پس از هماهنگی اعلام می‌شود." }, workers.toIntOrNull() ?: 1, GenderRequirement.ANY, LocalDate.now(), LocalTime.of(16, 0), 4.0, parsedAmount, PaymentType.CASH, address, FakeData.center, urgent, listOf(selectedCategory.title))); }, Modifier.fillMaxWidth(), enabled = !state.loading) }
+        LazyColumn(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            item {
+                Text(
+                    if (workerId.isNullOrBlank()) "مشخصات و جزئیات خدمت مورد نیاز" else "ارسال درخواست مستقیم برای متخصص منتخب",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                )
+            }
+
+            // Category Selection
+            item {
+                Text("دسته‌بندی خدمت", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FakeData.categories.take(8).forEach { CategoryChip(it.title, it.id == selectedCategory.id) { selectedCategory = it } }
+                }
+            }
+
+            item {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("عنوان درخواست (مثال: نصب لوستر و عیب‌یابی برق)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    singleLine = true,
+                )
+            }
+
+            item {
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("شرح کامل کار و نیازها") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    minLines = 3,
+                    maxLines = 5,
+                )
+            }
+
+            // Photo / Image Attachment Card
+            item {
+                Card(
+                    onClick = { hasPhotoAttached = !hasPhotoAttached },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, if (hasPhotoAttached) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+                ) {
+                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Box(
+                            modifier = Modifier.size(44.dp).clip(CircleShape).background(if (hasPhotoAttached) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, tint = if (hasPhotoAttached) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Text(if (hasPhotoAttached) "تصویر پیوست شد (۱ عکس)" else "افزودن تصویر یا عکس مشکل", style = MaterialTheme.typography.titleSmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                            Text(if (hasPhotoAttached) "برای حذف یا تغییر تصویر کلیک کنید" else "اختیاری · جهت برآورد و دقت بیشتر متخصص", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+
+            // Hours and Workers Stepper
+            item {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // Hours Stepper
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                    ) {
+                        Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("مدت زمان تخمینی", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                IconButton(onClick = { if (hours > 1) hours-- }, modifier = Modifier.size(30.dp)) { Icon(Icons.Default.Remove, null) }
+                                Text("${hours.toString().toPersianDigits()} ساعت", style = MaterialTheme.typography.titleMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                                IconButton(onClick = { if (hours < 12) hours++ }, modifier = Modifier.size(30.dp)) { Icon(Icons.Default.Add, null) }
+                            }
+                        }
+                    }
+
+                    // Workers Stepper
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                    ) {
+                        Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("تعداد متخصص", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                IconButton(onClick = { if (workerCount > 1) workerCount-- }, modifier = Modifier.size(30.dp)) { Icon(Icons.Default.Remove, null) }
+                                Text("${workerCount.toString().toPersianDigits()} نفر", style = MaterialTheme.typography.titleMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                                IconButton(onClick = { if (workerCount < 5) workerCount++ }, modifier = Modifier.size(30.dp)) { Icon(Icons.Default.Add, null) }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Live Price Calculation Card
+            item {
+                Card(
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                ) {
+                    Row(
+                        Modifier.padding(16.dp).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column {
+                            Text("برآورد هزینه خدمت:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Text("${calculatedAmount.toString().toPersianDigits()} تومان", style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
+                        Surface(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(10.dp)) {
+                            Text("نرخ استاندارد اتحادیه", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+
+            // Payment method selector
+            item {
+                Text("روش پرداخت", style = MaterialTheme.typography.labelLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(PaymentType.WALLET to "💳 کیف پول کاروین", PaymentType.CARD to "🏧 درگاه آنلاین شاپرک", PaymentType.CASH to "💵 پرداخت نقدی").forEach { (type, label) ->
+                        FilterChip(
+                            selected = selectedPayment == type,
+                            onClick = { selectedPayment = type },
+                            label = { Text(label, fontWeight = if (selectedPayment == type) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal) },
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                    }
+                }
+            }
+
+            item {
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = { address = it },
+                    label = { Text("آدرس و محل ارائه خدمت") },
+                    leadingIcon = { Icon(Icons.Default.LocationOn, null) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    singleLine = true,
+                )
+            }
+
+            item {
+                FilterChip(
+                    selected = urgent,
+                    onClick = { urgent = !urgent },
+                    label = { Text("این درخواست فوری است (اطلاع‌رسانی سریع به متخصصین)") },
+                    shape = RoundedCornerShape(12.dp),
+                )
+            }
+
+            item {
+                Spacer(Modifier.height(6.dp))
+                PrimaryButton(
+                    text = "انتشار درخواست (${calculatedAmount.toString().toPersianDigits()} تومان)",
+                    onClick = {
+                        if (title.isNotBlank() && calculatedAmount > 0) {
+                            viewModel.publish(
+                                CreateJobInput(
+                                    title = title,
+                                    category = selectedCategory,
+                                    description = description.ifBlank { "توضیحات تکمیلی پس از هماهنگی اعلام می‌شود." },
+                                    requiredWorkers = workerCount,
+                                    genderRequirement = GenderRequirement.ANY,
+                                    date = LocalDate.now(),
+                                    startTime = LocalTime.of(16, 0),
+                                    durationHours = hours.toDouble(),
+                                    amount = calculatedAmount,
+                                    paymentType = selectedPayment,
+                                    address = address,
+                                    point = FakeData.center,
+                                    isUrgent = urgent,
+                                    requiredSkills = listOf(selectedCategory.title),
+                                ),
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.loading,
+                )
+            }
+
             if (state.error != null) item { Text(state.error.orEmpty(), color = MaterialTheme.colorScheme.error) }
             item { Spacer(Modifier.height(24.dp)) }
         }
     }
     if (state.published != null) {
-        AlertDialog(onDismissRequest = { navController.navigate(Routes.RequesterHome) { popUpTo(Routes.CreateJob) { inclusive = true } } }, title = { Text("درخواست منتشر شد") }, text = { Text("درخواست شما با موفقیت منتشر شد و برای متخصص‌های اطراف قابل مشاهده است.") }, confirmButton = { Button(onClick = { navController.navigate(Routes.RequesterHome) { popUpTo(Routes.CreateJob) { inclusive = true } } }) { Text("بازگشت به خانه") } })
+        AlertDialog(
+            onDismissRequest = { navController.navigate(Routes.RequesterHome) { popUpTo(Routes.CreateJob) { inclusive = true } } },
+            title = { Text("درخواست منتشر شد", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold) },
+            text = { Text("درخواست شما با موفقیت ثبت شد و برای متخصص‌های اطراف ارسال گردید.") },
+            confirmButton = {
+                Button(onClick = { navController.navigate(Routes.RequesterHome) { popUpTo(Routes.CreateJob) { inclusive = true } } }) {
+                    Text("مشاهده در نقشه و خانه")
+                }
+            },
+        )
     }
 }
 

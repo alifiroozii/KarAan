@@ -25,6 +25,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Adjust
 import androidx.compose.material.icons.filled.CheckCircle
@@ -157,7 +158,9 @@ fun MapScreen(navController: NavHostController, workerMode: Boolean = true, view
         }
         Column(Modifier.fillMaxWidth().padding(top = 22.dp, start = 16.dp, end = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { navController.popBackStack() }, modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surface)) { Text("‹", style = MaterialTheme.typography.headlineSmall) }
+                IconButton(onClick = { navController.popBackStack() }, modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surface)) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "بازگشت")
+                }
                 OutlinedTextField(query, { query = it }, modifier = Modifier.weight(1f), placeholder = { Text("جستجو در درخواست‌ها") }, singleLine = true, leadingIcon = { Icon(Icons.Default.Search, null) }, shape = RoundedCornerShape(16.dp))
                 IconButton(onClick = { permissionDialog = true }, modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surface).semantics { contentDescription = "موقعیت من" }) { Icon(Icons.Default.MyLocation, null) }
             }
@@ -259,7 +262,9 @@ fun WorkersMapScreen(navController: NavHostController, viewModel: WorkersViewMod
         }
         Column(Modifier.fillMaxWidth().padding(top = 22.dp, start = 16.dp, end = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { navController.popBackStack() }, modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surface)) { Text("‹", style = MaterialTheme.typography.headlineSmall) }
+                IconButton(onClick = { navController.popBackStack() }, modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surface)) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "بازگشت")
+                }
                 OutlinedTextField(
                     filter.query,
                     { value -> viewModel.updateFilter(filter.copy(query = value)) },

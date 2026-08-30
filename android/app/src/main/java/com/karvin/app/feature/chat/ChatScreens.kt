@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -22,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -69,36 +71,203 @@ fun ChatListScreen(
 }
 
 @Composable
-fun ConversationScreen(navController: NavHostController, conversationId: String, viewModel: ConversationViewModel = hiltViewModel()) {
+fun ConversationScreen(
+    navController: NavHostController,
+    conversationId: String,
+    viewModel: ConversationViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var text by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
-    LaunchedEffect(conversationId) { viewModel.load(conversationId) }
-    LaunchedEffect(state.messages.size) { if (state.messages.isNotEmpty()) listState.animateScrollToItem(state.messages.lastIndex) }
-    KarvinScaffold(navController, UserRole.PROVIDER, content = { padding ->
-    Column(Modifier.fillMaxSize().padding(padding).imePadding()) {
-        AppTopBar("گفت‌وگو", onBack = { navController.popBackStack() })
-        when {
-            state.loading -> LoadingState()
-            state.error != null && state.messages.isEmpty() -> ErrorState(state.error.orEmpty()) { viewModel.load(conversationId) }
-            state.messages.isEmpty() -> EmptyState("گفت‌وگو خالی است", "پیام خود را برای شروع بنویسید.")
-            else -> LazyColumn(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp), state = listState, verticalArrangement = Arrangement.spacedBy(8.dp)) { items(state.messages, key = { it.id }) { message -> MessageBubble(message) } }
-        }
-        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(value = text, onValueChange = { text = it }, placeholder = { Text("پیام خود را بنویسید") }, modifier = Modifier.weight(1f), maxLines = 3)
-            IconButton(onClick = { viewModel.send(conversationId, text); text = "" }, enabled = text.isNotBlank(), modifier = Modifier.semantics { contentDescription = "ارسال پیام" }) { Icon(Icons.AutoMirrored.Filled.Send, "ارسال") }
+
+    LaunchedEffect(conversationId) {
+        viewModel.load(conversationId)
+    }
+
+    LaunchedEffect(state.messages.size) {
+        if (state.messages.isNotEmpty()) {
+            listState.animateScrollToItem(state.messages.lastIndex)
         }
     }
-    })
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            AppTopBar(
+                title = state.conversation?.participant?.name ?: "گفت‌وگو",
+                onBack = { navController.popBackStack() },
+                actions = {
+                    IconButton(onClick = { }) {
+                        Icon(androidx.compose.material.icons.filled.Call, contentDescription = "تماس تلفنی", tint = MaterialTheme.colorScheme.primary)
+                    }
+                },
+            )
+        },
+        bottomBar = {
+            Surface(
+                modifier = Modifier.fillMaxWidth().imePadding(),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp,
+                shadowElevation = 8.dp,
+            ) {
+                Column {
+                    // Quick Reply Chips
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .androidx.compose.foundation.horizontalScroll(androidx.compose.foundation.rememberScrollState())
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        listOf(
+                            "🚗 تا ۱۵ دقیقه دیگر می‌رسم",
+                            "📍 لطفا لوکیشن دقیق را بفرستید",
+                            "🔧 وسایل و ابزارها همراه من است",
+                            "📞 لطفا در صورت امکان تماس بگیرید",
+                        ).forEach { chipText ->
+                            Surface(
+                                onClick = { viewModel.send(conversationId, chipText) },
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                            ) {
+                                Text(
+                                    chipText,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                                )
+                            }
+                        }
+                    }
+
+                    // Input row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 12.dp, end = 12.dp, bottom = 10.dp, top = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        IconButton(
+                            onClick = { viewModel.send(conversationId, "📍 موقعیت مکانی من: تهران، خیابان آزادی، پلاک ۱۲") },
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                        ) {
+                            Icon(
+                                androidx.compose.material.icons.filled.LocationOn,
+                                contentDescription = "ارسال موقعیت",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+
+                        OutlinedTextField(
+                            value = text,
+                            onValueChange = { text = it },
+                            placeholder = { Text("پیام خود را بنویسید...") },
+                            modifier = Modifier.weight(1f),
+                            maxLines = 4,
+                            shape = RoundedCornerShape(20.dp),
+                        )
+                        IconButton(
+                            onClick = {
+                                if (text.isNotBlank()) {
+                                    viewModel.send(conversationId, text)
+                                    text = ""
+                                }
+                            },
+                            enabled = text.isNotBlank(),
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(if (text.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                                .semantics { contentDescription = "ارسال پیام" },
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Send,
+                                contentDescription = "ارسال",
+                                tint = if (text.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(MaterialTheme.colorScheme.background),
+        ) {
+            when {
+                state.loading -> LoadingState()
+                state.error != null && state.messages.isEmpty() -> ErrorState(state.error.orEmpty()) { viewModel.load(conversationId) }
+                state.messages.isEmpty() -> EmptyState("گفت‌وگو خالی است", "پیام خود را برای شروع ارسال کنید.")
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp),
+                    state = listState,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    items(state.messages, key = { it.id }) { message ->
+                        MessageBubble(message)
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
 private fun MessageBubble(message: ChatMessage) {
-    val mine = message.senderId == com.karvin.app.data.FakeData.workers.first().id
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = if (mine) Arrangement.Start else Arrangement.End) {
-        Column(horizontalAlignment = if (mine) Alignment.Start else Alignment.End) {
-            Surface(color = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(16.dp)) { Text(message.text, Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.bodyLarge) }
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 3.dp)) { Text(message.sentAt.format(DateTimeFormatter.ofPattern("HH:mm", Locale.US)).toPersianDigits(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant); if (mine) { Icon(Icons.Default.DoneAll, "دیده شد", tint = if (message.isSeen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(15.dp).padding(start = 3.dp)) } }
+    val mine = message.senderId.contains("worker") || message.senderId == "me" || message.senderId == com.karvin.app.data.FakeData.workers.first().id
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (mine) Arrangement.Start else Arrangement.End,
+    ) {
+        Column(
+            horizontalAlignment = if (mine) Alignment.Start else Alignment.End,
+            modifier = Modifier.widthIn(max = 280.dp),
+        ) {
+            Surface(
+                color = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(
+                    topStart = 16.dp,
+                    topEnd = 16.dp,
+                    bottomStart = if (mine) 4.dp else 16.dp,
+                    bottomEnd = if (mine) 16.dp else 4.dp,
+                ),
+            ) {
+                Text(
+                    text = message.text,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (mine) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(top = 4.dp, start = 4.dp, end = 4.dp),
+            ) {
+                Text(
+                    text = message.sentAt.format(DateTimeFormatter.ofPattern("HH:mm", Locale.US)).toPersianDigits(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (mine) {
+                    Icon(
+                        Icons.Default.DoneAll,
+                        contentDescription = "دیده شد",
+                        tint = if (message.isSeen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(15.dp),
+                    )
+                }
+            }
         }
     }
 }

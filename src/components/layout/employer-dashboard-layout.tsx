@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Bell, Building2, Clock, PlusCircle, Users, WalletCards, ListChecks, MapPinned, Scale, MessageCircle } from "lucide-react";
+import { ThemeToggle } from "../common/theme-toggle";
 import { CurrencyDisplay } from "../ui/domain-displays";
 import { useRealtimeRoom } from "@/hooks/use-realtime-room";
 
@@ -34,15 +35,24 @@ export function EmployerDashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-indigo-500 selection:text-white">
       <header className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 py-3.5 flex items-center justify-between gap-4">
           <Link href="/employer" className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center"><Building2 className="w-5 h-5" /></div>
-            <div><h1 className="text-base font-bold text-foreground">کارآن | پنل کارفرما</h1><p className="text-xs text-muted-foreground">مدیریت عملیات و نیروی ساعتی</p></div>
+            <div className="h-10 w-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center font-bold text-lg shadow-sm">
+              ک
+            </div>
+            <div>
+              <h1 className="text-base font-extrabold text-foreground">کاروین | پنل کارفرما</h1>
+              <p className="text-[11px] text-muted-foreground">مدیریت عملیات و خدمات ساعتی</p>
+            </div>
           </Link>
-          <Link href="/employer/wallet" className="bg-background border border-border rounded-xl px-4 py-2 text-right hover:border-indigo-500/40 transition-colors">
-            <span className="text-[10px] text-muted-foreground flex items-center gap-1.5"><WalletCards className="h-3.5 w-3.5" /> موجودی کیف پول</span>
-            <span className="mt-1 block text-sm font-bold text-emerald-400">{walletQuery.isLoading ? "..." : walletQuery.data ? <CurrencyDisplay amountRials={BigInt(walletQuery.data.availableRials)} /> : "—"}</span>
-          </Link>
+
+          <div className="flex items-center gap-3">
+            <Link href="/employer/wallet" className="bg-background border border-border rounded-xl px-4 py-1.5 text-right hover:border-indigo-500/40 transition-colors shadow-sm">
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1.5"><WalletCards className="h-3.5 w-3.5" /> موجودی کیف پول</span>
+              <span className="mt-0.5 block text-sm font-black text-emerald-500">{walletQuery.isLoading ? "..." : walletQuery.data ? <CurrencyDisplay amountRials={BigInt(walletQuery.data.availableRials)} /> : "—"}</span>
+            </Link>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
       <div className="max-w-7xl mx-auto px-4 py-8 flex-1 w-full grid grid-cols-1 md:grid-cols-4 gap-8">

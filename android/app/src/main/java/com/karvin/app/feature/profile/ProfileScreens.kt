@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Edit
@@ -46,6 +47,7 @@ import com.karvin.app.core.designsystem.RatingLine
 import com.karvin.app.core.navigation.Routes
 import com.karvin.app.domain.model.UserRole
 import com.karvin.app.core.designsystem.KarvinScaffold
+import androidx.compose.foundation.BorderStroke
 import com.karvin.app.domain.model.toPersianDigits
 
 @Composable
@@ -58,16 +60,40 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
         if (state.user == null) EmptyState("پروفایل آماده نیست", "بعد از ورود اطلاعات شما اینجا نمایش داده می‌شود.") else {
             val user = state.user!!
             androidx.compose.foundation.lazy.LazyColumn(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                item { Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), shape = RoundedCornerShape(20.dp)) { Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) { Avatar(user, size = 72.dp); Column(Modifier.padding(horizontal = 14.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) { Text(user.name, style = MaterialTheme.typography.headlineSmall); Text("${user.city} · ${if (user.role == UserRole.PROVIDER) "متخصص" else "متقاضی خدمت"}", color = MaterialTheme.colorScheme.onSurfaceVariant); RatingLine(user.rating, user.reviewCount) }; Icon(Icons.Default.Edit, "ویرایش پروفایل", tint = MaterialTheme.colorScheme.primary) } } }
+                item {
+                    Card(
+                        onClick = { navController.navigate(Routes.EditProfile) },
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                        shape = RoundedCornerShape(20.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    ) {
+                        Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Avatar(user, size = 72.dp)
+                            Column(Modifier.padding(horizontal = 14.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                Text(user.name, style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                                Text("${user.city} · ${if (user.role == UserRole.PROVIDER) "متخصص" else "متقاضی خدمت"}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                                RatingLine(user.rating, user.reviewCount)
+                            }
+                            IconButton(onClick = { navController.navigate(Routes.EditProfile) }) {
+                                Icon(Icons.Default.Edit, "ویرایش پروفایل", tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+                }
                 if (user.role == UserRole.PROVIDER) item { EarningsCard(user.completedJobs) }
+                item { ProfileAction("ویرایش اطلاعات و مهارت‌ها", "تکمیل نام، تخصص‌ها، شهر و بیوگرافی") { navController.navigate(Routes.EditProfile) } }
+                item { ProfileAction("کیف پول و تراکنش‌ها", "مشاهده موجودی و مدیریت پرداخت‌ها") { navController.navigate(Routes.Wallet) } }
                 item { ProfileAction("حالت فعلی", if (user.role == UserRole.PROVIDER) "ارائه می‌دهم" else "می‌خواهم") { showRoleDialog = true } }
                 item { ProfileAction("تنظیمات و حریم خصوصی", "اعلان‌ها، ظاهر و دسترسی‌ها") { navController.navigate(Routes.Settings) } }
                 item { ProfileAction("اعلان‌ها", "مرکز اعلان‌ها") { navController.navigate(Routes.Notifications) } }
                 if (user.role == UserRole.PROVIDER) {
-                    item { ProfileAction("درخواست‌های من", "پیگیری وضعیت درخواست‌های همکاری") { navController.navigate(Routes.RequesterJobs) } }
+                    item { ProfileAction("فعالیت‌ها و برنامه‌ها", "پیگیری وضعیت درخواست‌های همکاری") { navController.navigate(Routes.ProviderJobs) } }
                     item { ProfileAction("محدوده فعالیت", "انتخاب شعاع نمایش درخواست‌ها") { navController.navigate(Routes.WorkArea) } }
+                } else {
+                    item { ProfileAction("سفارش‌های من", "پیگیری کارهای ثبت‌شده") { navController.navigate(Routes.RequesterJobs) } }
                 }
-                item { Spacer(Modifier.height(20.dp)); OutlinedButton(onClick = viewModel::signOut, modifier = Modifier.fillMaxWidth()) { Icon(Icons.AutoMirrored.Filled.Logout, null); Text("خروج از حساب", Modifier.padding(start = 7.dp)) } }
+                item { Spacer(Modifier.height(20.dp)); OutlinedButton(onClick = viewModel::signOut, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) { Icon(Icons.AutoMirrored.Filled.Logout, null); Text("خروج از حساب", Modifier.padding(start = 7.dp)) } }
             }
         }
     }
@@ -76,10 +102,48 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
 }
 
 @Composable
-private fun EarningsCard(completedJobs: Int) { Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { Text("خلاصه عملکرد", style = MaterialTheme.typography.titleLarge); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Column { Text("درآمد این ماه", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant); Text("${(completedJobs * 850000L).toString().toPersianDigits()} تومان", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary) }; Column(horizontalAlignment = Alignment.End) { Text("کارهای تکمیل‌شده", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant); Text(completedJobs.toString().toPersianDigits(), style = MaterialTheme.typography.titleMedium) } } } } }
+private fun EarningsCard(completedJobs: Int) {
+    Card(
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("خلاصه عملکرد", style = MaterialTheme.typography.titleMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text("درآمد این ماه", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${(completedJobs * 850000L).toString().toPersianDigits()} تومان", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("کارهای تکمیل‌شده", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(completedJobs.toString().toPersianDigits(), style = MaterialTheme.typography.titleMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
 
 @Composable
-private fun ProfileAction(title: String, subtitle: String, onClick: () -> Unit) { Card(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) { Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) { Text(title, style = MaterialTheme.typography.titleMedium); Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }; Text("‹", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary) } } }
+private fun ProfileAction(title: String, subtitle: String, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+        }
+    }
+}
 
 @Composable
 fun SettingsScreen(navController: NavHostController, viewModel: ProfileViewModel = hiltViewModel()) {

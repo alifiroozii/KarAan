@@ -1,47 +1,53 @@
 package com.karvin.app
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.karvin.app.core.designsystem.KarvinTheme
 import com.karvin.app.core.navigation.Routes
 import com.karvin.app.domain.model.AppMode
+import com.karvin.app.feature.auth.LoginScreen
+import com.karvin.app.feature.auth.OtpScreen
 import com.karvin.app.feature.chat.ChatListScreen
 import com.karvin.app.feature.chat.ConversationScreen
-import com.karvin.app.feature.home.ProviderHomeScreen
-import com.karvin.app.feature.home.RequesterHomeScreen
 import com.karvin.app.feature.home.AvailabilityDeclaredScreen
+import com.karvin.app.feature.home.ProviderHomeScreen
 import com.karvin.app.feature.home.ProviderMapScreen
-import com.karvin.app.feature.map.ProviderProfileScreen
-import com.karvin.app.feature.map.RequesterMapScreen
+import com.karvin.app.feature.home.RequesterHomeScreen
 import com.karvin.app.feature.jobs.CreateJobScreen
+import com.karvin.app.feature.jobs.JobApplicationsScreen
+import com.karvin.app.feature.jobs.JobDetailsScreen
+import com.karvin.app.feature.jobs.JobsScreen
+import com.karvin.app.feature.map.ProviderProfileScreen
 import com.karvin.app.feature.map.RequestSentScreen
+import com.karvin.app.feature.map.RequesterMapScreen
 import com.karvin.app.feature.map.WorkAreaScreen
 import com.karvin.app.feature.notifications.NotificationsScreen
 import com.karvin.app.feature.onboarding.LocationExplanationScreen
 import com.karvin.app.feature.onboarding.ModeSelectionScreen
 import com.karvin.app.feature.onboarding.SplashScreen
+import com.karvin.app.feature.payment.WalletScreen
+import com.karvin.app.feature.profile.EditProfileScreen
 import com.karvin.app.feature.profile.ProfileScreen
 import com.karvin.app.feature.profile.ProfileViewModel
 import com.karvin.app.feature.profile.SettingsScreen
+import com.karvin.app.feature.workers.RatingScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -49,12 +55,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { KarvinApp() }
+        val deepLinkRoute = intent?.getStringExtra("deep_link_route")
+        setContent { KarvinApp(deepLinkRoute = deepLinkRoute) }
     }
 }
 
 @Composable
-fun KarvinApp(profileViewModel: ProfileViewModel = hiltViewModel()) {
+fun KarvinApp(
+    deepLinkRoute: String? = null,
+    profileViewModel: ProfileViewModel = hiltViewModel(),
+) {
     val profileState by profileViewModel.state.collectAsStateWithLifecycle()
     val darkTheme = when (profileState.themeMode) {
         "light" -> false
@@ -66,7 +76,20 @@ fun KarvinApp(profileViewModel: ProfileViewModel = hiltViewModel()) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             val navController = rememberNavController()
 
-            NavHost(navController = navController, startDestination = Routes.Splash) {
+            LaunchedEffect(deepLinkRoute) {
+                if (!deepLinkRoute.isNullOrBlank()) {
+                    runCatching { navController.navigate(deepLinkRoute) }
+                }
+            }
+
+            NavHost(
+                navController = navController,
+                startDestination = Routes.Splash,
+                enterTransition = { androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(250)) + androidx.compose.animation.slideInHorizontally(initialOffsetX = { 40 }, animationSpec = androidx.compose.animation.core.tween(250)) },
+                exitTransition = { androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(250)) },
+                popEnterTransition = { androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(250)) },
+                popExitTransition = { androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(250)) + androidx.compose.animation.slideOutHorizontally(targetOffsetX = { 40 }, animationSpec = androidx.compose.animation.core.tween(250)) },
+            ) {
 
                 // ─── Splash ───
                 composable(Routes.Splash) {
@@ -75,6 +98,27 @@ fun KarvinApp(profileViewModel: ProfileViewModel = hiltViewModel()) {
                             popUpTo(Routes.Splash) { inclusive = true }
                         }
                     }
+                }
+
+                // ─── Auth ───
+                composable(Routes.Login) {
+                    LoginScreen(onOtpSent = { phone ->
+                        navController.navigate(Routes.otp(phone))
+                    })
+                }
+
+                composable(
+                    Routes.Otp,
+                    arguments = listOf(navArgument("phone") { type = NavType.StringType; defaultValue = "" }),
+                ) { entry ->
+                    OtpScreen(
+                        phone = entry.arguments?.getString("phone").orEmpty(),
+                        onAuthenticated = {
+                            navController.navigate(Routes.ModeSelection) {
+                                popUpTo(Routes.Login) { inclusive = true }
+                            }
+                        },
+                    )
                 }
 
                 // ─── Mode Selection ───
@@ -128,12 +172,7 @@ fun KarvinApp(profileViewModel: ProfileViewModel = hiltViewModel()) {
                 }
 
                 composable(Routes.RequesterJobs) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        androidx.compose.material3.Text("درخواست‌های من")
-                    }
+                    JobsScreen(navController, employerMode = true)
                 }
 
                 composable(Routes.CreateJob) {
@@ -173,12 +212,7 @@ fun KarvinApp(profileViewModel: ProfileViewModel = hiltViewModel()) {
                 }
 
                 composable(Routes.ProviderJobs) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        androidx.compose.material3.Text("فعالیت‌ها")
-                    }
+                    JobsScreen(navController, employerMode = false)
                 }
 
                 composable(Routes.ProviderWorkArea) {
@@ -187,6 +221,27 @@ fun KarvinApp(profileViewModel: ProfileViewModel = hiltViewModel()) {
 
                 composable(Routes.AvailabilityDeclared) {
                     AvailabilityDeclaredScreen(navController)
+                }
+
+                // ─── Jobs Management Flow ───
+                composable(
+                    Routes.JobDetails,
+                    arguments = listOf(
+                        navArgument("jobId") { type = NavType.StringType },
+                        navArgument("employerMode") { type = NavType.BoolType; defaultValue = false },
+                    ),
+                ) { entry ->
+                    val jobId = entry.arguments?.getString("jobId").orEmpty()
+                    val employerMode = entry.arguments?.getBoolean("employerMode") ?: false
+                    JobDetailsScreen(navController, jobId = jobId, employerMode = employerMode)
+                }
+
+                composable(
+                    Routes.Applications,
+                    arguments = listOf(navArgument("jobId") { type = NavType.StringType }),
+                ) { entry ->
+                    val jobId = entry.arguments?.getString("jobId").orEmpty()
+                    JobApplicationsScreen(navController, jobId = jobId)
                 }
 
                 // ─── Shared screens ───
@@ -218,12 +273,28 @@ fun KarvinApp(profileViewModel: ProfileViewModel = hiltViewModel()) {
                     ProfileScreen(navController)
                 }
 
+                composable(Routes.EditProfile) {
+                    EditProfileScreen(navController)
+                }
+
                 composable(Routes.Notifications) {
                     NotificationsScreen(navController)
                 }
 
                 composable(Routes.Settings) {
                     SettingsScreen(navController)
+                }
+
+                composable(Routes.Wallet) {
+                    WalletScreen(navController)
+                }
+
+                composable(
+                    Routes.Rating,
+                    arguments = listOf(navArgument("targetId") { type = NavType.StringType }),
+                ) { entry ->
+                    val targetId = entry.arguments?.getString("targetId").orEmpty()
+                    RatingScreen(navController, targetId = targetId)
                 }
 
                 composable(

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Briefcase, MessageCircle, Wallet, User, Smartphone, Scale } from "lucide-react";
 import { ReliabilityBadge } from "../ui/domain-displays";
+import { ThemeToggle } from "../common/theme-toggle";
 
 export function WorkerMobileLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -27,17 +28,20 @@ export function WorkerMobileLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col justify-between max-w-md mx-auto border-x border-border shadow-2xl relative pb-20 selection:bg-indigo-500 selection:text-white">
-      <header className="p-4 bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-40 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center">
-            <Smartphone className="w-5 h-5" />
+      <header className="p-3.5 bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-40 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="h-9 w-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center font-bold text-sm shadow-sm">
+            ک
           </div>
           <div>
-            <h1 className="text-sm font-bold text-foreground">کارآن (کارجو)</h1>
-            <p className="text-[10px] text-emerald-400 font-medium">موقعیت آنلاین فعال</p>
+            <h1 className="text-xs font-extrabold text-foreground">کاروین (تکنسین و متخصص)</h1>
+            <p className="text-[9px] text-emerald-400 font-bold">● وضعیت آنلاین فعال</p>
           </div>
         </div>
-        <ReliabilityBadge score={98.5} />
+        <div className="flex items-center gap-2">
+          <ReliabilityBadge score={98.5} />
+          <ThemeToggle />
+        </div>
       </header>
 
       <main className="p-4 flex-1">{children}</main>

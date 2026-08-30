@@ -1,9 +1,11 @@
 package com.karvin.app.core.navigation
 
 object Routes {
-    // Entry
+    // Entry & Auth
     const val Splash = "splash"
     const val ModeSelection = "mode_selection"
+    const val Login = "auth/login"
+    const val Otp = "auth/otp?phone={phone}"
 
     // Requester flow
     const val RequesterLocationExplanation = "requester/location_explanation"
@@ -24,8 +26,10 @@ object Routes {
     const val ProviderProfile = "provider_profile/{providerId}"
     const val Chat = "chat"
     const val Profile = "profile"
+    const val EditProfile = "profile/edit"
     const val Notifications = "notifications"
     const val Settings = "settings"
+    const val Wallet = "wallet"
 
     const val WorkArea = ProviderWorkArea
     const val CreateJob = "employer/create-job"
@@ -36,6 +40,9 @@ object Routes {
     const val Conversation = "conversation/{conversationId}"
     const val Rating = "rating/{targetId}"
 
+    fun login() = Login
+    fun otp(phone: String) = "auth/otp?phone=$phone"
+    fun wallet() = Wallet
     fun jobDetails(id: String, employerMode: Boolean = false) = "job/$id?employerMode=$employerMode"
     fun requestSent(provider: Boolean = false) = "request/sent?provider=$provider"
     fun createJob(workerId: String? = null) = workerId?.let { "employer/create-job?workerId=$it" } ?: CreateJob
@@ -46,28 +53,24 @@ object Routes {
     fun rating(id: String) = "rating/$id"
 }
 
-data class BottomDestination(val route: String, val title: String, val icon: String)
-
+data class BottomDestination(val route: String, val title: String)
 
 fun requesterBottomDestinations(): List<BottomDestination> = listOf(
-    BottomDestination(Routes.RequesterHome, "کاوش", "⌖"),
-    BottomDestination(Routes.RequesterJobs, "سفارش‌ها", "▣"),
-    BottomDestination(Routes.Chat, "پیام‌ها", "◌"),
-    BottomDestination(Routes.Profile, "پروفایل", "♙"),
+    BottomDestination(Routes.RequesterHome, "خانه"),
+    BottomDestination(Routes.RequesterMap, "نقشه"),
+    BottomDestination(Routes.RequesterJobs, "سفارش‌ها"),
+    BottomDestination(Routes.Chat, "پیام‌ها"),
+    BottomDestination(Routes.Profile, "پروفایل"),
 )
 
-fun providerBottomDestinations(): List<BottomDestination> = listOf(
-    BottomDestination(Routes.ProviderMap, "نقشه کار", "⌖"),
-    BottomDestination(Routes.ProviderJobs, "برنامه‌ها", "▣"),
-    BottomDestination(Routes.Chat, "پیام‌ها", "◌"),
-    BottomDestination(Routes.Profile, "پروفایل", "♙"),
-)
-
-// Bottom destinations for the map-first KARVIN home screens (provider = کارجو، requester = متقاضی خدمت)
 fun providerHomeDestinations(): List<BottomDestination> = listOf(
-    BottomDestination(Routes.ProviderHome, "خانه", "⌂"),
-    BottomDestination(Routes.ProviderMap, "نقشه کار", "⌖"),
-    BottomDestination(Routes.Chat, "پیام‌ها", "◌"),
-    BottomDestination(Routes.Profile, "پروفایل", "♙"),
+    BottomDestination(Routes.ProviderHome, "خانه"),
+    BottomDestination(Routes.ProviderMap, "نقشه کار"),
+    BottomDestination(Routes.ProviderJobs, "برنامه‌ها"),
+    BottomDestination(Routes.Chat, "پیام‌ها"),
+    BottomDestination(Routes.Profile, "پروفایل"),
 )
+
+fun providerBottomDestinations(): List<BottomDestination> = providerHomeDestinations()
+
 

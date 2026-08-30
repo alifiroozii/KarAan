@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Handyman
@@ -109,7 +110,8 @@ fun ModeSelectionScreen(onModeSelected: (AppMode) -> Unit) {
         // Requester card
         ModeCard(
             title = "خدمت می‌خواهم",
-            subtitle = "متخصص‌های نزدیک خود را پیدا کنید",
+            subtitle = "متخصص‌های نزدیک خود را پیدا کنید و سفارش دهید",
+            badge = "👨‍💼 ویژه کارفرمایان و متقاضیان",
             icon = Icons.Default.Search,
             accent = MaterialTheme.colorScheme.primary,
             onClick = { onModeSelected(AppMode.REQUESTER) },
@@ -118,7 +120,8 @@ fun ModeSelectionScreen(onModeSelected: (AppMode) -> Unit) {
         // Provider card
         ModeCard(
             title = "خدمت ارائه می‌دهم",
-            subtitle = "درخواست‌های نزدیک خود را ببینید",
+            subtitle = "درخواست‌های فوری اطراف را ببینید و کسب درآمد کنید",
+            badge = "🛠️ ویژه تکنسین‌ها و متخصصان",
             icon = Icons.Default.Handyman,
             accent = com.karvin.app.core.designsystem.ProviderAmber,
             onClick = { onModeSelected(AppMode.PROVIDER) },
@@ -138,6 +141,7 @@ fun ModeSelectionScreen(onModeSelected: (AppMode) -> Unit) {
 private fun ModeCard(
     title: String,
     subtitle: String,
+    badge: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     accent: Color,
     onClick: () -> Unit,
@@ -147,30 +151,43 @@ private fun ModeCard(
         modifier = Modifier
             .fillMaxWidth()
             .semantics { contentDescription = title },
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, accent.copy(alpha = .18f)),
+        border = BorderStroke(1.dp, accent.copy(alpha = .25f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
     ) {
-        Row(
-            Modifier.padding(22.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = accent.copy(alpha = .14f),
-                modifier = Modifier.size(64.dp),
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(30.dp))
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = accent.copy(alpha = .14f),
+                    modifier = Modifier.size(60.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(28.dp))
+                    }
                 }
+                Spacer(Modifier.width(16.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
             }
-            Spacer(Modifier.width(18.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = accent.copy(alpha = .10f),
+            ) {
+                Text(
+                    badge,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = accent,
+                    fontWeight = FontWeight.Bold,
+                )
             }
-            Text("‹", style = MaterialTheme.typography.headlineSmall, color = accent)
         }
     }
 }

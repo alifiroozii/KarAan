@@ -1,5 +1,6 @@
 package com.karvin.app.feature.home
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -22,9 +23,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -201,14 +208,14 @@ fun ProviderHomeScreen(
             item {
                 AppTopBar("خانه", actions = {
                     IconButton(onClick = { navController.navigate(Routes.Notifications) }) {
-                        Text("🔔", fontSize = 20.sp)
+                        Icon(Icons.Default.Notifications, contentDescription = "اعلان‌ها", tint = MaterialTheme.colorScheme.primary)
                     }
                 })
             }
 
         item {
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text("سلام 👋", style = MaterialTheme.typography.headlineSmall)
+                Text("سلام", style = MaterialTheme.typography.headlineSmall)
                 Text(
                     "درخواست‌های نزدیک را ببین و اعلام آمادگی کن.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -260,12 +267,22 @@ fun ProviderHomeScreen(
             }
         }
 
+        // Active Job Stepper Tracking Card
+        item {
+            ActiveJobStepperCard(navController = navController)
+        }
+
+        // Weekly Earnings Chart Card
+        item {
+            WeeklyEarningsChart()
+        }
+
         // Nearby requests header
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("درخواست‌های نزدیک", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                Text("درخواست‌های نزدیک", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 TextButton(onClick = { navController.navigate(Routes.ProviderMap) }) {
-                    Text("مشاهده روی نقشه", color = MaterialTheme.colorScheme.primary)
+                    Text("مشاهده روی نقشه", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -274,7 +291,10 @@ fun ProviderHomeScreen(
         items(state.requests.take(5), key = { it.id }) { request ->
             Card(
                 onClick = { navController.navigate(Routes.ProviderMap) },
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
             ) {
                 Row(
                     Modifier.padding(14.dp),
@@ -282,21 +302,22 @@ fun ProviderHomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(14.dp),
                         color = if (request.isUrgent) MaterialTheme.colorScheme.secondaryContainer
                         else MaterialTheme.colorScheme.primaryContainer,
                     ) {
                         Text(
                             request.title.take(1),
-                            Modifier.padding(10.dp),
+                            Modifier.padding(12.dp),
                             style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
                             color = if (request.isUrgent) MaterialTheme.colorScheme.onSecondaryContainer
                             else MaterialTheme.colorScheme.primary,
                         )
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(request.title, style = MaterialTheme.typography.titleMedium)
+                            Text(request.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             if (request.isUrgent) {
                                 Spacer(Modifier.width(6.dp))
                                 Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(6.dp)) {
@@ -307,7 +328,7 @@ fun ProviderHomeScreen(
                         Text(request.category.title, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                     }
                     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text(request.budgetLabel, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                        Text(request.budgetLabel, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                         Text(request.createdAt, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -320,18 +341,152 @@ fun ProviderHomeScreen(
 }
 
 @Composable
+private fun ActiveJobStepperCard(navController: NavHostController) {
+    var activeStep by remember { mutableStateOf(1) } // 0: accepted, 1: on the way, 2: arrived, 3: completed
+    val steps = listOf("پذیرش", "در مسیر", "رسیدن", "اتمام")
+
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text("سفارش فعال جاری", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text("تعمیر جعبه فیوز · سعادت‌آباد", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(8.dp)) {
+                    Text("۳۵۰,۰۰۰ تومان", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+
+            // Stepper progress indicator
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                steps.forEachIndexed { index, title ->
+                    val isDone = index <= activeStep
+                    val isCurrent = index == activeStep
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(if (isDone) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (isDone && index < activeStep) {
+                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            } else {
+                                Text((index + 1).toString().toPersianDigits(), color = if (isDone) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Text(title, style = MaterialTheme.typography.labelSmall, color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal)
+                    }
+                    if (index < steps.size - 1) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(2.dp)
+                                .padding(horizontal = 4.dp)
+                                .background(if (index < activeStep) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+                        )
+                    }
+                }
+            }
+
+            // Action button for next step
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = { if (activeStep < 3) activeStep++ else activeStep = 0 },
+                    modifier = Modifier.weight(1f).height(44.dp),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Text(
+                        when (activeStep) {
+                            0 -> "🚗 اعلام حرکت (در مسیر)"
+                            1 -> "📍 رسیدن به محل کارفرما"
+                            2 -> "⚙️ پایان کار و دریافت دستمزد"
+                            else -> "✅ کار تکمیل شد (شروع مجدد)"
+                        },
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+                IconButton(onClick = { navController.navigate(Routes.Chat) }) {
+                    Icon(Icons.Default.ChatBubbleOutline, contentDescription = "چت با کارفرما", tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeeklyEarningsChart() {
+    val days = listOf("ش", "ی", "د", "س", "چ", "پ", "ج")
+    val values = listOf(450, 680, 520, 850, 920, 1100, 300) // in thousands Toman
+    val maxVal = values.maxOrNull() ?: 1000
+
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text("درآمد این هفته", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text("مجموع: ۴,۸۲۰,۰۰۰ تومان", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                }
+                Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(8.dp)) {
+                    Text("+۲۴٪ رشد", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                }
+            }
+
+            // Interactive Bar Chart
+            Row(
+                Modifier.fillMaxWidth().height(100.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                days.forEachIndexed { index, day ->
+                    val value = values[index]
+                    val heightFraction = value.toFloat() / maxVal.toFloat()
+                    val isPeak = value == maxVal
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom, modifier = Modifier.weight(1f)) {
+                        Box(
+                            modifier = Modifier
+                                .width(22.dp)
+                                .height((80 * heightFraction).dp)
+                                .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                .background(if (isPeak) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(day, style = MaterialTheme.typography.labelSmall, color = if (isPeak) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = if (isPeak) FontWeight.Bold else FontWeight.Normal)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun StatBox(value: Int, label: String, modifier: Modifier) {
     Card(
         modifier,
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
-            Modifier.padding(12.dp),
+            Modifier.padding(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(value.toString().toPersianDigits(), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+            Text(value.toString().toPersianDigits(), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -371,7 +526,7 @@ fun ProviderMapScreen(
                     item {
                         Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text("⌁", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.secondary)
+                                Icon(Icons.Default.SearchOff, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(48.dp))
                                 Text("درخواستی در این محدوده پیدا نشد", style = MaterialTheme.typography.titleMedium)
                                 OutlinedButton(onClick = { viewModel.updateFilter(state.filter.copy(distanceFilter = DistanceFilter.ALL)) }) { Text("افزایش محدوده") }
                             }
@@ -654,10 +809,10 @@ private fun RequestBottomSheet(
             }
 
             // Info rows
-            SheetInfoRow("💰", "بودجه", request.budgetLabel)
-            SheetInfoRow("📍", "زمان", request.scheduledTime)
-            SheetInfoRow("📍", "محل", request.approximateAddress)
-            SheetInfoRow("⏰", "ثبت شده", request.createdAt)
+            SheetInfoRow(Icons.Default.Payments, "بودجه", request.budgetLabel)
+            SheetInfoRow(Icons.Default.Schedule, "زمان", request.scheduledTime)
+            SheetInfoRow(Icons.Default.LocationOn, "محل", request.approximateAddress)
+            SheetInfoRow(Icons.Default.AccessTime, "ثبت شده", request.createdAt)
 
             // Description
             Text("توضیحات", style = MaterialTheme.typography.titleMedium)
@@ -698,9 +853,9 @@ private fun RequestBottomSheet(
 }
 
 @Composable
-private fun SheetInfoRow(emoji: String, label: String, value: String) {
+private fun SheetInfoRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(emoji, fontSize = 16.sp)
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
         Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
         Text(value, style = MaterialTheme.typography.titleMedium)
     }
@@ -778,14 +933,14 @@ fun RequesterHomeScreen(
             item {
                 AppTopBar("خانه", actions = {
                     IconButton(onClick = { navController.navigate(Routes.Notifications) }) {
-                        Text("🔔", fontSize = 20.sp)
+                        Icon(Icons.Default.Notifications, contentDescription = "اعلان‌ها", tint = MaterialTheme.colorScheme.primary)
                     }
                 })
             }
 
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text("سلام 👋", style = MaterialTheme.typography.headlineSmall)
+                    Text("سلام", style = MaterialTheme.typography.headlineSmall)
                     Text(
                         "چه خدمتی نیاز دارید؟",
                         style = MaterialTheme.typography.bodyMedium,
@@ -809,7 +964,7 @@ fun RequesterHomeScreen(
                         Text("جستجوی متخصص", color = Color.White, style = MaterialTheme.typography.titleLarge)
                         Text("نزدیک‌ترین متخصص را روی نقشه پیدا کنید.", color = Color.White.copy(alpha = .82f), style = MaterialTheme.typography.bodyMedium)
                     }
-                    Text("⌖", color = Color.White, style = MaterialTheme.typography.displaySmall)
+                    Icon(Icons.Default.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
                 }
             }
         }
