@@ -19,6 +19,9 @@ interface JobDao {
     @Query("SELECT * FROM jobs WHERE id = :jobId")
     fun getJobById(jobId: String): Flow<JobEntity?>
 
+    @Query("SELECT * FROM jobs WHERE id = :jobId LIMIT 1")
+    suspend fun getJobByIdDirect(jobId: String): JobEntity?
+
     @Query("SELECT * FROM jobs WHERE employerId = :employerId ORDER BY createdAt DESC")
     fun getEmployerJobs(employerId: String): Flow<List<JobEntity>>
 
@@ -36,6 +39,9 @@ interface JobDao {
 
     @Query("UPDATE jobs SET hasApplied = :hasApplied WHERE id = :jobId")
     suspend fun updateJobAppliedStatus(jobId: String, hasApplied: Boolean)
+
+    @Query("UPDATE jobs SET hasApplied = :hasApplied WHERE id = :jobId")
+    suspend fun updateApplicationStatus(jobId: String, hasApplied: Boolean)
 
     @Query("DELETE FROM jobs")
     suspend fun clearJobs()

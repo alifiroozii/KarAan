@@ -14,6 +14,15 @@ interface JobApplicationDao {
     @Query("SELECT * FROM job_applications WHERE workerId = :workerId ORDER BY appliedAt DESC")
     fun getWorkerApplications(workerId: String): Flow<List<JobApplicationEntity>>
 
+    @Query("SELECT * FROM job_applications WHERE workerId = :workerId ORDER BY appliedAt DESC")
+    fun getApplicationsForWorker(workerId: String): Flow<List<JobApplicationEntity>>
+
+    @Query("SELECT * FROM job_applications WHERE jobId = :jobId ORDER BY appliedAt DESC")
+    fun getApplicationsForJob(jobId: String): Flow<List<JobApplicationEntity>>
+
+    @Query("SELECT * FROM job_applications WHERE employerId = :employerId ORDER BY appliedAt DESC")
+    fun getApplicationsForEmployer(employerId: String): Flow<List<JobApplicationEntity>>
+
     @Query("SELECT * FROM job_applications WHERE employerId = :employerId AND (:jobId IS NULL OR jobId = :jobId) ORDER BY appliedAt DESC")
     fun getEmployerApplications(employerId: String, jobId: String?): Flow<List<JobApplicationEntity>>
 
@@ -34,4 +43,10 @@ interface JobApplicationDao {
 
     @Query("UPDATE job_applications SET status = :status WHERE id = :applicationId")
     suspend fun updateStatus(applicationId: String, status: ApplicationStatus)
+
+    @Query("UPDATE job_applications SET status = :status WHERE id = :applicationId")
+    suspend fun updateApplicationStatus(applicationId: String, status: ApplicationStatus)
+
+    @Query("DELETE FROM job_applications WHERE id = :applicationId")
+    suspend fun deleteApplication(applicationId: String)
 }
