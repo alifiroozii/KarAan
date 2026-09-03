@@ -66,7 +66,9 @@ fun WalletScreen(
     var withdraw by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    KarvinScaffold(navController, UserRole.REQUESTER, content = { padding ->
+    androidx.compose.material3.Scaffold(
+        modifier = Modifier.fillMaxSize(),
+    ) { padding ->
         Column(
             Modifier
                 .fillMaxSize()
@@ -246,6 +248,6 @@ fun WalletScreen(
                 item { Spacer(Modifier.height(24.dp)) }
             }
         }
-    })
+    }
 }
 

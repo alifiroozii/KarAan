@@ -22,6 +22,7 @@ import androidx.navigation.navArgument
 import com.karvin.app.core.designsystem.KarvinTheme
 import com.karvin.app.core.navigation.Routes
 import com.karvin.app.domain.model.AppMode
+import com.karvin.app.domain.model.UserRole
 import com.karvin.app.feature.auth.LoginScreen
 import com.karvin.app.feature.auth.OtpScreen
 import com.karvin.app.feature.chat.ChatListScreen
@@ -266,7 +267,8 @@ fun KarvinApp(
                 }
 
                 composable(Routes.Chat) {
-                    ChatListScreen(navController)
+                    val activeRole = profileState.user?.role ?: UserRole.REQUESTER
+                    ChatListScreen(navController, role = activeRole)
                 }
 
                 composable(Routes.Profile) {

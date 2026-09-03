@@ -20,7 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Star
@@ -74,7 +74,7 @@ fun ProviderProfileScreen(
                 onBack = { navController.popBackStack() },
                 actions = {
                     IconButton(onClick = { navController.navigate(Routes.conversation("conv_${provider.id}")) }) {
-                        Icon(Icons.Default.ChatBubbleOutline, contentDescription = "گفت‌وگو", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = "گفت‌وگو", tint = MaterialTheme.colorScheme.primary)
                     }
                 },
             )

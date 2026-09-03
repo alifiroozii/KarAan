@@ -1,11 +1,11 @@
 package com.karvin.app
 
 import android.app.Application
+import androidx.work.Configuration
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.karvin.app.core.sync.KarvinSyncWorker
-import com.karvin.app.core.logging.CrashReportingTree
 import com.karvin.app.core.logging.KarvinExceptionHandler
 import timber.log.Timber
 import dagger.hilt.android.HiltAndroidApp
@@ -15,8 +15,11 @@ import java.util.concurrent.TimeUnit
 class KarvinApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree()) else Timber.plant(CrashReportingTree())
+        Timber.plant(Timber.DebugTree())
         Thread.setDefaultUncaughtExceptionHandler(KarvinExceptionHandler(this))
+        if (!WorkManager.isInitialized()) {
+            WorkManager.initialize(this, Configuration.Builder().build())
+        }
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "karvin-cache-sync",
             ExistingPeriodicWorkPolicy.KEEP,

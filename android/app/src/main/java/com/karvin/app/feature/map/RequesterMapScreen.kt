@@ -90,6 +90,7 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.MapEffect
 import com.karvin.app.core.designsystem.KarvinHomeScaffold
 import com.karvin.app.core.designsystem.OnlinePill
 import com.karvin.app.core.designsystem.PrimaryButton
@@ -195,6 +196,7 @@ fun RequesterMapScreen(
     var showFilters by remember { mutableStateOf(false) }
     var showPermissionDialog by remember { mutableStateOf(false) }
     var showLocationExplanation by remember { mutableStateOf(false) }
+    var showMapKeyWarning by remember { mutableStateOf(false) }
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(
             LatLng(state.userPoint.latitude, state.userPoint.longitude),
@@ -204,7 +206,7 @@ fun RequesterMapScreen(
 
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { /* Permission result handled by LocationTracker */ }
+    ) { /* The demo map continues to work without location access. */ }
 
     // Category chips from FakeData
     val categories = remember { FakeData.categories.take(6) }
@@ -242,6 +244,7 @@ fun RequesterMapScreen(
         } else {
             // Map view
             RequesterGoogleMap(
+                onMapReady = { showMapKeyWarning = !it },
                 state = state,
                 cameraPositionState = cameraPositionState,
                 onProviderClick = { viewModel.selectProvider(it) },
@@ -352,17 +355,6 @@ fun RequesterMapScreen(
             }
         }
 
-        // Radius circle on map
-        if (!listMode && state.filter.distanceFilter != DistanceFilter.ALL) {
-            Circle(
-                center = LatLng(state.userPoint.latitude, state.userPoint.longitude),
-                radius = state.filter.distanceFilter.maxKm!! * 1000.0,
-                strokeColor = MaterialTheme.colorScheme.primary,
-                strokeWidth = 3f,
-                fillColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-            )
-        }
-
         // Loading indicator
         if (state.loading) {
             Column(
@@ -376,6 +368,15 @@ fun RequesterMapScreen(
         }
     }
 
+    }
+
+    if (showMapKeyWarning) {
+        AlertDialog(
+            onDismissRequest = { showMapKeyWarning = false },
+            title = { Text("حالت نمایشی نقشه") },
+            text = { Text("کلید Google Maps روی این نسخه تنظیم نشده است؛ موقعیت‌ها به‌صورت نمایشی نمایش داده می‌شوند و برنامه نباید بسته شود.") },
+            confirmButton = { TextButton(onClick = { showMapKeyWarning = false }) { Text("متوجه شدم") } },
+        )
     }
 
     // Location explanation dialog
@@ -443,9 +444,11 @@ fun RequesterMapScreen(
 
 // ──────────────────────── Google Map ────────────────────────
 
+@OptIn(com.google.maps.android.compose.MapsComposeExperimentalApi::class)
 @Composable
 private fun BoxScope.RequesterGoogleMap(
     state: RequesterMapUiState,
+    onMapReady: (Boolean) -> Unit,
     cameraPositionState: CameraPositionState,
     onProviderClick: (NearbyProvider) -> Unit,
     onMyLocation: () -> Unit,
@@ -455,8 +458,22 @@ private fun BoxScope.RequesterGoogleMap(
         Modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState,
         properties = MapProperties(isMyLocationEnabled = false),
-        uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false),
+        uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false, compassEnabled = true, mapToolbarEnabled = false),
     ) {
+        MapEffect(Unit) { googleMap ->
+            onMapReady(com.karvin.app.BuildConfig.MAPS_API_KEY.isNotBlank())
+            googleMap.uiSettings.isRotateGesturesEnabled = false
+            googleMap.uiSettings.isTiltGesturesEnabled = false
+        }
+        state.filter.distanceFilter.maxKm?.let { radiusKm ->
+            Circle(
+                center = LatLng(state.userPoint.latitude, state.userPoint.longitude),
+                radius = radiusKm * 1000.0,
+                strokeColor = MaterialTheme.colorScheme.primary,
+                strokeWidth = 3f,
+                fillColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+            )
+        }
         // Provider markers
         state.filteredProviders.forEach { provider ->
             Marker(

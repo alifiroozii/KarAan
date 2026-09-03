@@ -43,12 +43,12 @@ import java.util.Locale
 @Composable
 fun NotificationsScreen(navController: NavHostController, viewModel: NotificationsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    KarvinScaffold(navController, UserRole.PROVIDER, content = { padding ->
+    androidx.compose.material3.Scaffold(Modifier.fillMaxSize()) { padding ->
     Column(Modifier.fillMaxSize().padding(padding)) {
         AppTopBar("اعلان‌ها", onBack = { navController.popBackStack() }, actions = { TextButton(onClick = viewModel::markAllRead) { Text("خواندن همه") } })
         when { state.loading -> LoadingState(); state.error != null -> ErrorState(state.error.orEmpty()) { }; state.notifications.isEmpty() -> EmptyState("اعلان جدیدی ندارید", "تغییرات مهم حساب و درخواست‌ها اینجا نمایش داده می‌شود."); else -> LazyColumn(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { items(state.notifications, key = { it.id }) { notification -> NotificationCard(notification.isRead, notification.type, notification.title, notification.message, notification.createdAt.format(DateTimeFormatter.ofPattern("MM/dd - HH:mm", Locale.US)).toPersianDigits()) { viewModel.markRead(notification.id) } } } }
     }
-    })
+    }
 }
 
 @Composable

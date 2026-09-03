@@ -7,7 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MoreHoriz
@@ -100,7 +100,7 @@ private fun DestinationIcon(destination: BottomDestination) {
         Routes.ProviderHome, Routes.RequesterHome -> Icons.Default.Home
         Routes.ProviderJobs, Routes.RequesterJobs -> if (destination.route == Routes.ProviderJobs) Icons.Default.WorkOutline else Icons.Default.Business
         Routes.ProviderMap, Routes.RequesterMap -> Icons.Default.Map
-        Routes.Chat -> Icons.Default.ChatBubbleOutline
+        Routes.Chat -> Icons.Outlined.ChatBubbleOutline
         Routes.Profile -> Icons.Default.Person
         else -> Icons.Default.MoreHoriz
     }
@@ -124,6 +124,7 @@ fun KarvinFab(label: String, onClick: () -> Unit) {
 fun KarvinHomeScaffold(
     navController: NavHostController,
     providerMode: Boolean,
+    floatingActionButton: (@Composable () -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -133,6 +134,7 @@ fun KarvinHomeScaffold(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        floatingActionButton = { floatingActionButton?.invoke() },
         bottomBar = {
             Surface(
                 shadowElevation = 8.dp,

@@ -18,7 +18,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +43,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -98,7 +104,7 @@ fun ConversationScreen(
                 onBack = { navController.popBackStack() },
                 actions = {
                     IconButton(onClick = { }) {
-                        Icon(androidx.compose.material.icons.filled.Call, contentDescription = "تماس تلفنی", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Call, contentDescription = "تماس تلفنی", tint = MaterialTheme.colorScheme.primary)
                     }
                 },
             )
@@ -115,7 +121,7 @@ fun ConversationScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .androidx.compose.foundation.horizontalScroll(androidx.compose.foundation.rememberScrollState())
+                            .horizontalScroll(rememberScrollState())
                             .padding(horizontal = 12.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
@@ -158,7 +164,7 @@ fun ConversationScreen(
                                 .background(MaterialTheme.colorScheme.primaryContainer),
                         ) {
                             Icon(
-                                androidx.compose.material.icons.filled.LocationOn,
+                                Icons.Default.LocationOn,
                                 contentDescription = "ارسال موقعیت",
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(22.dp),

@@ -19,8 +19,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.AssistChip
@@ -112,7 +114,7 @@ fun AppTopBar(
     ) {
         if (onBack != null) {
             IconButton(onClick = onBack, modifier = Modifier.semantics { contentDescription = "بازگشت" }) {
-                Icon(Icons.Rounded.ArrowBack, contentDescription = "بازگشت")
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "بازگشت")
             }
             Spacer(Modifier.width(4.dp))
         }

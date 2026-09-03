@@ -26,13 +26,16 @@ class ChatListViewModel @Inject constructor(private val repository: ChatReposito
     } } } }
 }
 
-data class ConversationUiState(val loading: Boolean = true, val messages: List<ChatMessage> = emptyList(), val sending: Boolean = false, val error: String? = null)
+data class ConversationUiState(val loading: Boolean = true, val conversation: Conversation? = null, val messages: List<ChatMessage> = emptyList(), val sending: Boolean = false, val error: String? = null)
 
 @HiltViewModel
 class ConversationViewModel @Inject constructor(private val repository: ChatRepository) : ViewModel() {
     private val _state = MutableStateFlow(ConversationUiState())
     val state: StateFlow<ConversationUiState> = _state.asStateFlow()
-    fun load(id: String) { viewModelScope.launch { repository.observeMessages(id).collect { result -> _state.value = when (result) {
+    fun load(id: String) { viewModelScope.launch { repository.observeConversations().collect { result -> when (result) {
+        is AppResult.Success -> { val conv = result.data.find { it.id == id }; _state.value = _state.value.copy(conversation = conv) }
+        else -> {}
+    } } }; viewModelScope.launch { repository.observeMessages(id).collect { result -> _state.value = when (result) {
         is AppResult.Success -> _state.value.copy(loading = false, messages = result.data, error = null)
         is AppResult.Error -> _state.value.copy(loading = false, error = result.message)
         AppResult.Loading -> _state.value.copy(loading = true)

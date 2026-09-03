@@ -23,15 +23,28 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CleaningServices
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.FormatPaint
+import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Yard
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -84,9 +97,12 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.MapEffect
 import com.karvin.app.core.designsystem.AppTopBar
+import com.karvin.app.core.designsystem.Avatar
 import com.karvin.app.core.designsystem.KarvinFab
 import com.karvin.app.core.designsystem.KarvinHomeScaffold
+import com.karvin.app.core.designsystem.KarvinLogo
 import com.karvin.app.core.designsystem.OnlinePill
 import com.karvin.app.core.designsystem.PrimaryButton
 import com.karvin.app.core.designsystem.RatingLine
@@ -414,7 +430,7 @@ private fun ActiveJobStepperCard(navController: NavHostController) {
                     )
                 }
                 IconButton(onClick = { navController.navigate(Routes.Chat) }) {
-                    Icon(Icons.Default.ChatBubbleOutline, contentDescription = "چت با کارفرما", tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = "چت با کارفرما", tint = MaterialTheme.colorScheme.primary)
                 }
             }
         }
@@ -502,6 +518,7 @@ fun ProviderMapScreen(
 ) {
     val state by viewModel.mapState.collectAsStateWithLifecycle()
     var listMode by remember { mutableStateOf(false) }
+    var showMapKeyWarning by remember { mutableStateOf(false) }
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(
             LatLng(state.userPoint.latitude, state.userPoint.longitude),
@@ -543,6 +560,7 @@ fun ProviderMapScreen(
         } else {
             ProviderGoogleMap(
                 state = state,
+                onMapReady = { showMapKeyWarning = !it },
                 cameraPositionState = cameraPositionState,
                 onRequestClick = { viewModel.selectRequest(it) },
                 onMyLocation = {},
@@ -646,7 +664,16 @@ fun ProviderMapScreen(
         }
     }    }
 
-        // Request bottom sheet
+        if (showMapKeyWarning) {
+        AlertDialog(
+            onDismissRequest = { showMapKeyWarning = false },
+            title = { Text("حالت نمایشی نقشه") },
+            text = { Text("کلید Google Maps تنظیم نشده است؛ اطلاعات به‌صورت نمایشی نمایش داده می‌شوند.") },
+            confirmButton = { TextButton(onClick = { showMapKeyWarning = false }) { Text("متوجه شدم") } },
+        )
+    }
+
+    // Request bottom sheet
 
     state.selectedRequest?.let { request ->
         RequestBottomSheet(
@@ -662,9 +689,11 @@ fun ProviderMapScreen(
 
 // ──────────────────────── Provider Google Map ────────────────────────
 
+@OptIn(com.google.maps.android.compose.MapsComposeExperimentalApi::class)
 @Composable
 private fun BoxScope.ProviderGoogleMap(
     state: ProviderMapUiState,
+    onMapReady: (Boolean) -> Unit,
     cameraPositionState: CameraPositionState,
     onRequestClick: (NearbyServiceRequest) -> Unit,
     onMyLocation: () -> Unit,
@@ -674,8 +703,13 @@ private fun BoxScope.ProviderGoogleMap(
         Modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState,
         properties = MapProperties(isMyLocationEnabled = false),
-        uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false),
+        uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false, compassEnabled = true, mapToolbarEnabled = false),
     ) {
+        MapEffect(Unit) { googleMap ->
+            onMapReady(com.karvin.app.BuildConfig.MAPS_API_KEY.isNotBlank())
+            googleMap.uiSettings.isRotateGesturesEnabled = false
+            googleMap.uiSettings.isTiltGesturesEnabled = false
+        }
         state.filteredRequests.forEach { request ->
             Marker(
                 state = MarkerState(LatLng(request.point.latitude, request.point.longitude)),
@@ -915,6 +949,40 @@ fun AvailabilityDeclaredScreen(navController: NavHostController) {
 
 // ──────────────────────── Requester Home Screen ────────────────────────
 
+data class ActiveServiceOrder(
+    val id: String,
+    val title: String,
+    val category: String,
+    val providerName: String,
+    val providerRating: Double,
+    val statusText: String,
+    val etaMinutes: Int,
+    val costToman: Long,
+)
+
+data class RequesterHomeUiState(
+    val activeJobs: Int = 2,
+    val completedJobs: Int = 7,
+    val locationName: String = "تهران، سعادت‌آباد",
+    val activeService: ActiveServiceOrder? = ActiveServiceOrder(
+        id = "srv-101",
+        title = "تعمیر پکیج و سیستم گرمایشی",
+        category = "تاسیسات و لوله‌کشی",
+        providerName = "علیرضا مرادی",
+        providerRating = 4.9,
+        statusText = "متخصص در مسیر محل شما است",
+        etaMinutes = 12,
+        costToman = 350000L,
+    ),
+    val topProviders: List<com.karvin.app.domain.model.User> = FakeData.workers.take(4),
+)
+
+@HiltViewModel
+class RequesterHomeViewModel @Inject constructor() : ViewModel() {
+    private val _state = MutableStateFlow(RequesterHomeUiState())
+    val state: StateFlow<RequesterHomeUiState> = _state.asStateFlow()
+}
+
 @Composable
 fun RequesterHomeScreen(
     navController: NavHostController,
@@ -922,7 +990,13 @@ fun RequesterHomeScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    KarvinHomeScaffold(navController, providerMode = false) { padding ->
+    KarvinHomeScaffold(
+        navController = navController,
+        providerMode = false,
+        floatingActionButton = {
+            KarvinFab("ثبت خدمت جدید") { navController.navigate(Routes.CreateJob) }
+        },
+    ) { padding ->
         LazyColumn(
             Modifier
                 .fillMaxSize()
@@ -930,99 +1004,367 @@ fun RequesterHomeScreen(
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // ─── Top App Bar ───
             item {
-                AppTopBar("خانه", actions = {
-                    IconButton(onClick = { navController.navigate(Routes.Notifications) }) {
-                        Icon(Icons.Default.Notifications, contentDescription = "اعلان‌ها", tint = MaterialTheme.colorScheme.primary)
-                    }
-                })
-            }
-
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text("سلام", style = MaterialTheme.typography.headlineSmall)
-                    Text(
-                        "چه خدمتی نیاز دارید؟",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-        // Search card
-        item {
-            Card(
-                onClick = { navController.navigate(Routes.RequesterMap) },
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(20.dp),
-            ) {
                 Row(
-                    Modifier.padding(20.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("جستجوی متخصص", color = Color.White, style = MaterialTheme.typography.titleLarge)
-                        Text("نزدیک‌ترین متخصص را روی نقشه پیدا کنید.", color = Color.White.copy(alpha = .82f), style = MaterialTheme.typography.bodyMedium)
+                    KarvinLogo()
+                    Spacer(Modifier.weight(1f))
+                    Box {
+                        IconButton(onClick = { navController.navigate(Routes.Notifications) }) {
+                            Icon(Icons.Default.Notifications, contentDescription = "اعلان‌ها", tint = MaterialTheme.colorScheme.onSurface)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                                .align(Alignment.TopEnd),
+                        )
                     }
-                    Icon(Icons.Default.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
+                    IconButton(onClick = { navController.navigate(Routes.Profile) }) {
+                        Icon(Icons.Default.Person, contentDescription = "پروفایل", tint = MaterialTheme.colorScheme.primary)
+                    }
                 }
             }
-        }
 
-        // Categories
-        item { Text("دسته‌بندی‌ها", style = MaterialTheme.typography.titleLarge) }
-        item {
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FakeData.categories.take(8).forEach { category ->
+            // ─── Greeting & Location Header ───
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("سلام، خوش آمدید 👋", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Surface(
                         onClick = { navController.navigate(Routes.RequesterMap) },
-                        shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                     ) {
-                        Column(
-                            Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        Row(
+                            Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Text(category.icon, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-                            Text(category.title, style = MaterialTheme.typography.labelLarge)
+                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                            Text(state.locationName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+                            Text("· تغییر", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
-        }
 
-        // Stats
-        item { Text("خلاصه", style = MaterialTheme.typography.titleLarge) }
-        item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Card(Modifier.weight(1f), shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-                    Column(Modifier.padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(state.activeJobs.toString().toPersianDigits(), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-                        Text("درخواست فعال", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                Card(Modifier.weight(1f), shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-                    Column(Modifier.padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(state.completedJobs.toString().toPersianDigits(), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.secondary)
-                        Text("تکمیل شده", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // ─── Quick Search Bar Card ───
+            item {
+                Card(
+                    onClick = { navController.navigate(Routes.RequesterMap) },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                        Text(
+                            "جستجوی خدمت یا متخصص (برق، لوله‌کشی، نظافت...)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                 }
             }
-        }
+
+            // ─── Hero Action Banner ───
+            item {
+                Card(
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                ) {
+                    Column(
+                        Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.Top) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("نیاز فوری به متخصص دارید؟", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                Text(
+                                    "ثبت درخواست در ۱ دقیقه، با برآورد شفاف قیمت و اعزام سریع نزدیک‌ترین نیروهای تایید شده.",
+                                    color = Color.White.copy(alpha = 0.85f),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    lineHeight = 22.sp,
+                                )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color.White.copy(alpha = 0.2f),
+                                modifier = Modifier.size(48.dp),
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
+                                }
+                            }
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Button(
+                                onClick = { navController.navigate(Routes.CreateJob) },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.White,
+                                    contentColor = MaterialTheme.colorScheme.primary,
+                                ),
+                                modifier = Modifier.weight(1f).height(44.dp),
+                            ) {
+                                Text("+ ثبت خدمت جدید", fontWeight = FontWeight.Bold)
+                            }
+                            OutlinedButton(
+                                onClick = { navController.navigate(Routes.RequesterMap) },
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.7f)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                                modifier = Modifier.weight(1f).height(44.dp),
+                            ) {
+                                Text("رادار روی نقشه", fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ─── Active Ongoing Order Tracker ───
+            state.activeService?.let { activeOrder ->
+                item {
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    ) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text("سفارش فعال شما", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary)
+                                Surface(
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    shape = RoundedCornerShape(8.dp),
+                                ) {
+                                    Text(
+                                        "🚗 در مسیر اعزام",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    )
+                                }
+                            }
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    Text(activeOrder.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        "متخصص: ${activeOrder.providerName} · امتیاز ${activeOrder.providerRating.toString().toPersianDigits()} ⭐",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Text(
+                                        "⏱️ تخمین رسیدن: ${activeOrder.etaMinutes.toString().toPersianDigits()} دقیقه",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(
+                                    onClick = { navController.navigate(Routes.Chat) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.weight(1f).height(40.dp),
+                                ) {
+                                    Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("گفت‌وگو در چت")
+                                }
+                                Button(
+                                    onClick = { navController.navigate(Routes.RequesterMap) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                                    modifier = Modifier.weight(1f).height(40.dp),
+                                ) {
+                                    Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("مشاهده موقعیت")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ─── Service Categories Grid ───
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("دسته‌بندی خدمات", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    TextButton(onClick = { navController.navigate(Routes.RequesterMap) }) {
+                        Text("مشاهده همه", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+
+            item {
+                val primaryCategories = listOf(
+                    Triple("برق‌کاری", "⚡", Color(0xFFF59E0B)),
+                    Triple("لوله‌کشی", "🔧", Color(0xFF0284C7)),
+                    Triple("نظافت", "🧹", Color(0xFF10B981)),
+                    Triple("تعمیرات", "❄️", Color(0xFF6366F1)),
+                    Triple("باربری", "📦", Color(0xFFF97316)),
+                    Triple("امداد خودرو", "🚗", Color(0xFFEF4444)),
+                    Triple("نقاشی", "🎨", Color(0xFF8B5CF6)),
+                    Triple("باغبانی", "🌿", Color(0xFF059669)),
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    primaryCategories.chunked(4).forEach { rowItems ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            rowItems.forEach { (catTitle, catIcon, accentColor) ->
+                                Card(
+                                    onClick = { navController.navigate(Routes.RequesterMap) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = accentColor.copy(alpha = 0.12f),
+                                            modifier = Modifier.size(42.dp),
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(catIcon, fontSize = 20.sp)
+                                            }
+                                        }
+                                        Text(
+                                            catTitle,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            textAlign = TextAlign.Center,
+                                            maxLines = 1,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ─── Top Recommended Specialists ───
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("متخصصان برتر نزدیک شما", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    TextButton(onClick = { navController.navigate(Routes.RequesterMap) }) {
+                        Text("روی نقشه", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+
+            items(state.topProviders, key = { it.id }) { provider ->
+                Card(
+                    onClick = { navController.navigate(Routes.providerProfile(provider.id)) },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Avatar(provider, size = 54.dp)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(provider.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                if (provider.isVerified) {
+                                    Spacer(Modifier.width(4.dp))
+                                    Icon(Icons.Default.CheckCircle, contentDescription = "تایید هویت", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                }
+                            }
+                            Text(provider.skills.firstOrNull() ?: "متخصص خدمات", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                RatingLine(provider.rating, provider.reviewCount)
+                                Text("·", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("${provider.completedJobs.toString().toPersianDigits()} کار موفق", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Button(
+                                onClick = { navController.navigate(Routes.createJob(provider.id)) },
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier.height(34.dp),
+                            ) {
+                                Text("درخواست", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            }
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
+            }
+
+            // ─── Summary Metrics ───
+            item { Text("خلاصه وضعیت سفارش‌ها", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+            item {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Card(
+                        Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)),
+                    ) {
+                        Column(Modifier.padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(state.activeJobs.toString().toPersianDigits(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text("درخواست فعال", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    Card(
+                        Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)),
+                    ) {
+                        Column(Modifier.padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(state.completedJobs.toString().toPersianDigits(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary)
+                            Text("خدمت تکمیل شده", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
 
             item { Spacer(Modifier.height(84.dp)) }
         }
     }
-}
-
-data class RequesterHomeUiState(
-    val activeJobs: Int = 2,
-    val completedJobs: Int = 7,
-)
-
-@HiltViewModel
-class RequesterHomeViewModel @Inject constructor() : ViewModel() {
-    private val _state = MutableStateFlow(RequesterHomeUiState())
-    val state: StateFlow<RequesterHomeUiState> = _state.asStateFlow()
 }

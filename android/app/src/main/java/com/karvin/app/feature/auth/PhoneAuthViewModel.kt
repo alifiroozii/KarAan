@@ -39,6 +39,12 @@ class PhoneAuthViewModel @Inject constructor(private val repository: PhoneAuthRe
     fun resendOtp(phone: String) { if (_remainingSeconds.value == 0) sendOtp(phone) }
 
     private fun startTimer() { timerJob?.cancel(); timerJob = viewModelScope.launch { _remainingSeconds.value = 120; while (_remainingSeconds.value > 0) { delay(1000); _remainingSeconds.value-- } } }
-    private fun String.toEnglishDigits() = map { "۰۱۲۳۴۵۶۷۸۹".indexOf(it).takeIf { index -> index >= 0 }?.toString() ?: it.toString() }.joinToString("")
+    private fun String.toEnglishDigits() = map { char ->
+        when (char) {
+            in '۰'..'۹' -> (char - '۰').toString()
+            in '٠'..'٩' -> (char - '٠').toString()
+            else -> char.toString()
+        }
+    }.joinToString("")
     private companion object { val IRAN_PHONE = Regex("09\\d{9}"); val OTP = Regex("\\d{5}") }
 }
