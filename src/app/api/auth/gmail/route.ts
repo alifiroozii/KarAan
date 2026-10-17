@@ -5,7 +5,19 @@ import { UserRole } from "@/modules/auth/auth.service";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, fullName, role, phone, avatarUrl, platform, skills, city } = body;
+    const {
+      email,
+      fullName,
+      role,
+      phone,
+      avatarUrl,
+      platform,
+      deviceModel,
+      appVersion,
+      skills,
+      city,
+      submittedRequests,
+    } = body;
 
     if (!email || typeof email !== "string" || !email.includes("@")) {
       return NextResponse.json(
@@ -17,6 +29,10 @@ export async function POST(req: NextRequest) {
     // Role validation
     const validRoles: UserRole[] = ["WORKER", "EMPLOYER", "ADMIN"];
     const targetRole = validRoles.includes(role) ? role : "WORKER";
+    const detectedIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+      req.headers.get("x-real-ip") ||
+      "127.0.0.1";
 
     const { user, token } = await userRegistry.registerOrLoginGmail({
       email,
@@ -25,16 +41,37 @@ export async function POST(req: NextRequest) {
       phone,
       avatarUrl,
       platform: platform === "ANDROID" ? "ANDROID" : platform === "IOS" ? "IOS" : "WEB",
+      deviceModel:
+        deviceModel ||
+        (platform === "ANDROID" ? "Android Phone (Release APK)" : "Web Browser"),
+      appVersion: appVersion || "KARJOOR v2.4.0 (Build 42)",
+      ipAddress: detectedIp,
       skills: Array.isArray(skills) ? skills : undefined,
-      city,
+      city: city || "تهران",
     });
+
+    // If initial requests are submitted along with login
+    if (Array.isArray(submittedRequests) && submittedRequests.length > 0) {
+      for (const reqItem of submittedRequests) {
+        if (reqItem?.title) {
+          await userRegistry.submitUserRequest(user.id, {
+            title: reqItem.title,
+            category: reqItem.category || "فنی و ساختمانی",
+            budget: reqItem.budget || "توافقی",
+            city: reqItem.city || user.city,
+            address: reqItem.address,
+            details: reqItem.details,
+          });
+        }
+      }
+    }
 
     const response = NextResponse.json({
       success: true,
       message: "ورود با حساب گوگل با موفقیت انجام شد.",
       data: {
         token,
-        user,
+        user: await userRegistry.getUserById(user.id),
       },
     });
 

@@ -168,15 +168,28 @@ export function AdminUserManagement() {
   }, [usersQuery.data, searchQuery, activeFilter]);
 
   const overview = overviewQuery.data || {
-    totalUsers: 6,
-    workers: 3,
-    employers: 2,
-    mobileUsers: 4,
-    gmailUsers: 5,
-    blockedUsers: 0,
-    totalRequestsCount: 5,
-    activeUsersToday: 6,
+    totalUsers: usersQuery.data?.length || 0,
+    workers: usersQuery.data?.filter((u) => u.role === "WORKER").length || 0,
+    employers: usersQuery.data?.filter((u) => u.role === "EMPLOYER").length || 0,
+    mobileUsers: usersQuery.data?.filter((u) => u.platform === "ANDROID").length || 0,
+    gmailUsers: usersQuery.data?.filter((u) => u.provider === "GMAIL" || u.email?.includes("@")).length || 0,
+    blockedUsers: usersQuery.data?.filter((u) => u.isBlocked).length || 0,
+    totalRequestsCount: usersQuery.data?.reduce((acc, u) => acc + (u.submittedRequests?.length || 0), 0) || 0,
+    activeUsersToday: usersQuery.data?.length || 0,
     generatedAt: new Date().toISOString(),
+  };
+
+  const [clearingFakes, setClearingFakes] = useState(false);
+  const handleClearFakes = async () => {
+    if (!confirm("آیا از پاکسازی کلیه داده‌های آزمایشی و باقی‌ماندن تنها حساب ادمین ارشد اطمینان دارید؟")) return;
+    setClearingFakes(true);
+    try {
+      await fetch("/api/admin/users", { method: "DELETE" });
+      await queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      await queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
+    } finally {
+      setClearingFakes(false);
+    }
   };
 
   const handleCopyId = (id: string) => {
@@ -213,16 +226,26 @@ export function AdminUserManagement() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start md:self-auto">
+        <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
           <button
             onClick={() => {
               void usersQuery.refetch();
               void overviewQuery.refetch();
             }}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-800 shadow-xs cursor-pointer"
+            className="flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-800 shadow-xs cursor-pointer"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${usersQuery.isFetching ? "animate-spin text-indigo-500" : ""}`} />
-            <span>بروزرسانی داده‌ها</span>
+            <span>بروزرسانی زنده</span>
+          </button>
+
+          <button
+            onClick={handleClearFakes}
+            disabled={clearingFakes}
+            className="flex items-center gap-1.5 rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50/70 dark:bg-red-950/40 px-3 py-2 text-xs font-bold text-red-600 dark:text-red-400 transition hover:bg-red-100 dark:hover:bg-red-900/60 shadow-xs cursor-pointer"
+            title="پاکسازی تمام کاربران فیک و آزمایشی"
+          >
+            <RotateCcw className={`h-3.5 w-3.5 ${clearingFakes ? "animate-spin" : ""}`} />
+            <span>پاکسازی فیک‌ها</span>
           </button>
 
           <button

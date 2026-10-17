@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requirePermission } from "@/modules/auth/auth.middleware";
 import { AdminOperationsService } from "@/modules/admin/admin-operations.service";
 import { createErrorResponse, createSuccessResponse } from "@/lib/errors";
+import { userRegistry } from "@/lib/user-registry";
 
 const admin = new AdminOperationsService();
 const roleSchema = z.enum([
@@ -39,3 +40,16 @@ export async function GET(req: NextRequest) {
     return createErrorResponse(error);
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    await requirePermission(req, "admin.users.manage");
+    userRegistry.resetToMasterAdminOnly();
+    return createSuccessResponse({
+      message: "تمامی کاربران فیک پاکسازی شدند و سامانه به وضعیت واقعی بازنشانی گردید.",
+    });
+  } catch (error) {
+    return createErrorResponse(error);
+  }
+}
+
