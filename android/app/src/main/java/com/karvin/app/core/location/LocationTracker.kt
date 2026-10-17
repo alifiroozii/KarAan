@@ -66,8 +66,35 @@ class LocationTracker @Inject constructor(@param:ApplicationContext private val 
     @SuppressLint("MissingPermission")
     private fun fetchLocation(onResult: (LocationResult) -> Unit) {
         client.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, CancellationTokenSource().token)
-            .addOnSuccessListener { location -> if (location == null) fail(LocationState.Error, "موقعیت فعلی پیدا نشد.", onResult) else { _state.value = LocationState.Available; onResult(LocationResult.Available(GeoPoint(location.latitude, location.longitude))) } }
-            .addOnFailureListener { fail(LocationState.Error, "دریافت موقعیت با خطا مواجه شد.", onResult) }
+            .addOnSuccessListener { location ->
+                if (location != null) {
+                    _state.value = LocationState.Available
+                    onResult(LocationResult.Available(GeoPoint(location.latitude, location.longitude)))
+                } else {
+                    client.lastLocation.addOnSuccessListener { last ->
+                        if (last != null) {
+                            _state.value = LocationState.Available
+                            onResult(LocationResult.Available(GeoPoint(last.latitude, last.longitude)))
+                        } else {
+                            fail(LocationState.Error, "موقعیت فعلی پیدا نشد.", onResult)
+                        }
+                    }.addOnFailureListener {
+                        fail(LocationState.Error, "موقعیت فعلی پیدا نشد.", onResult)
+                    }
+                }
+            }
+            .addOnFailureListener {
+                client.lastLocation.addOnSuccessListener { last ->
+                    if (last != null) {
+                        _state.value = LocationState.Available
+                        onResult(LocationResult.Available(GeoPoint(last.latitude, last.longitude)))
+                    } else {
+                        fail(LocationState.Error, "دریافت موقعیت با خطا مواجه شد.", onResult)
+                    }
+                }.addOnFailureListener {
+                    fail(LocationState.Error, "دریافت موقعیت با خطا مواجه شد.", onResult)
+                }
+            }
     }
 
     private fun fail(state: LocationState, message: String, callback: (LocationResult) -> Unit) { _state.value = state; callback(LocationResult.Failed(state, message)) }

@@ -6,13 +6,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.WorkOutline
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -94,12 +95,19 @@ fun KarvinScaffold(
     )
 }
 
+/**
+ * Bottom-navigation icon resolver.
+ *
+ * Route-based rather than title-based so a tab cannot end up with the wrong
+ * glyph when two roles share a route.
+ */
 @Composable
 private fun DestinationIcon(destination: BottomDestination) {
-    val icon = when (destination.route) {
-        Routes.ProviderHome, Routes.RequesterHome -> Icons.Default.Home
-        Routes.ProviderJobs, Routes.RequesterJobs -> if (destination.route == Routes.ProviderJobs) Icons.Default.WorkOutline else Icons.Default.Business
-        Routes.ProviderMap, Routes.RequesterMap -> Icons.Default.Map
+    val icon: ImageVector = when (destination.route) {
+        Routes.RequesterHome, Routes.PerformerHome, Routes.ProviderHome -> Icons.Default.Home
+        Routes.PerformerSearch -> Icons.Default.Search
+        Routes.RequesterJobs, Routes.PerformerJobs, Routes.ProviderJobs -> Icons.Default.Assignment
+        Routes.CreateJob -> Icons.Default.AddCircle
         Routes.Chat -> Icons.Outlined.ChatBubbleOutline
         Routes.Profile -> Icons.Default.Person
         else -> Icons.Default.MoreHoriz

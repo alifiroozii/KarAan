@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  KARJOOR adaptive icon foreground — 108x108 viewport.
+  The mark sits inside the 66x66 safe zone (centred on 54,54) so no launcher
+  mask can clip it. Two converging strokes, negative space reads as "K".
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Shared spine -->
+    <path
+        android:strokeColor="#11244A"
+        android:strokeWidth="9"
+        android:strokeLineCap="round"
+        android:pathData="M40,32 L40,76" />
+
+    <!-- Requester arm (Primary) -->
+    <path
+        android:strokeColor="#2563EB"
+        android:strokeWidth="9"
+        android:strokeLineCap="round"
+        android:pathData="M40,49 C53,46 65,39 73,32" />
+
+    <!-- Performer arm (Secondary) -->
+    <path
+        android:strokeColor="#14B8A6"
+        android:strokeWidth="9"
+        android:strokeLineCap="round"
+        android:pathData="M40,56 C53,59 65,66 73,73" />
+</vector>

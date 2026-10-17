@@ -62,7 +62,7 @@ fun RatingScreen(
 
         Text("تجربه همکاری شما چطور بود؟", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "بازخورد شما به افزایش کیفیت خدمات و انتخاب‌های بهتر در کاروین کمک می‌کند.",
+            "بازخورد شما به افزایش کیفیت خدمات و انتخاب‌های بهتر در کارجور کمک می‌کند.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

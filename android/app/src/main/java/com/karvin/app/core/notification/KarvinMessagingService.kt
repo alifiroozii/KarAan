@@ -34,7 +34,7 @@ class KarvinMessagingService : FirebaseMessagingService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(channelId, "به‌روزرسانی‌ها", NotificationManager.IMPORTANCE_DEFAULT))
         NotificationManagerCompat.from(this).notify(System.currentTimeMillis().toInt(), NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(message.notification?.title ?: message.data["title"] ?: "کاروین")
+            .setContentTitle(message.notification?.title ?: message.data["title"] ?: "کارجور")
             .setContentText(message.notification?.body ?: message.data["body"] ?: "اعلان جدید دارید")
             .setAutoCancel(true).setContentIntent(pendingIntent).build())
     }

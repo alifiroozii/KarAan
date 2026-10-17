@@ -14,7 +14,7 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-    private const val BASE_URL = "https://api.karvin.app/"
+    private val BASE_URL = com.karvin.app.BuildConfig.API_BASE_URL.let { if (it.endsWith("/")) it else "$it/" }
 
     @Provides
     @Singleton

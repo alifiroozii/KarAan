@@ -35,6 +35,7 @@ import com.karvin.app.feature.jobs.CreateJobScreen
 import com.karvin.app.feature.jobs.JobApplicationsScreen
 import com.karvin.app.feature.jobs.JobDetailsScreen
 import com.karvin.app.feature.jobs.JobsScreen
+import com.karvin.app.feature.map.LocationPickerScreen
 import com.karvin.app.feature.map.ProviderProfileScreen
 import com.karvin.app.feature.map.RequestSentScreen
 import com.karvin.app.feature.map.RequesterMapScreen
@@ -92,20 +93,36 @@ fun KarvinApp(
                 popExitTransition = { androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(250)) + androidx.compose.animation.slideOutHorizontally(targetOffsetX = { 40 }, animationSpec = androidx.compose.animation.core.tween(250)) },
             ) {
 
-                // ─── Splash ───
+                // ─── Splash & Onboarding ───
                 composable(Routes.Splash) {
                     SplashScreen {
-                        navController.navigate(Routes.ModeSelection) {
+                        navController.navigate(Routes.Onboarding) {
                             popUpTo(Routes.Splash) { inclusive = true }
+                        }
+                    }
+                }
+
+                composable(Routes.Onboarding) {
+                    com.karvin.app.feature.onboarding.KarjoorOnboardingScreen {
+                        navController.navigate(Routes.ModeSelection) {
+                            popUpTo(Routes.Onboarding) { inclusive = true }
                         }
                     }
                 }
 
                 // ─── Auth ───
                 composable(Routes.Login) {
-                    LoginScreen(onOtpSent = { phone ->
-                        navController.navigate(Routes.otp(phone))
-                    })
+                    LoginScreen(
+                        onOtpSent = { phone ->
+                            navController.navigate(Routes.otp(phone))
+                        },
+                        onAuthenticated = { role ->
+                            val dest = if (role == UserRole.PROVIDER) Routes.ProviderHome else Routes.RequesterHome
+                            navController.navigate(dest) {
+                                popUpTo(Routes.Login) { inclusive = true }
+                            }
+                        },
+                    )
                 }
 
                 composable(
@@ -124,27 +141,32 @@ fun KarvinApp(
 
                 // ─── Mode Selection ───
                 composable(Routes.ModeSelection) {
-                    ModeSelectionScreen { mode ->
-                        when (mode) {
-                            AppMode.REQUESTER -> {
-                                navController.navigate(Routes.RequesterLocationExplanation) {
-                                    popUpTo(Routes.ModeSelection) { inclusive = true }
+                    ModeSelectionScreen(
+                        onModeSelected = { mode ->
+                            when (mode) {
+                                AppMode.REQUESTER -> {
+                                    navController.navigate(Routes.RequesterLocationExplanation) {
+                                        popUpTo(Routes.ModeSelection) { inclusive = true }
+                                    }
+                                }
+                                AppMode.PROVIDER -> {
+                                    navController.navigate(Routes.ProviderLocationExplanation) {
+                                        popUpTo(Routes.ModeSelection) { inclusive = true }
+                                    }
                                 }
                             }
-                            AppMode.PROVIDER -> {
-                                navController.navigate(Routes.ProviderLocationExplanation) {
-                                    popUpTo(Routes.ModeSelection) { inclusive = true }
-                                }
-                            }
-                        }
-                    }
+                        },
+                        onLoginClick = {
+                            navController.navigate(Routes.Login)
+                        },
+                    )
                 }
 
                 // ─── Requester Flow ───
                 composable(Routes.RequesterLocationExplanation) {
                     LocationExplanationScreen(
                         title = "متخصص‌های نزدیک شما",
-                        description = "برای یافتن متخصص‌های نزدیک و نمایش آنها بر اساس موقعیت مکانی، KARVIN به موقعیت شما نیاز دارد.",
+                        description = "برای یافتن متخصص‌های نزدیک و نمایش آنها بر اساس موقعیت مکانی، کارجور به موقعیت شما نیاز دارد.",
                         accent = androidx.compose.material3.MaterialTheme.colorScheme.primary,
                         onContinue = {
                             navController.navigate(Routes.RequesterHome) {
@@ -180,6 +202,10 @@ fun KarvinApp(
                     CreateJobScreen(navController)
                 }
 
+                composable(Routes.LocationPicker) {
+                    LocationPickerScreen(navController)
+                }
+
                 // ─── Provider Flow ───
                 composable(Routes.ProviderLocationExplanation) {
                     LocationExplanationScreen(
@@ -209,6 +235,10 @@ fun KarvinApp(
                 }
 
                 composable(Routes.ProviderMap) {
+                    ProviderMapScreen(navController)
+                }
+
+                composable(Routes.PerformerSearch) {
                     ProviderMapScreen(navController)
                 }
 

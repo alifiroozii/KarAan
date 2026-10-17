@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.karvin.app.core.designsystem.AppTopBar
 import com.karvin.app.core.designsystem.KarvinScaffold
+import com.karvin.app.core.designsystem.InteractiveStreetMapView
 import com.karvin.app.domain.model.UserRole
 import com.karvin.app.domain.model.toPersianDigits
 import com.karvin.app.feature.home.DefaultHomePoint
@@ -55,28 +56,34 @@ fun WorkAreaScreen(navController: NavHostController) {
     Column(Modifier.fillMaxSize().padding(padding)) {
         AppTopBar("محدوده فعالیت شما", onBack = { navController.popBackStack() })
         Box(
-            Modifier.weight(1f).fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant),
+            Modifier.weight(1f).fillMaxWidth(),
             contentAlignment = Alignment.Center,
         ) {
+            InteractiveStreetMapView(
+                centerPoint = DefaultHomePoint,
+                userPoint = DefaultHomePoint,
+                initialZoom = when (radius) {
+                    1 -> 15.2f
+                    5 -> 13.8f
+                    10 -> 12.6f
+                    else -> 11.5f
+                },
+                showNeighborhoodPill = true,
+            )
+            // Radius circle overlay representing selected range
             Card(
                 shape = CircleShape,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = .10f)),
-                border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = .55f)),
-                modifier = Modifier.fillMaxWidth((0.28f + radius / 32f).coerceAtMost(.88f)).aspectRatio(1f),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = .12f)),
+                border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = .65f)),
+                modifier = Modifier.fillMaxWidth((0.35f + radius / 30f).coerceAtMost(.85f)).aspectRatio(1f),
             ) {}
+            // Center location marker
             Card(
                 shape = CircleShape,
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-                modifier = Modifier.size(56.dp).semantics { contentDescription = "موقعیت شما" },
+                modifier = Modifier.size(46.dp).semantics { contentDescription = "موقعیت شما" },
             ) {
                 Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.LocationOn, null, tint = Color.White) }
-            }
-            Card(shape = RoundedCornerShape(14.dp), modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp)) {
-                Text(
-                    "موقعیت نمایشی شما · ${DefaultHomePoint.latitude}, ${DefaultHomePoint.longitude}",
-                    Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                )
             }
         }
         Column(Modifier.navigationBarsPadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {

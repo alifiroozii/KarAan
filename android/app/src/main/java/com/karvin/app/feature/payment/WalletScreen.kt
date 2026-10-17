@@ -48,10 +48,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.karvin.app.core.designsystem.AppTopBar
+import com.karvin.app.core.designsystem.CurrencyVisualTransformation
 import com.karvin.app.core.designsystem.EmptyState
 import com.karvin.app.core.designsystem.KarvinScaffold
 import com.karvin.app.core.designsystem.PrimaryButton
 import com.karvin.app.core.designsystem.StatefulContent
+import com.karvin.app.core.designsystem.numberToPersianWords
 import com.karvin.app.domain.model.UserRole
 import com.karvin.app.domain.model.toPersianDigits
 import com.karvin.app.domain.model.toTomanString
@@ -148,17 +150,30 @@ fun WalletScreen(
                     }
                 }
 
-                // Amount input
+                // Amount input with currency masking and verbal words
                 item {
-                    OutlinedTextField(
-                        value = amount,
-                        onValueChange = { amount = it.filter(Char::isDigit) },
-                        label = { Text(if (withdraw) "مبلغ تسویه (تومان)" else "مبلغ افزایش موجودی (تومان)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    )
+                    val amountLong = amount.toLongOrNull() ?: 0L
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OutlinedTextField(
+                            value = amount,
+                            onValueChange = { amount = it.filter(Char::isDigit) },
+                            label = { Text(if (withdraw) "مبلغ تسویه" else "مبلغ افزایش موجودی") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(14.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            visualTransformation = CurrencyVisualTransformation(),
+                        )
+                        if (amountLong > 0) {
+                            Text(
+                                text = "معادل: ${numberToPersianWords(amountLong)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                            )
+                        }
+                    }
                 }
 
                 // Submit button

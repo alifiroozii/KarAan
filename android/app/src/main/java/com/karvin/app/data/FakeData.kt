@@ -116,7 +116,7 @@ object FakeData {
             rating = 4.4 + (index % 5) * 0.1,
             completedJobs = 4 + index * 2,
             point = pointFor(index + 3, 0.012),
-            bio = "کارفرمای تایید شده در پلتفرم کاروین.",
+            bio = "درخواست‌دهنده تایید شده در پلتفرم کارجور.",
             reviewCount = 8 + index,
         )
     }

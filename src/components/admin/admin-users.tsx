@@ -120,25 +120,129 @@ export function AdminUsers() {
 
       <div className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/50">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] text-right text-xs">
-            <thead className="bg-slate-900 text-slate-400"><tr><th className="p-4">کاربر</th><th className="p-4">نقش</th><th className="p-4">احراز</th><th className="p-4">امنیت</th><th className="p-4">وضعیت</th><th className="p-4">عملیات</th></tr></thead>
+          <table className="w-full min-w-[860px] text-right text-xs">
+            <thead className="bg-slate-900 text-slate-400">
+              <tr>
+                <th className="p-4">کاربر / مشخصات</th>
+                <th className="p-4">نقش در سامانه</th>
+                <th className="p-4">حساب جیمیل / موبایل</th>
+                <th className="p-4">پلتفرم ورودی</th>
+                <th className="p-4">وضعیت حساب</th>
+                <th className="p-4">عملیات مدیریت</th>
+              </tr>
+            </thead>
             <tbody className="divide-y divide-slate-800">
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-900/70">
-                  <td className="p-4"><div className="flex items-center gap-3"><div className="rounded-xl bg-indigo-500/10 p-2 text-indigo-300"><UserRound className="h-4 w-4" /></div><div><p className="font-bold text-white">{user.fullName}</p><p className="mt-1 text-[10px] text-slate-500">{user.phone}{user.email ? ` · ${user.email}` : ""}</p></div></div></td>
-                  <td className="p-4 font-mono text-[10px] text-slate-300">{user.role}</td>
-                  <td className="p-4">{user.isVerified ? <span className="text-emerald-300">تأیید</span> : <span className="text-amber-300">تأییدنشده</span>}</td>
-                  <td className="p-4">{user.twoFactorEnabled ? <span className="inline-flex items-center gap-1 text-emerald-300"><ShieldCheck className="h-3.5 w-3.5" />2FA</span> : <span className="text-slate-500">بدون 2FA</span>}</td>
-                  <td className="p-4">{user.isBlocked ? <span className="rounded-full bg-red-500/10 px-2 py-1 text-red-300">مسدود</span> : <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-emerald-300">فعال</span>}</td>
-                  <td className="p-4"><button onClick={() => { setActionTarget(user); setReason(""); }} className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 font-bold ${user.isBlocked ? "border-emerald-500/30 text-emerald-300" : "border-red-500/30 text-red-300"}`}>{user.isBlocked ? <RotateCcw className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}{user.isBlocked ? "رفع مسدودی" : "مسدود"}</button></td>
-                </tr>
-              ))}
+              {users.map((user) => {
+                const isWorker = user.role === "WORKER";
+                const isEmployer = user.role === "EMPLOYER";
+                const hasGmail = user.email && user.email.includes("@");
+
+                return (
+                  <tr key={user.id} className="hover:bg-slate-900/70 transition">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-300 font-bold border border-indigo-500/20">
+                          {user.fullName ? user.fullName[0] : "ک"}
+                        </div>
+                        <div>
+                          <p className="font-bold text-white text-xs">{user.fullName}</p>
+                          <p className="mt-0.5 text-[10px] text-slate-500 font-mono">ID: {user.id.slice(0, 12)}</p>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="p-4">
+                      {isWorker && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-300">
+                          متخصص و کارجو
+                        </span>
+                      )}
+                      {isEmployer && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-300">
+                          درخواست‌کننده (کارفرما)
+                        </span>
+                      )}
+                      {!isWorker && !isEmployer && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-bold text-indigo-300">
+                          مدیر سامانه
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="p-4">
+                      <div className="space-y-0.5">
+                        {hasGmail ? (
+                          <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-200">
+                            <span className="rounded bg-rose-500/20 text-rose-300 px-1.5 py-0.2 text-[9px] font-bold">Gmail</span>
+                            <span>{user.email}</span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-500 text-[10px]">بدون ایمیل</span>
+                        )}
+                        <p className="text-[10px] text-slate-400 font-mono">{user.phone}</p>
+                      </div>
+                    </td>
+
+                    <td className="p-4">
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-slate-800 border border-slate-700 px-2 py-0.5 text-[10px] text-slate-300">
+                        {user.phone.startsWith("0999") || user.fullName.includes("اندروید") ? "📱 اپ موبایل" : "💻 وب / موبایل"}
+                      </span>
+                    </td>
+
+                    <td className="p-4">
+                      {user.isBlocked ? (
+                        <span className="rounded-full bg-red-500/10 border border-red-500/20 px-2.5 py-0.5 text-[11px] font-bold text-red-300">
+                          مسدود شده
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300">
+                          فعال
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="p-4">
+                      <button
+                        onClick={() => {
+                          setActionTarget(user);
+                          setReason("");
+                        }}
+                        className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition ${
+                          user.isBlocked
+                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+                            : "border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+                        }`}
+                      >
+                        {user.isBlocked ? <RotateCcw className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
+                        <span>{user.isBlocked ? "رفع مسدودی" : "مسدودسازی"}</span>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
-        {query.isLoading && <div className="flex items-center gap-2 p-5 text-xs text-slate-400"><Loader2 className="h-4 w-4 animate-spin" />در حال دریافت کاربران…</div>}
-        {!query.isLoading && users.length === 0 && <p className="p-6 text-center text-sm text-slate-500">کاربری با این فیلتر پیدا نشد.</p>}
-        {query.hasNextPage && <div className="border-t border-slate-800 p-3 text-center"><button onClick={() => void query.fetchNextPage()} disabled={query.isFetchingNextPage} className="rounded-xl border border-slate-700 px-4 py-2 text-xs font-bold disabled:opacity-50">{query.isFetchingNextPage ? "در حال دریافت…" : "نمایش بیشتر"}</button></div>}
+        {query.isLoading && (
+          <div className="flex items-center gap-2 p-5 text-xs text-slate-400">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            در حال دریافت کاربران…
+          </div>
+        )}
+        {!query.isLoading && users.length === 0 && (
+          <p className="p-6 text-center text-sm text-slate-500">کاربری با این فیلتر پیدا نشد.</p>
+        )}
+        {query.hasNextPage && (
+          <div className="border-t border-slate-800 p-3 text-center">
+            <button
+              onClick={() => void query.fetchNextPage()}
+              disabled={query.isFetchingNextPage}
+              className="rounded-xl border border-slate-700 px-4 py-2 text-xs font-bold disabled:opacity-50"
+            >
+              {query.isFetchingNextPage ? "در حال دریافت…" : "نمایش بیشتر"}
+            </button>
+          </div>
+        )}
       </div>
 
       {actionTarget && (

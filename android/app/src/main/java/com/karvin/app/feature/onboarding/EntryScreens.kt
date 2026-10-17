@@ -41,101 +41,40 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.karvin.app.domain.model.AppMode
+import com.karvin.app.core.designsystem.KarvinBrandMark
+import com.karvin.app.core.designsystem.KarvinLogo
 import com.karvin.app.core.designsystem.PrimaryButton
+import com.karvin.app.domain.model.AppMode
 import kotlinx.coroutines.delay
 
 // ──────────────────────── Splash ────────────────────────
 
+/**
+ * Legacy Splash entry point, replaced by the KARJOOR splash in
+ * `KarjoorEntryScreens.kt`. Retained as a forwarder so any external call site
+ * keeps working without knowing which splash implementation is active.
+ */
 @Composable
 fun SplashScreen(onFinished: () -> Unit) {
-    LaunchedEffect(Unit) {
-        delay(1200)
-        onFinished()
-    }
-    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Surface(shape = RoundedCornerShape(26.dp), color = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(88.dp).shadow(18.dp, RoundedCornerShape(26.dp), ambientColor = Color.Black.copy(alpha = .16f), spotColor = Color.Black.copy(alpha = .16f))) {
-                Box(contentAlignment = Alignment.Center) { Text("ک", style = MaterialTheme.typography.displaySmall, color = Color.White, fontWeight = FontWeight.Bold) }
-            }
-            Text("کاروین", style = MaterialTheme.typography.displaySmall, color = Color.White, fontWeight = FontWeight.Bold)
-            Text("خدمت نزدیکت را پیدا کن", style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = .82f))
-        }
-    }
+    KarjoorSplashScreen(onFinished)
 }
 
 // ──────────────────────── Mode Selection ────────────────────────
 
 @Composable
-fun ModeSelectionScreen(onModeSelected: (AppMode) -> Unit) {
-    Column(
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 24.dp, vertical = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-    ) {
-        Spacer(Modifier.height(24.dp))
-
-        // Logo
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .shadow(8.dp, RoundedCornerShape(10.dp), ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = .2f), spotColor = MaterialTheme.colorScheme.primary.copy(alpha = .2f))
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("ک", style = MaterialTheme.typography.titleLarge, color = Color.White)
+fun ModeSelectionScreen(
+    onModeSelected: (AppMode) -> Unit,
+    onLoginClick: (() -> Unit)? = null,
+) {
+    KarjoorRoleSelectionScreen(
+        onRoleSelected = { role ->
+            when (role) {
+                com.karvin.app.core.designsystem.KarjoorRole.REQUESTER -> onModeSelected(AppMode.REQUESTER)
+                com.karvin.app.core.designsystem.KarjoorRole.PERFORMER -> onModeSelected(AppMode.PROVIDER)
             }
-            Spacer(Modifier.width(10.dp))
-            Text("کاروین", style = MaterialTheme.typography.titleLarge)
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        Text(
-            "چه کاری می‌خواهید انجام دهید؟",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            "هر زمان خواستید می‌توانید حالت خود را تغییر دهید.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        // Requester card
-        ModeCard(
-            title = "خدمت می‌خواهم",
-            subtitle = "متخصص‌های نزدیک خود را پیدا کنید و سفارش دهید",
-            badge = "👨‍💼 ویژه کارفرمایان و متقاضیان",
-            icon = Icons.Default.Search,
-            accent = MaterialTheme.colorScheme.primary,
-            onClick = { onModeSelected(AppMode.REQUESTER) },
-        )
-
-        // Provider card
-        ModeCard(
-            title = "خدمت ارائه می‌دهم",
-            subtitle = "درخواست‌های فوری اطراف را ببینید و کسب درآمد کنید",
-            badge = "🛠️ ویژه تکنسین‌ها و متخصصان",
-            icon = Icons.Default.Handyman,
-            accent = com.karvin.app.core.designsystem.ProviderAmber,
-            onClick = { onModeSelected(AppMode.PROVIDER) },
-        )
-
-        Spacer(Modifier.weight(1f))
-
-        Text(
-            "نسخه نمایشی · بدون نیاز به ورود",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+        },
+        onLoginWithGmailClick = onLoginClick,
+    )
 }
 
 @Composable

@@ -59,3 +59,9 @@ fun Long.toTomanString(): String =
 
 fun Long.toRialString(): String = toTomanString()
 
+fun Long.toShortToman(): String =
+    "${(this / 1000).toPersianDigits()} هزار ت"
+
+fun Double.toRatingString(): String =
+    "%.1f".format(java.util.Locale.US, this).toPersianDigits()
+

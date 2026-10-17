@@ -74,6 +74,7 @@ import com.karvin.app.core.designsystem.RatingLine
 import com.karvin.app.core.designsystem.Avatar
 import com.karvin.app.core.designsystem.toPersianDate
 import com.karvin.app.core.designsystem.toPersianTime
+import com.karvin.app.core.designsystem.numberToPersianWords
 import com.karvin.app.core.navigation.Routes
 import com.karvin.app.data.FakeData
 import com.karvin.app.domain.model.ApplicationStatus
@@ -301,6 +302,17 @@ fun CreateJobScreen(navController: NavHostController, workerId: String? = null, 
     var selectedPayment by remember { mutableStateOf(PaymentType.WALLET) }
     var hasPhotoAttached by remember { mutableStateOf(false) }
 
+    val currentBackStackEntry = navController.currentBackStackEntry
+    val pickedLat = currentBackStackEntry?.savedStateHandle?.getStateFlow<Double?>("picked_lat", null)?.collectAsStateWithLifecycle()
+    val pickedLng = currentBackStackEntry?.savedStateHandle?.getStateFlow<Double?>("picked_lng", null)?.collectAsStateWithLifecycle()
+    LaunchedEffect(pickedLat?.value, pickedLng?.value) {
+        val lat = pickedLat?.value
+        val lng = pickedLng?.value
+        if (lat != null && lng != null) {
+            address = "موقعیت دقیق: ${String.format("%.4f", lat).toPersianDigits()} , ${String.format("%.4f", lng).toPersianDigits()}"
+        }
+    }
+
     val calculatedAmount = baseRatePerHour * hours * workerCount
 
     Column(Modifier.fillMaxSize()) {
@@ -420,9 +432,10 @@ fun CreateJobScreen(navController: NavHostController, workerId: String? = null, 
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Column {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text("برآورد هزینه خدمت:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
                             Text("${calculatedAmount.toString().toPersianDigits()} تومان", style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text(numberToPersianWords(calculatedAmount), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                         }
                         Surface(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(10.dp)) {
                             Text("نرخ استاندارد اتحادیه", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -436,7 +449,7 @@ fun CreateJobScreen(navController: NavHostController, workerId: String? = null, 
                 Text("روش پرداخت", style = MaterialTheme.typography.labelLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
                 Spacer(Modifier.height(6.dp))
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(PaymentType.WALLET to "💳 کیف پول کاروین", PaymentType.CARD to "🏧 درگاه آنلاین شاپرک", PaymentType.CASH to "💵 پرداخت نقدی").forEach { (type, label) ->
+                    listOf(PaymentType.WALLET to "💳 کیف پول کارجور", PaymentType.CARD to "🏧 درگاه آنلاین شاپرک", PaymentType.CASH to "💵 پرداخت نقدی").forEach { (type, label) ->
                         FilterChip(
                             selected = selectedPayment == type,
                             onClick = { selectedPayment = type },
@@ -448,15 +461,26 @@ fun CreateJobScreen(navController: NavHostController, workerId: String? = null, 
             }
 
             item {
-                OutlinedTextField(
-                    value = address,
-                    onValueChange = { address = it },
-                    label = { Text("آدرس و محل ارائه خدمت") },
-                    leadingIcon = { Icon(Icons.Default.LocationOn, null) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    singleLine = true,
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = address,
+                        onValueChange = { address = it },
+                        label = { Text("آدرس و محل ارائه خدمت") },
+                        leadingIcon = { Icon(Icons.Default.LocationOn, null) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        singleLine = true,
+                    )
+                    OutlinedButton(
+                        onClick = { navController.navigate(Routes.LocationPicker) },
+                        modifier = Modifier.fillMaxWidth().height(42.dp),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("انتخاب دقیق روی نقشه", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                    }
+                }
             }
 
             item {

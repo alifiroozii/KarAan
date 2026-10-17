@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="fa"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>کارجور | داشبورد انجام‌دهنده</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Persian Fonts & Typography Support -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with Forms and Container Queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Theme Configuration Verbatim -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "tertiary-container": "#bc472d",
+            "on-secondary": "#ffffff",
+            "on-background": "#0b1c30",
+            "surface-tint": "#0053db",
+            "on-surface": "#0b1c30",
+            "on-tertiary-fixed-variant": "#87210a",
+            "surface-container": "#e5eeff",
+            "primary": "#004ac6",
+            "secondary-container": "#6df5e1",
+            "on-primary-fixed-variant": "#003ea8",
+            "on-tertiary": "#ffffff",
+            "tertiary-fixed": "#ffdad2",
+            "error": "#ba1a1a",
+            "tertiary-fixed-dim": "#ffb4a4",
+            "on-primary": "#ffffff",
+            "surface": "#f8f9ff",
+            "surface-dim": "#cbdbf5",
+            "secondary": "#006b5f",
+            "surface-container-lowest": "#ffffff",
+            "surface-bright": "#f8f9ff",
+            "outline": "#737686",
+            "on-error": "#ffffff",
+            "on-tertiary-fixed": "#3d0600",
+            "tertiary": "#9b2f18",
+            "inverse-primary": "#b4c5ff",
+            "on-surface-variant": "#434655",
+            "secondary-fixed": "#71f8e4",
+            "outline-variant": "#c3c6d7",
+            "primary-fixed-dim": "#b4c5ff",
+            "surface-container-high": "#dce9ff",
+            "on-secondary-container": "#006f64",
+            "surface-container-highest": "#d3e4fe",
+            "background": "#f8f9ff",
+            "on-primary-container": "#eeefff",
+            "primary-fixed": "#dbe1ff",
+            "secondary-fixed-dim": "#4fdbc8",
+            "on-secondary-fixed-variant": "#005048",
+            "inverse-on-surface": "#eaf1ff",
+            "error-container": "#ffdad6",
+            "on-error-container": "#93000a",
+            "on-tertiary-container": "#ffede9",
+            "on-secondary-fixed": "#00201c",
+            "surface-container-low": "#eff4ff",
+            "inverse-surface": "#213145",
+            "surface-variant": "#d3e4fe",
+            "primary-container": "#2563eb",
+            "on-primary-fixed": "#00174b"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-xs": "0.25rem",
+            "margin-mobile": "1rem",
+            "margin-desktop": "3rem",
+            "space-xl": "2.5rem",
+            "gutter-sm": "1rem",
+            "margin": "2rem",
+            "space-sm": "0.5rem",
+            "space-lg": "1.5rem",
+            "space-md": "1rem",
+            "gutter": "1.5rem",
+            "gutter-lg": "2rem"
+          },
+          "fontFamily": {
+            "headline-sm": ["Vazirmatn", "Plus Jakarta Sans"],
+            "body-md": ["Vazirmatn", "Plus Jakarta Sans"],
+            "mono-currency": ["JetBrains Mono", "Vazirmatn"],
+            "title-md": ["Vazirmatn", "Plus Jakarta Sans"],
+            "headline-lg": ["Vazirmatn", "Plus Jakarta Sans"],
+            "body-lg": ["Vazirmatn", "Plus Jakarta Sans"],
+            "label-sm": ["Vazirmatn", "Plus Jakarta Sans"],
+            "display-lg": ["Vazirmatn", "Plus Jakarta Sans"],
+            "body-sm": ["Vazirmatn", "Plus Jakarta Sans"],
+            "label-md": ["Vazirmatn", "Plus Jakarta Sans"],
+            "headline-md": ["Vazirmatn", "Plus Jakarta Sans"],
+            "headline-lg-mobile": ["Vazirmatn", "Plus Jakarta Sans"]
+          },
+          "fontSize": {
+            "headline-sm": ["20px", { "lineHeight": "30px", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "mono-currency": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+            "title-md": ["18px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "headline-lg": ["32px", { "lineHeight": "42px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "body-lg": ["16px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "fontWeight": "500" }],
+            "display-lg": ["40px", { "lineHeight": "52px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+            "body-sm": ["12px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .glow-pulse {
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      animation: pulse-ring 2s infinite cubic-bezier(0.66, 0, 0, 1);
+    }
+    @keyframes pulse-ring {
+      0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+      }
+      70% {
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface antialiased flex justify-center min-h-screen">
+<!-- Mobile Shell Simulation Frame -->
+<main class="w-full max-w-[430px] bg-surface flex flex-col min-h-screen relative pb-28 shadow-2xl">
+<!-- Top App Bar (Shared Component Anchor) -->
+<header class="sticky top-0 z-40 bg-surface-container-lowest/95 backdrop-blur-md shadow-sm transition-all duration-200">
+<div class="flex justify-between items-center w-full px-space-md py-3 max-w-7xl mx-auto">
+<!-- Leading / Menu & Location -->
+<div class="flex items-center gap-2">
+<button aria-label="منو" class="w-9 h-9 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-95 transition-transform duration-150" type="button">
+<span class="material-symbols-outlined text-[22px]">menu</span>
+</button>
+<div class="flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded-full border border-outline-variant/40">
+<span class="material-symbols-outlined text-primary text-[14px]">near_me</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant font-medium">تهران، سعادت‌آباد</span>
+</div>
+</div>
+<!-- Brand Name Headline -->
+<div class="font-headline-sm text-headline-sm text-primary font-bold tracking-tight">
+          کارجور | KARJOOR
+        </div>
+<!-- Trailing / Alerts & Profile -->
+<div class="flex items-center gap-2">
+<button aria-label="اعلان‌ها" class="relative w-9 h-9 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-95 transition-transform duration-150" type="button">
+<span class="material-symbols-outlined text-[22px]">notifications</span>
+<span class="absolute top-1.5 left-1.5 w-2 h-2 rounded-full bg-tertiary-container ring-2 ring-surface-container-lowest"></span>
+</button>
+<!-- User Verified Avatar -->
+<div class="relative w-9 h-9 cursor-pointer active:scale-95 transition-transform">
+<img class="w-9 h-9 rounded-full object-cover border-2 border-surface-container-lowest shadow-sm" data-alt="Close-up portrait of a friendly professional Iranian young man with a confident, warm smile, wearing a dark navy casual work polo against an ultra-clean corporate modern studio background with soft ambient lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgqfdKp8wIxgvROkuo8J8Yalg2TZBrvVLkawTKkQSL0xu77lu0KAnBFSOizpKKh-WSCpJxEFTKLoZTZgmPu6HNAr2sA2NoG1uGZhfTKVqfpJbJxCbc6tUX4msSQjBxbTkMIm4f5UDGb87JJv2XhZFrufvFKz8TblHs-PHeCo1W5BBymd78xhs7HU3fZkW2_74TO_rAsetWvgdwDu3yS3i0jv7Zj-_lOCiXAbZ5OGcZOBz39quigw02aJqy_hPNfMM85IN0Bw78SEU"/>
+<span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-secondary rounded-full border-2 border-surface-container-lowest flex items-center justify-center text-white" title="تایید شده">
+<span class="material-symbols-outlined text-[9px] font-bold">check</span>
+</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Top Greeting & Performer Status Section -->
+<section class="px-space-md pt-4 pb-2">
+<div class="flex items-center justify-between">
+<div>
+<h1 class="text-headline-sm font-headline-sm text-on-surface font-bold flex items-center gap-1.5">
+            سلام علی عزیز
+            <span class="inline-block animate-wave origin-[70%_70%] text-lg">👋</span>
+</h1>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-0.5">آماده دریافت کارهای جدید هستی؟</p>
+</div>
+<!-- Availability Toggle Pill -->
+<div class="inline-flex items-center gap-1.5 bg-surface-container-lowest px-3 py-1.5 rounded-full border border-secondary-fixed/50 shadow-sm">
+<span class="w-2 h-2 rounded-full bg-secondary glow-pulse"></span>
+<span class="text-label-sm font-label-sm text-secondary font-semibold">در دسترس برای کار</span>
+</div>
+</div>
+<!-- Quick Earnings & Status Micro-Bar -->
+<div class="mt-3.5 bg-surface-container-lowest rounded-xl p-3 border border-outline-variant/50 shadow-sm flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+</div>
+<div>
+<span class="text-[11px] text-on-surface-variant block font-medium">درآمد امروز (تسویه آنی)</span>
+<div class="flex items-baseline gap-1">
+<span class="font-mono-currency text-mono-currency text-primary font-bold">۴۲۰,۰۰۰</span>
+<span class="text-[11px] text-on-surface-variant">تومان</span>
+</div>
+</div>
+</div>
+<div class="h-7 w-[1px] bg-outline-variant/40"></div>
+<div class="flex items-center gap-2">
+<div class="text-left">
+<div class="flex items-center justify-end gap-1">
+<span class="text-label-md font-label-md text-on-surface font-bold">۴.۹</span>
+<span class="material-symbols-outlined text-[#F59E0B] text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<span class="text-[11px] text-on-surface-variant font-medium">۶۸ نظر تایید شده</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Search and Voice Filtering Input -->
+<section class="px-space-md py-2">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute right-3.5 text-on-surface-variant text-[20px]">search</span>
+<input class="w-full bg-surface-container-lowest text-on-surface placeholder:text-outline text-body-md font-body-md pr-10 pl-20 py-2.5 rounded-xl border border-outline-variant/60 focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 transition-all shadow-sm" placeholder="دنبال چه کاری می‌گردی؟ (مثلاً سرویس اسپلیت...)" type="text"/>
+<div class="absolute left-2 flex items-center gap-1">
+<button aria-label="جستجوی صوتی" class="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[19px]">mic</span>
+</button>
+<button aria-label="فیلتر پیشرفته" class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Categories Horizontal Scrollable Pills -->
+<section class="py-2.5">
+<div class="flex items-center justify-between px-space-md mb-2">
+<h2 class="text-title-md font-title-md text-on-surface font-bold">دسته‌بندی‌های فعال</h2>
+<a class="text-label-sm font-label-sm text-primary font-semibold flex items-center gap-0.5" href="#all">
+          همه دسته‌ها
+          <span class="material-symbols-outlined text-[14px]">arrow_back_ios</span>
+</a>
+</div>
+<div class="flex gap-2.5 overflow-x-auto no-scrollbar px-space-md py-1">
+<!-- 1. برق و تاسیسات -->
+<button class="flex-shrink-0 flex items-center gap-2 bg-surface-container-lowest px-3.5 py-2 rounded-xl border border-outline-variant/50 hover:border-primary/40 active:scale-95 transition-all shadow-sm">
+<span class="w-7 h-7 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[17px]">bolt</span>
+</span>
+<span class="text-label-md font-label-md text-on-surface">برق و تاسیسات</span>
+</button>
+<!-- 2. نظافت و پذیرایی -->
+<button class="flex-shrink-0 flex items-center gap-2 bg-surface-container-lowest px-3.5 py-2 rounded-xl border border-outline-variant/50 hover:border-primary/40 active:scale-95 transition-all shadow-sm">
+<span class="w-7 h-7 rounded-lg bg-secondary-container/40 text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[17px]">cleaning_services</span>
+</span>
+<span class="text-label-md font-label-md text-on-surface">نظافت و پذیرایی</span>
+</button>
+<!-- 3. حمل و جابجایی -->
+<button class="flex-shrink-0 flex items-center gap-2 bg-surface-container-lowest px-3.5 py-2 rounded-xl border border-outline-variant/50 hover:border-primary/40 active:scale-95 transition-all shadow-sm">
+<span class="w-7 h-7 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[17px]">local_shipping</span>
+</span>
+<span class="text-label-md font-label-md text-on-surface">حمل و جابجایی</span>
+</button>
+<!-- 4. تعمیرات فنی -->
+<button class="flex-shrink-0 flex items-center gap-2 bg-surface-container-lowest px-3.5 py-2 rounded-xl border border-outline-variant/50 hover:border-primary/40 active:scale-95 transition-all shadow-sm">
+<span class="w-7 h-7 rounded-lg bg-surface-container text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[17px]">home_repair_service</span>
+</span>
+<span class="text-label-md font-label-md text-on-surface">تعمیرات فنی</span>
+</button>
+<!-- 5. خیاطی و پوشاک -->
+<button class="flex-shrink-0 flex items-center gap-2 bg-surface-container-lowest px-3.5 py-2 rounded-xl border border-outline-variant/50 hover:border-primary/40 active:scale-95 transition-all shadow-sm">
+<span class="w-7 h-7 rounded-lg bg-tertiary-fixed text-tertiary flex items-center justify-center">
+<span class="material-symbols-outlined text-[17px]">styler</span>
+</span>
+<span class="text-label-md font-label-md text-on-surface">خیاطی و پوشاک</span>
+</button>
+<!-- 6. شیفت فروشگاه -->
+<button class="flex-shrink-0 flex items-center gap-2 bg-surface-container-lowest px-3.5 py-2 rounded-xl border border-outline-variant/50 hover:border-primary/40 active:scale-95 transition-all shadow-sm">
+<span class="w-7 h-7 rounded-lg bg-surface-container text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[17px]">storefront</span>
+</span>
+<span class="text-label-md font-label-md text-on-surface">شیفت فروشگاه</span>
+</button>
+<!-- 7. آشپزی و قنادی -->
+<button class="flex-shrink-0 flex items-center gap-2 bg-surface-container-lowest px-3.5 py-2 rounded-xl border border-outline-variant/50 hover:border-primary/40 active:scale-95 transition-all shadow-sm">
+<span class="w-7 h-7 rounded-lg bg-tertiary-fixed text-tertiary flex items-center justify-center">
+<span class="material-symbols-outlined text-[17px]">restaurant</span>
+</span>
+<span class="text-label-md font-label-md text-on-surface">آشپزی و قنادی</span>
+</button>
+<!-- 8. باغبانی و فضای سبز -->
+<button class="flex-shrink-0 flex items-center gap-2 bg-surface-container-lowest px-3.5 py-2 rounded-xl border border-outline-variant/50 hover:border-primary/40 active:scale-95 transition-all shadow-sm">
+<span class="w-7 h-7 rounded-lg bg-secondary-container/40 text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[17px]">yard</span>
+</span>
+<span class="text-label-md font-label-md text-on-surface">باغبانی و فضای سبز</span>
+</button>
+</div>
+</section>
+<!-- Featured Hero Banner (Bento Style with Visual Hierarchy) -->
+<section class="px-space-md py-2">
+<div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-container via-primary to-[#003896] text-white p-4 shadow-md">
+<!-- Background Architectural Motif -->
+<div class="absolute -left-6 -bottom-6 w-32 h-32 rounded-full bg-white/10 blur-xl pointer-events-none"></div>
+<div class="absolute top-2 left-3 opacity-15 pointer-events-none">
+<span class="material-symbols-outlined text-[80px]">radar</span>
+</div>
+<div class="relative z-10 flex flex-col items-start">
+<div class="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-2.5 py-0.5 rounded-full mb-2 border border-white/25">
+<span class="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-ping"></span>
+<span class="text-[11px] font-semibold text-white">۳۲ کار جدید اطراف شما</span>
+</div>
+<h3 class="text-title-md font-title-md font-bold mb-1 text-white">فرصت‌های نزدیک تو</h3>
+<p class="text-body-sm font-body-sm text-white/90 max-w-[240px] mb-3.5 leading-relaxed">
+            کارهای متناسب با مهارت و موقعیتت رو سریع‌تر پیدا کن و دستمزد آنی بگیر.
+          </p>
+<button class="inline-flex items-center gap-2 bg-white text-primary-container px-4 py-2 rounded-lg text-label-md font-label-md font-bold shadow-sm hover:bg-slate-50 active:scale-95 transition-all" type="button">
+<span>مشاهده فرصت‌ها</span>
+<span class="material-symbols-outlined text-[16px]">arrow_back</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Filter Tabs (Pill Chips) -->
+<section class="px-space-md pt-3 pb-1">
+<div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+<button class="bg-primary-container text-white px-3.5 py-1.5 rounded-full text-label-sm font-label-sm font-semibold shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px]">near_me</span>
+<span>نزدیک‌ترین</span>
+</button>
+<button class="bg-surface-container-lowest text-on-surface-variant hover:text-on-surface px-3 py-1.5 rounded-full text-label-sm font-label-sm border border-outline-variant/60">
+          تازه‌ترین
+        </button>
+<button class="bg-surface-container-lowest text-tertiary px-3 py-1.5 rounded-full text-label-sm font-label-sm border border-tertiary-fixed font-semibold flex items-center gap-0.5">
+<span>فوری ⚡</span>
+</button>
+<button class="bg-surface-container-lowest text-on-surface-variant hover:text-on-surface px-3 py-1.5 rounded-full text-label-sm font-label-sm border border-outline-variant/60">
+          پیشنهادی
+        </button>
+<button class="bg-surface-container-lowest text-on-surface-variant hover:text-on-surface px-3 py-1.5 rounded-full text-label-sm font-label-sm border border-outline-variant/60">
+          در حال انجام
+        </button>
+</div>
+</section>
+<!-- Job Opportunity Cards Feed -->
+<section class="px-space-md py-2 space-y-3.5">
+<div class="flex items-center justify-between">
+<h2 class="text-title-md font-title-md text-on-surface font-bold">پروژه‌های باز برای پیشنهاد</h2>
+<span class="text-body-sm font-body-sm text-outline font-medium">مرتب‌سازی هوشمند</span>
+</div>
+<!-- Card 1: Split AC Service -->
+<article class="bg-surface-container-lowest rounded-2xl border border-outline-variant/50 p-4 shadow-sm hover:border-outline-variant hover:shadow-md transition-all relative">
+<!-- Top Badges & Action -->
+<div class="flex items-center justify-between mb-2.5">
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="inline-flex items-center gap-1 bg-tertiary-fixed/60 text-tertiary px-2 py-0.5 rounded-md text-[11px] font-bold">
+<span>فوری ⚡</span>
+</span>
+<span class="inline-flex items-center gap-1 bg-secondary-container/30 text-secondary px-2 py-0.5 rounded-md text-[11px] font-medium border border-secondary/20">
+<span class="material-symbols-outlined text-[13px]">verified_user</span>
+<span>تضمین پرداخت کارجور</span>
+</span>
+</div>
+<button aria-label="نشان کردن" class="text-on-surface-variant hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">bookmark_border</span>
+</button>
+</div>
+<!-- Title -->
+<h3 class="text-headline-sm font-headline-sm text-on-surface font-bold mb-1.5">
+          نصب و سرویس اسپلیت ۲۴ هزار
+        </h3>
+<!-- Requester Info -->
+<div class="flex items-center gap-2 mb-3">
+<div class="w-6 h-6 rounded-full bg-surface-container flex items-center justify-center text-primary text-xs font-bold">
+            ر
+          </div>
+<span class="text-body-sm font-body-sm text-on-surface-variant font-medium">رضا محمدی</span>
+<span class="inline-flex items-center text-[11px] text-secondary font-semibold">
+            (کارفرمای تایید شده
+            <span class="material-symbols-outlined text-[13px] text-[#F59E0B] mx-0.5" style="font-variation-settings: 'FILL' 1;">star</span>
+            ۴.۸)
+          </span>
+</div>
+<!-- Meta chips -->
+<div class="flex flex-wrap items-center gap-2 mb-3.5">
+<div class="inline-flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded-md text-[11px] text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] text-primary">schedule</span>
+<span>امروز ساعت ۱۶:۰۰ (۳ ساعت)</span>
+</div>
+<div class="inline-flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded-md text-[11px] text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] text-primary">location_on</span>
+<span>۱.۲ کیلومتر فاصله</span>
+</div>
+<div class="inline-flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded-md text-[11px] text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] text-outline">apartment</span>
+<span>منطقه سعادت‌آباد</span>
+</div>
+</div>
+<!-- Price & CTA Bar -->
+<div class="pt-3 border-t border-outline-variant/30 flex items-center justify-between">
+<div>
+<span class="text-[11px] text-outline block">دستمزد پیشنهادی</span>
+<div class="flex items-baseline gap-1">
+<span class="font-mono-currency text-[17px] font-bold text-on-surface">۸۵۰,۰۰۰</span>
+<span class="text-[11px] text-on-surface-variant">تومان</span>
+<span class="text-[10px] text-secondary font-bold mr-1">(تسویه آنی)</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button aria-label="اشتراک‌گذاری" class="w-9 h-9 rounded-lg border border-outline-variant/50 text-on-surface-variant flex items-center justify-center hover:bg-surface-container active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">share</span>
+</button>
+<button class="bg-primary-container text-white px-3.5 py-2 rounded-lg text-label-md font-label-md font-semibold hover:bg-primary active:scale-95 transition-all shadow-sm" type="button">
+              مشاهده و ارسال پیشنهاد
+            </button>
+</div>
+</div>
+</article>
+<!-- Card 2: Cashier Hypermarket Shift -->
+<article class="bg-surface-container-lowest rounded-2xl border border-outline-variant/50 p-4 shadow-sm hover:border-outline-variant hover:shadow-md transition-all relative">
+<!-- Top Badges & Action -->
+<div class="flex items-center justify-between mb-2.5">
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="inline-flex items-center gap-1 bg-surface-container text-primary px-2 py-0.5 rounded-md text-[11px] font-bold">
+<span>شیفت موقت</span>
+</span>
+<span class="inline-flex items-center gap-1 bg-surface-container-high/60 text-on-surface-variant px-2 py-0.5 rounded-md text-[11px] font-medium">
+<span>نیاز به سابقه کاری</span>
+</span>
+</div>
+<button aria-label="نشان کردن" class="text-on-surface-variant hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">bookmark_border</span>
+</button>
+</div>
+<!-- Title -->
+<h3 class="text-headline-sm font-headline-sm text-on-surface font-bold mb-1.5">
+          شیفت صندوق‌داری فروشگاه هایپر
+        </h3>
+<!-- Requester Info -->
+<div class="flex items-center gap-2 mb-3">
+<div class="w-6 h-6 rounded-full bg-secondary-container/40 flex items-center justify-center text-secondary text-xs font-bold">
+            هـ
+          </div>
+<span class="text-body-sm font-body-sm text-on-surface-variant font-medium">هایپرمارکت بهار</span>
+<span class="inline-flex items-center text-[11px] bg-surface-container px-1.5 py-0.2 rounded text-primary font-semibold">
+            کارفرمای حقوقی
+          </span>
+</div>
+<!-- Meta chips -->
+<div class="flex flex-wrap items-center gap-2 mb-3.5">
+<div class="inline-flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded-md text-[11px] text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] text-primary">calendar_today</span>
+<span>فردا (۸ ساعت کاری)</span>
+</div>
+<div class="inline-flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded-md text-[11px] text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] text-primary">navigation</span>
+<span>۳.۵ کیلومتر فاصله</span>
+</div>
+<div class="inline-flex items-center gap-1 bg-secondary-container/20 px-2 py-1 rounded-md text-[11px] text-secondary font-medium">
+<span class="material-symbols-outlined text-[14px]">lunch_dining</span>
+<span>وعده ناهار رایگان</span>
+</div>
+</div>
+<!-- Price & CTA Bar -->
+<div class="pt-3 border-t border-outline-variant/30 flex items-center justify-between">
+<div>
+<span class="text-[11px] text-outline block">دستمزد ناخالص روزانه</span>
+<div class="flex items-baseline gap-1">
+<span class="font-mono-currency text-[17px] font-bold text-on-surface">۱,۲۰۰,۰۰۰</span>
+<span class="text-[11px] text-on-surface-variant">تومان</span>
+<span class="text-[10px] text-secondary font-bold mr-1">(تسویه روزانه)</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button aria-label="اشتراک‌گذاری" class="w-9 h-9 rounded-lg border border-outline-variant/50 text-on-surface-variant flex items-center justify-center hover:bg-surface-container active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">share</span>
+</button>
+<button class="bg-primary-container text-white px-3.5 py-2 rounded-lg text-label-md font-label-md font-semibold hover:bg-primary active:scale-95 transition-all shadow-sm" type="button">
+              مشاهده و ارسال پیشنهاد
+            </button>
+</div>
+</div>
+</article>
+</section>
+<!-- Trust & Escrow Guarantee Sticky Banner -->
+<section class="px-space-md py-3">
+<div class="bg-gradient-to-r from-surface-container-lowest to-surface-container-low rounded-xl p-3 border border-secondary-fixed/50 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary-container/30 text-secondary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[22px]">verified</span>
+</div>
+<div>
+<h4 class="text-label-md font-label-md font-bold text-on-surface">ضمانت پرداخت امن کارجور</h4>
+<p class="text-body-sm font-body-sm text-on-surface-variant text-[11px] leading-tight mt-0.5">
+            مبلغ دستمزد هر کار تا زمان تحویل و تایید نهایی شما در صندوق امانی محفوظ است.
+          </p>
+</div>
+</div>
+</section>
+<!-- Bottom Navigation Bar (Executed Exactly from Shared Components JSON) -->
+<!-- Destination count: 5 | Labels: پروژه‌ها, پیشنهادها, مالی, پیام‌ها, پروفایل -->
+<!-- Active selection: پروژه‌ها (Primary Intent for Performer Job Feed) -->
+<nav aria-label="ناوبری اصلی" class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-space-sm py-space-xs bg-surface-container-lowest dark:bg-inverse-surface border-t border-outline-variant/50 shadow-[0_-2px_10px_rgba(0,0,0,0.04)] max-w-[430px] mx-auto right-0">
+<!-- 1. پروژه‌ها (Active) -->
+<a class="flex flex-col items-center justify-center bg-surface-container-high dark:bg-primary-container text-primary dark:text-on-primary-container rounded-xl px-space-sm py-space-xs active:scale-95 transition-transform duration-150" href="#projects">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">work</span>
+<span class="text-label-sm font-label-sm font-bold mt-0.5">پروژه‌ها</span>
+</a>
+<!-- 2. پیشنهادها -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-space-sm py-space-xs hover:text-primary dark:hover:text-inverse-primary active:scale-95 transition-transform duration-150" href="#proposals">
+<span class="material-symbols-outlined text-[22px]">assignment</span>
+<span class="text-label-sm font-label-sm mt-0.5">پیشنهادها</span>
+</a>
+<!-- 3. مالی -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-space-sm py-space-xs hover:text-primary dark:hover:text-inverse-primary active:scale-95 transition-transform duration-150" href="#wallet">
+<span class="material-symbols-outlined text-[22px]">account_balance_wallet</span>
+<span class="text-label-sm font-label-sm mt-0.5">مالی</span>
+</a>
+<!-- 4. پیام‌ها -->
+<a class="relative flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-space-sm py-space-xs hover:text-primary dark:hover:text-inverse-primary active:scale-95 transition-transform duration-150" href="#messages">
+<div class="relative">
+<span class="material-symbols-outlined text-[22px]">chat</span>
+<span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-tertiary-container ring-1 ring-surface-container-lowest"></span>
+</div>
+<span class="text-label-sm font-label-sm mt-0.5">پیام‌ها</span>
+</a>
+<!-- 5. پروفایل -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-space-sm py-space-xs hover:text-primary dark:hover:text-inverse-primary active:scale-95 transition-transform duration-150" href="#profile">
+<span class="material-symbols-outlined text-[22px]">person</span>
+<span class="text-label-sm font-label-sm mt-0.5">پروفایل</span>
+</a>
+</nav>
+</main>
+<!-- Interactive State Handlers (Lightweight Vanilla JS) -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Toggle favorite/bookmark icon state
+      const bookmarkButtons = document.querySelectorAll('button[aria-label="نشان کردن"]');
+      bookmarkButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const icon = btn.querySelector('.material-symbols-outlined');
+          if (icon.innerText === 'bookmark_border') {
+            icon.innerText = 'bookmark';
+            icon.style.fontVariationSettings = "'FILL' 1";
+            icon.classList.add('text-primary');
+          } else {
+            icon.innerText = 'bookmark_border';
+            icon.style.fontVariationSettings = "'FILL' 0";
+            icon.classList.remove('text-primary');
+          }
+        });
+      });
+    });
+  </script>
+</body></html>

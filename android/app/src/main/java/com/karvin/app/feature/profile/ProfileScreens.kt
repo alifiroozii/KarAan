@@ -1,5 +1,6 @@
 package com.karvin.app.feature.profile
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -56,11 +57,24 @@ import com.karvin.app.domain.model.toPersianDigits
 fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showRoleDialog by remember { mutableStateOf(false) }
-    KarvinScaffold(navController, state.user?.role ?: UserRole.PROVIDER, content = { padding ->
+    val defaultUser = remember {
+        com.karvin.app.domain.model.User(
+            id = "demo_user",
+            name = "علی فیروزی",
+            phone = "۰۹۱۲۳۴۵۶۷۸۹",
+            role = UserRole.PROVIDER,
+            city = "تهران",
+            bio = "متخصص فنی و ارائه‌دهنده خدمات تخصصی",
+            rating = 4.9,
+            reviewCount = 38,
+            completedJobs = 142,
+        )
+    }
+    val user = state.user ?: defaultUser
+    KarvinScaffold(navController, user.role, content = { padding ->
     Column(Modifier.fillMaxSize().padding(padding)) {
         AppTopBar("پروفایل", onBack = { navController.popBackStack() }, actions = { IconButton(onClick = { navController.navigate(Routes.Settings) }) { Icon(Icons.Default.Settings, "تنظیمات") } })
-        if (state.user == null) EmptyState("پروفایل آماده نیست", "بعد از ورود اطلاعات شما اینجا نمایش داده می‌شود.") else {
-            val user = state.user!!
+        run {
             androidx.compose.foundation.lazy.LazyColumn(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 item {
                     Card(
@@ -74,7 +88,7 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
                             Avatar(user, size = 72.dp)
                             Column(Modifier.padding(horizontal = 14.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                                 Text(user.name, style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                                Text("${user.city} · ${if (user.role == UserRole.PROVIDER) "متخصص" else "متقاضی خدمت"}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                                Text("${user.city} · ${if (user.role == UserRole.PROVIDER) "انجام‌دهنده" else "درخواست‌دهنده"}", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
                                 RatingLine(user.rating, user.reviewCount)
                             }
                             IconButton(onClick = { navController.navigate(Routes.EditProfile) }) {
@@ -83,24 +97,100 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
                         }
                     }
                 }
+
+                // Prominent Role Switcher Banner Card
+                item {
+                    val isPerformer = user.role == UserRole.PROVIDER
+                    Card(
+                        onClick = { showRoleDialog = true },
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        shape = RoundedCornerShape(18.dp),
+                        border = BorderStroke(1.dp, if (isPerformer) com.karvin.app.core.designsystem.KarjoorColors.Secondary.copy(alpha = 0.5f) else com.karvin.app.core.designsystem.KarjoorColors.Primary.copy(alpha = 0.5f)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    ) {
+                        Row(
+                            Modifier.padding(16.dp).fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
+                                Text("نقش فعال شما:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    if (isPerformer) "انجام‌دهنده (Performer)" else "درخواست‌دهنده (Requester)",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                    color = if (isPerformer) com.karvin.app.core.designsystem.KarjoorColors.Secondary else com.karvin.app.core.designsystem.KarjoorColors.Primary,
+                                )
+                                Text("سوییچ سریع بدون خروج از حساب", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Button(
+                                onClick = { showRoleDialog = true },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                    containerColor = if (isPerformer) com.karvin.app.core.designsystem.KarjoorColors.Primary else com.karvin.app.core.designsystem.KarjoorColors.Secondary,
+                                ),
+                            ) {
+                                Text(if (isPerformer) "تغییر به درخواست‌دهنده ⇄" else "تغییر به انجام‌دهنده ⇄")
+                            }
+                        }
+                    }
+                }
+
                 if (user.role == UserRole.PROVIDER) item { EarningsCard(user.completedJobs) }
                 item { ProfileAction("ویرایش اطلاعات و مهارت‌ها", "تکمیل نام، تخصص‌ها، شهر و بیوگرافی") { navController.navigate(Routes.EditProfile) } }
                 item { ProfileAction("کیف پول و تراکنش‌ها", "مشاهده موجودی و مدیریت پرداخت‌ها") { navController.navigate(Routes.Wallet) } }
-                item { ProfileAction("حالت فعلی", if (user.role == UserRole.PROVIDER) "ارائه می‌دهم" else "می‌خواهم") { showRoleDialog = true } }
+                item { ProfileAction("تغییر نقش کاربری", if (user.role == UserRole.PROVIDER) "انجام‌دهنده" else "درخواست‌دهنده") { showRoleDialog = true } }
                 item { ProfileAction("تنظیمات و حریم خصوصی", "اعلان‌ها، ظاهر و دسترسی‌ها") { navController.navigate(Routes.Settings) } }
                 item { ProfileAction("اعلان‌ها", "مرکز اعلان‌ها") { navController.navigate(Routes.Notifications) } }
                 if (user.role == UserRole.PROVIDER) {
-                    item { ProfileAction("فعالیت‌ها و برنامه‌ها", "پیگیری وضعیت درخواست‌های همکاری") { navController.navigate(Routes.ProviderJobs) } }
-                    item { ProfileAction("محدوده فعالیت", "انتخاب شعاع نمایش درخواست‌ها") { navController.navigate(Routes.WorkArea) } }
+                    item { ProfileAction("فعالیت‌ها و فرصت‌های من", "پیگیری وضعیت درخواست‌های همکاری") { navController.navigate(Routes.ProviderJobs) } }
+                    item { ProfileAction("محدوده فعالیت", "انتخاب شعاع نمایش فرصت‌ها") { navController.navigate(Routes.WorkArea) } }
                 } else {
-                    item { ProfileAction("سفارش‌های من", "پیگیری کارهای ثبت‌شده") { navController.navigate(Routes.RequesterJobs) } }
+                    item { ProfileAction("درخواست‌های من", "پیگیری کارهای ثبت‌شده") { navController.navigate(Routes.RequesterJobs) } }
                 }
                 item { Spacer(Modifier.height(20.dp)); OutlinedButton(onClick = viewModel::signOut, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) { Icon(Icons.AutoMirrored.Filled.Logout, null); Text("خروج از حساب", Modifier.padding(start = 7.dp)) } }
             }
         }
     }
     })
-    if (showRoleDialog) AlertDialog(onDismissRequest = { showRoleDialog = false }, title = { Text("تغییر حالت استفاده") }, text = { Column { listOf(UserRole.PROVIDER, UserRole.REQUESTER).forEach { role -> Row(verticalAlignment = Alignment.CenterVertically) { RadioButton(selected = state.user?.role == role, onClick = { viewModel.setRole(role); showRoleDialog = false; navController.navigate(if (role == UserRole.PROVIDER) Routes.ProviderHome else Routes.RequesterHome) { popUpTo(navController.graph.findStartDestination().id) { inclusive = true }; launchSingleTop = true } }); Text(if (role == UserRole.PROVIDER) "ارائه می‌دهم" else "می‌خواهم") } } } }, confirmButton = { TextButton(onClick = { showRoleDialog = false }) { Text("بستن") } })
+    if (showRoleDialog) AlertDialog(
+        onDismissRequest = { showRoleDialog = false },
+        title = { Text("تغییر نقش کاربری") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                listOf(
+                    UserRole.PROVIDER to ("انجام‌دهنده (Performer) — مشاهده فرصت‌ها و انجام کار"),
+                    UserRole.REQUESTER to ("درخواست‌دهنده (Requester) — ثبت کار و استخدام نیرو"),
+                ).forEach { (role, label) ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().clickable {
+                            viewModel.setRole(role)
+                            showRoleDialog = false
+                            navController.navigate(if (role == UserRole.PROVIDER) Routes.ProviderHome else Routes.RequesterHome) {
+                                popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }.padding(vertical = 4.dp),
+                    ) {
+                        RadioButton(
+                            selected = state.user?.role == role,
+                            onClick = {
+                                viewModel.setRole(role)
+                                showRoleDialog = false
+                                navController.navigate(if (role == UserRole.PROVIDER) Routes.ProviderHome else Routes.RequesterHome) {
+                                    popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            },
+                        )
+                        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { showRoleDialog = false }) { Text("انصراف") } },
+    )
 }
 
 @Composable
@@ -162,7 +252,7 @@ fun SettingsScreen(navController: NavHostController, viewModel: ProfileViewModel
             Text("دسترسی‌ها", style = MaterialTheme.typography.titleLarge)
             ProfileAction("موقعیت مکانی", "برای نمایش درخواست‌ها و متخصص‌های نزدیک") { navController.navigate(Routes.ProviderMap) }
             ProfileAction("اعلان‌ها", "برای دریافت تغییرات درخواست‌ها") { navController.navigate(Routes.Notifications) }
-            Text("نسخه ۱٫۰٫۰ · کاروین", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 20.dp))
+            Text("نسخه ۱٫۰٫۰ · کارجور", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 20.dp))
         }
     }
     }

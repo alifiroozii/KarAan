@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+
+<html class="h-full" dir="rtl" lang="fa"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>کارجور | پروفایل کاربری و سوییچر نقش</title>
+<!-- Material Symbols Google Font -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Vazirmatn & Plus Jakarta Sans Persian-compatible Web Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS Play CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration defined verbatim -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-secondary-container": "#006f64",
+            "outline": "#737686",
+            "surface-variant": "#d3e4fe",
+            "on-secondary-fixed": "#00201c",
+            "tertiary-fixed": "#ffdad2",
+            "on-surface-variant": "#434655",
+            "on-background": "#0b1c30",
+            "primary": "#004ac6",
+            "on-primary-fixed-variant": "#003ea8",
+            "surface-container-highest": "#d3e4fe",
+            "on-surface": "#0b1c30",
+            "error": "#ba1a1a",
+            "surface-container-high": "#dce9ff",
+            "on-primary": "#ffffff",
+            "on-error-container": "#93000a",
+            "surface": "#f8f9ff",
+            "on-primary-container": "#eeefff",
+            "primary-container": "#2563eb",
+            "outline-variant": "#c3c6d7",
+            "surface-dim": "#cbdbf5",
+            "primary-fixed-dim": "#b4c5ff",
+            "surface-tint": "#0053db",
+            "on-tertiary-container": "#ffede9",
+            "on-tertiary": "#ffffff",
+            "on-error": "#ffffff",
+            "secondary-fixed": "#71f8e4",
+            "primary-fixed": "#dbe1ff",
+            "secondary-fixed-dim": "#4fdbc8",
+            "background": "#f8f9ff",
+            "tertiary": "#9b2f18",
+            "on-secondary-fixed-variant": "#005048",
+            "secondary-container": "#6df5e1",
+            "on-tertiary-fixed": "#3d0600",
+            "surface-container-lowest": "#ffffff",
+            "error-container": "#ffdad6",
+            "secondary": "#006b5f",
+            "inverse-surface": "#213145",
+            "surface-container-low": "#eff4ff",
+            "on-primary-fixed": "#00174b",
+            "inverse-on-surface": "#eaf1ff",
+            "on-secondary": "#ffffff",
+            "inverse-primary": "#b4c5ff",
+            "tertiary-container": "#bc472d",
+            "surface-bright": "#f8f9ff",
+            "on-tertiary-fixed-variant": "#87210a",
+            "surface-container": "#e5eeff",
+            "tertiary-fixed-dim": "#ffb4a4"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter-lg": "2rem",
+            "gutter": "1.5rem",
+            "space-md": "1rem",
+            "margin-desktop": "3rem",
+            "space-xs": "0.25rem",
+            "space-lg": "1.5rem",
+            "margin-mobile": "1rem",
+            "gutter-sm": "1rem",
+            "margin": "2rem",
+            "space-sm": "0.5rem",
+            "space-xl": "2.5rem"
+          },
+          "fontFamily": {
+            "body-md": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "headline-lg-mobile": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "mono-currency": ["JetBrains Mono", "Vazirmatn", "monospace"],
+            "headline-md": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "headline-lg": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "display-lg": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "label-sm": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "label-md": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "headline-sm": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "title-md": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "body-sm": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "body-lg": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"]
+          },
+          "fontSize": {
+            "body-md": ["14px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "mono-currency": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-lg": ["32px", { "lineHeight": "42px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "display-lg": ["40px", { "lineHeight": "52px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "fontWeight": "500" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "headline-sm": ["20px", { "lineHeight": "30px", "fontWeight": "600" }],
+            "title-md": ["18px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "body-lg": ["16px", { "lineHeight": "28px", "fontWeight": "400" }]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill-1 {
+      font-variation-settings: 'FILL' 1;
+    }
+    body {
+      font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface h-full flex flex-col justify-between selection:bg-primary-container selection:text-on-primary">
+<!-- Mobile Frame Container max-w-md centered -->
+<div class="relative w-full max-w-md mx-auto min-h-screen bg-background flex flex-col pb-28 shadow-2xl">
+<!-- Top Status Bar & App Header (TopAppBar from Design System & JSON) -->
+<header class="sticky top-0 z-40 bg-surface-container-lowest/95 backdrop-blur-md shadow-sm">
+<!-- iOS / Android simulated status row -->
+<div class="flex justify-between items-center px-space-md pt-space-xs text-on-surface-variant font-label-sm text-label-sm">
+<span class="font-mono-currency text-mono-currency">09:41</span>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">signal_cellular_4_bar</span>
+<span class="material-symbols-outlined text-[16px]">wifi</span>
+<span class="material-symbols-outlined text-[18px]">battery_full</span>
+</div>
+</div>
+<!-- App Header Bar -->
+<div class="flex justify-between items-center w-full px-space-md py-space-sm">
+<div class="flex items-center gap-2">
+<button aria-label="منو و تنظیمات" class="w-10 h-10 flex items-center justify-center rounded-xl text-on-surface hover:bg-surface-container active:scale-95 transition-transform duration-150" type="button">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-primary tracking-tight font-bold">کارجور | KARJOOR</span>
+<span class="font-label-sm text-label-sm text-outline">پروفایل کاربری و تنظیمات</span>
+</div>
+</div>
+<div class="flex items-center gap-1.5">
+<button aria-label="اعلان‌ها" class="relative w-10 h-10 flex items-center justify-center rounded-xl text-on-surface-variant hover:bg-surface-container active:scale-95 transition-transform duration-150" type="button">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 left-2.5 w-2.5 h-2.5 bg-tertiary-container rounded-full ring-2 ring-surface-container-lowest animate-pulse"></span>
+</button>
+<button aria-label="تنظیمات" class="w-10 h-10 flex items-center justify-center rounded-xl text-on-surface-variant hover:bg-surface-container active:scale-95 transition-transform duration-150" type="button">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Scrollable Canvas Content -->
+<main class="flex-1 px-space-md py-space-sm space-y-4">
+<!-- SECTION 1: INSTANT ROLE SWITCHER CARD (سوییچر فوری نقش با گرادیان پرایمری عمیق) -->
+<section class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-inverse-surface via-[#18283d] to-primary p-4 text-on-primary shadow-lg border border-white/10">
+<!-- Subtle Decorative Background Pattern -->
+<div class="absolute -left-12 -top-12 w-40 h-40 rounded-full bg-secondary-container/10 blur-2xl pointer-events-none"></div>
+<div class="absolute -right-8 -bottom-8 w-32 h-32 rounded-full bg-primary-container/20 blur-xl pointer-events-none"></div>
+<div class="relative z-10 space-y-3">
+<!-- Active Current Role Badge -->
+<div class="flex items-center justify-between">
+<div class="inline-flex items-center gap-2 bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15">
+<span class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-fixed opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-secondary-fixed"></span>
+</span>
+<span class="font-label-sm text-label-sm text-secondary-fixed font-bold">نقش فعال فعلی: انجام‌دهنده (متخصص)</span>
+</div>
+<div class="flex items-center gap-1 text-[11px] font-label-sm text-inverse-primary bg-primary/40 px-2.5 py-1 rounded-lg">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+<span>تغییر بلادرنگ</span>
+</div>
+</div>
+<!-- Role Toggle Interactive Banner & Trigger Button -->
+<div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/15 flex items-center justify-between gap-3">
+<div class="flex items-center gap-2.5">
+<div class="w-10 h-10 rounded-xl bg-surface-container-lowest/15 flex items-center justify-center text-secondary-fixed">
+<span class="material-symbols-outlined text-2xl">business_center</span>
+</div>
+<div>
+<p class="font-label-md text-label-md font-bold text-white leading-tight">محیط کارفرمایی کارجور</p>
+<p class="font-body-sm text-body-sm text-surface-variant/90 text-[11px] leading-snug">ثبت پروژه، استخدام و مدیریت تیم</p>
+</div>
+</div>
+<!-- Instant Switch Button with swap_horiz icon -->
+<button class="relative group inline-flex items-center gap-1.5 bg-surface-container-lowest text-primary hover:bg-surface-container-high px-3.5 py-2.5 rounded-xl font-label-md text-label-md font-bold shadow-md active:scale-95 transition-all duration-200 whitespace-nowrap" id="roleSwitchBtn" type="button">
+<span>ورود به کارفرما</span>
+<span class="material-symbols-outlined text-primary group-hover:rotate-180 transition-transform duration-300">swap_horiz</span>
+</button>
+</div>
+<!-- Micro Explanatory Note -->
+<div class="flex items-center gap-1.5 text-surface-variant/80 font-body-sm text-body-sm text-[11px] pr-1">
+<span class="material-symbols-outlined text-[14px] text-secondary-fixed">sync_alt</span>
+<span>دسترسی همزمان به ۲ پنل با یک شماره حساب کاربری بدون نیاز به خروج</span>
+</div>
+</div>
+</section>
+<!-- SECTION 2: USER IDENTITY CARD (اطلاعات هویتی و نشان‌های اعتباری) -->
+<section class="bg-surface-container-lowest rounded-2xl p-4 border border-outline-variant/40 shadow-sm relative">
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-3.5">
+<!-- Avatar with Verified Badge Overlay -->
+<div class="relative">
+<img class="w-16 h-16 rounded-2xl object-cover ring-2 ring-primary/20 shadow-sm" data-alt="A refined corporate headshot portrait of an accomplished Persian young male professional smiling confidently in a modern studio setting with soft daylight and high-key illumination. He has neat dark hair and a crisp navy collared shirt against an immaculate minimalist light grey background that reflects institutional professionalism and modern fintech aesthetics." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjHnBsR9fyg2ruI1mfAGB59rBAAQ0agk9VpuGdPsr90YAGjc97QzK6WdUn0-5ikFJDgJ3LvypcsJ1D3Vv9DmBIfOSHtKUxEcK3gwGD3D-emOrimcf-U7Erw1vqDhfHOh4WSJmWBOZU6hXePkinVnapY8DLvGGcIGMRJ6jp-7timruAdJI__kqRVraM2ygR5RZUZx4RH_m6mkH_km5ukh2gxeUA4w9P9N_7saTOUdEMYENxa6igxpmJtWBXtriTGSTWGEe8nA9k1LY"/>
+<div class="absolute -bottom-1 -left-1 bg-secondary text-on-secondary w-6 h-6 rounded-full flex items-center justify-center ring-2 ring-surface-container-lowest shadow" title="هویت تایید شده">
+<span class="material-symbols-outlined fill-1 text-[15px]">verified</span>
+</div>
+</div>
+<!-- Name, Phone & Status -->
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<h1 class="font-headline-sm text-headline-sm text-on-surface font-bold">علی فیروزی</h1>
+<span class="inline-flex items-center gap-0.5 bg-secondary/10 text-secondary border border-secondary/20 px-2 py-0.5 rounded-md font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined fill-1 text-[13px]">check_circle</span>
+<span>تایید شده</span>
+</span>
+</div>
+<p class="font-mono-currency text-mono-currency text-on-surface-variant text-[13px] dir-ltr text-right">۰۹۱۲ ۳۴۵ ۶۷۸۹</p>
+</div>
+</div>
+<!-- Edit Profile Small Button -->
+<button class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-outline-variant text-on-surface-variant hover:text-primary hover:border-primary font-label-sm text-label-sm transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+<span>ویرایش</span>
+</button>
+</div>
+<!-- Trust Badges Strip -->
+<div class="mt-4 pt-3.5 border-t border-outline-variant/30 flex flex-wrap gap-2">
+<span class="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200/60 px-2.5 py-1 rounded-lg font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined fill-1 text-amber-500 text-[14px]">stars</span>
+<span>کاربر ویژه طلایی</span>
+</span>
+<span class="inline-flex items-center gap-1 bg-surface-container-low text-primary border border-primary/20 px-2.5 py-1 rounded-lg font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[14px]">shield</span>
+<span>تایید هویت ملی</span>
+</span>
+<span class="inline-flex items-center gap-1 bg-surface-container text-on-surface-variant px-2.5 py-1 rounded-lg font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">calendar_today</span>
+<span>عضو کارجور از ۱۴۰۱</span>
+</span>
+</div>
+</section>
+<!-- SECTION 3: ESCROW WALLET BALANCE CARD (کارت کیف پول اختصاصی و دارایی با تضمین امن) -->
+<section class="bg-surface-container-lowest rounded-2xl p-4 border border-outline-variant/40 shadow-sm relative overflow-hidden">
+<div class="flex items-center justify-between pb-3 border-b border-outline-variant/30">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-primary-container/10 text-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant font-medium">موجودی کیف پول امن</p>
+<span class="font-label-sm text-label-sm text-outline">حساب تسویه مستقیم شتاب</span>
+</div>
+</div>
+<!-- Escrow Guarantee Badge -->
+<div class="flex items-center gap-1 bg-secondary/10 border border-secondary/25 text-secondary px-2.5 py-1 rounded-full font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-[14px] fill-1">lock</span>
+<span>تضمین امن کارجور (Escrow)</span>
+</div>
+</div>
+<!-- Big Tabular Currency Display -->
+<div class="py-3.5 flex items-baseline justify-between">
+<div>
+<span class="font-headline-lg font-mono-currency text-on-surface tracking-tight font-extrabold text-[28px]">۱,۲۵۰,۰۰۰</span>
+<span class="font-label-md text-label-md text-on-surface-variant mr-1.5 font-bold">تومان</span>
+</div>
+<span class="text-[12px] font-body-sm text-secondary font-medium flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[15px]">check</span>
+<span>آماده برداشت آنی</span>
+</span>
+</div>
+<!-- Dual Action Buttons -->
+<div class="grid grid-cols-2 gap-2.5 pt-1">
+<!-- Deposit Button -->
+<button class="flex items-center justify-center gap-1.5 bg-primary-container text-on-primary hover:bg-primary py-2.5 px-3 rounded-xl font-label-md text-label-md font-bold shadow-sm active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+<span>افزایش اعتبار (واریز)</span>
+</button>
+<!-- Withdraw Button -->
+<button class="flex items-center justify-center gap-1.5 bg-surface-container-low text-on-surface hover:bg-surface-container border border-outline-variant/60 py-2.5 px-3 rounded-xl font-label-md text-label-md font-bold active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px] text-primary">payments</span>
+<span>تسویه و برداشت وجه</span>
+</button>
+</div>
+</section>
+<!-- SECTION 4: PERFORMANCE SUMMARY METRICS (آمار سریع و اعتبار کاربر) -->
+<section class="grid grid-cols-3 gap-2.5">
+<!-- Rating Metric -->
+<div class="bg-surface-container-lowest p-3 rounded-2xl border border-outline-variant/40 shadow-sm flex flex-col items-center text-center">
+<div class="flex items-center gap-1 text-amber-500 mb-1">
+<span class="material-symbols-outlined fill-1 text-[20px]">star</span>
+<span class="font-headline-sm font-mono-currency text-on-surface font-bold text-[18px]">۴.۹</span>
+</div>
+<span class="font-label-sm text-label-sm font-semibold text-on-surface">امتیاز کاربری</span>
+<span class="font-body-sm text-body-sm text-outline text-[11px] mt-0.5">۳۲ نظر ثبت شده</span>
+</div>
+<!-- Completed Projects Metric -->
+<div class="bg-surface-container-lowest p-3 rounded-2xl border border-outline-variant/40 shadow-sm flex flex-col items-center text-center">
+<div class="flex items-center gap-1 text-primary-container mb-1">
+<span class="material-symbols-outlined text-[20px]">task_alt</span>
+<span class="font-headline-sm font-mono-currency text-on-surface font-bold text-[18px]">۱۴</span>
+</div>
+<span class="font-label-sm text-label-sm font-semibold text-on-surface">کار موفق</span>
+<span class="font-body-sm text-body-sm text-outline text-[11px] mt-0.5">بدون لغو قرارداد</span>
+</div>
+<!-- Employer Satisfaction Metric -->
+<div class="bg-surface-container-lowest p-3 rounded-2xl border border-outline-variant/40 shadow-sm flex flex-col items-center text-center">
+<div class="flex items-center gap-1 text-secondary mb-1">
+<span class="material-symbols-outlined text-[20px]">sentiment_very_satisfied</span>
+<span class="font-headline-sm font-mono-currency text-on-surface font-bold text-[18px]">۱۰۰٪</span>
+</div>
+<span class="font-label-sm text-label-sm font-semibold text-on-surface">رضایت کارفرما</span>
+<span class="font-body-sm text-body-sm text-secondary text-[11px] mt-0.5 font-medium">سرویس ممتاز</span>
+</div>
+</section>
+<!-- SECTION 5: SETTINGS & NAVIGATION ROWS (لیست دسته‌بندی شده گزینه‌ها و تنظیمات حساب) -->
+<section class="space-y-2">
+<h2 class="font-title-md text-title-md font-bold text-on-surface px-1 pt-1">مدیریت حساب و خدمات تخصصی</h2>
+<!-- Card Container with Grouped Rows -->
+<div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/40 shadow-sm divide-y divide-outline-variant/30 overflow-hidden">
+<!-- Row 1: Skills & Certifications -->
+<a class="flex items-center justify-between p-3.5 hover:bg-surface-container-low transition-colors group" href="#skills">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-primary-fixed/40 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">workspace_premium</span>
+</div>
+<div>
+<p class="font-label-md text-label-md font-semibold text-on-surface group-hover:text-primary transition-colors">مهارت‌ها و تخصص‌ها</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-[12px]">مدیریت مدارک، ۳ مهارت احراز شده</p>
+</div>
+</div>
+<div class="flex items-center gap-1.5 text-outline">
+<span class="bg-surface-container px-2 py-0.5 rounded-md text-[11px] font-label-sm text-on-surface-variant">توسعه فرانت‌اند</span>
+<span class="material-symbols-outlined text-[20px] group-hover:-translate-x-1 transition-transform">chevron_left</span>
+</div>
+</a>
+<!-- Row 2: Work History & Reviews -->
+<a class="flex items-center justify-between p-3.5 hover:bg-surface-container-low transition-colors group" href="#history">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">rate_review</span>
+</div>
+<div>
+<p class="font-label-md text-label-md font-semibold text-on-surface group-hover:text-primary transition-colors">سوابق کارها و امتیازها</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-[12px]">امتیاز ۴.۹ از ۵، نظرات کارفرمایان</p>
+</div>
+</div>
+<div class="flex items-center gap-1.5 text-outline">
+<span class="material-symbols-outlined text-[20px] group-hover:-translate-x-1 transition-transform">chevron_left</span>
+</div>
+</a>
+<!-- Row 3: Addresses & Coverage Area -->
+<a class="flex items-center justify-between p-3.5 hover:bg-surface-container-low transition-colors group" href="#coverage">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">pin_drop</span>
+</div>
+<div>
+<p class="font-label-md text-label-md font-semibold text-on-surface group-hover:text-primary transition-colors">آدرس‌ها و مناطق فعالیت</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-[12px]">تهران، سعادت‌آباد و مناطق منتخب تحت پوشش</p>
+</div>
+</div>
+<div class="flex items-center gap-1.5 text-outline">
+<span class="material-symbols-outlined text-[20px] group-hover:-translate-x-1 transition-transform">chevron_left</span>
+</div>
+</a>
+<!-- Row 4: Contracts & Escrow Guarantee -->
+<a class="flex items-center justify-between p-3.5 hover:bg-surface-container-low transition-colors group" href="#escrow-contracts">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">verified_user</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<p class="font-label-md text-label-md font-semibold text-on-surface group-hover:text-primary transition-colors">قراردادها و ضمانت امن (Escrow)</p>
+<span class="bg-secondary-fixed/50 text-secondary font-label-sm text-[10px] px-1.5 py-0.2 rounded font-bold">فعال</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-[12px]">مدیریت و پوشش صندوق امانی قراردادها</p>
+</div>
+</div>
+<div class="flex items-center gap-1.5 text-outline">
+<span class="material-symbols-outlined text-[20px] group-hover:-translate-x-1 transition-transform">chevron_left</span>
+</div>
+</a>
+<!-- Row 5: Notification Preferences -->
+<a class="flex items-center justify-between p-3.5 hover:bg-surface-container-low transition-colors group" href="#notifications-settings">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-surface-container text-on-surface flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">notifications_active</span>
+</div>
+<div>
+<p class="font-label-md text-label-md font-semibold text-on-surface group-hover:text-primary transition-colors">تنظیمات اعلان‌ها و پیام‌ها</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-[12px]">پیامک، ایمیل و پوش نوتیفیکیشن فوری</p>
+</div>
+</div>
+<div class="flex items-center gap-1.5 text-outline">
+<span class="material-symbols-outlined text-[20px] group-hover:-translate-x-1 transition-transform">chevron_left</span>
+</div>
+</a>
+<!-- Row 6: Support 24/7 & About Platform -->
+<a class="flex items-center justify-between p-3.5 hover:bg-surface-container-low transition-colors group" href="#support">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">support_agent</span>
+</div>
+<div>
+<p class="font-label-md text-label-md font-semibold text-on-surface group-hover:text-primary transition-colors">درباره کارجور و پشتیبانی ۲۴ ساعته</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-[12px]">ارتباط مستقیم تلفنی، تیکت و چت آنلاین</p>
+</div>
+</div>
+<div class="flex items-center gap-1.5 text-secondary font-label-sm text-label-sm font-semibold">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+<span>پاسخگوی آنلاین</span>
+<span class="material-symbols-outlined text-[20px] text-outline group-hover:-translate-x-1 transition-transform">chevron_left</span>
+</div>
+</a>
+</div>
+<!-- Standalone Logout Action Button -->
+<div class="pt-2">
+<button class="w-full flex items-center justify-center gap-2 p-3.5 rounded-2xl bg-surface-container-lowest border border-error/30 text-error hover:bg-error-container/20 active:scale-98 transition-all font-label-md text-label-md font-bold shadow-sm" type="button">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+<span>خروج از حساب کاربری</span>
+</button>
+</div>
+</section>
+<!-- App Version Footnote -->
+<div class="text-center py-2 text-outline font-label-sm text-label-sm">
+<span>نسخه اپلیکیشن کارجور ۲.۴.۰ | سامانه تایید هویت هوشمند</span>
+</div>
+</main>
+<!-- SECTION 7: BOTTOM NAVIGATION BAR (Strict JSON Shared Component Execution) -->
+<!-- JSON Blueprint: destination_count=5, labels=["پروژه‌ها", "پیشنهادها", "مالی", "پیام‌ها", "پروفایل"] -->
+<!-- Active State: 'پروفایل' is highlighted as primary destination -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-space-sm py-space-xs bg-surface-container-lowest shadow-[0_-4px_16px_rgba(11,28,48,0.06)] border-t border-outline-variant/30 max-w-md mx-auto right-0">
+<!-- Tab 1: پروژه‌ها (Projects) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-space-sm py-space-xs active:scale-95 transition-transform duration-150 hover:text-primary" href="#projects">
+<span class="material-symbols-outlined text-[24px]">work</span>
+<span class="text-label-sm font-label-sm mt-0.5">پروژه‌ها</span>
+</a>
+<!-- Tab 2: پیشنهادها (Bids/Proposals) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-space-sm py-space-xs active:scale-95 transition-transform duration-150 hover:text-primary" href="#proposals">
+<span class="material-symbols-outlined text-[24px]">assignment</span>
+<span class="text-label-sm font-label-sm mt-0.5">پیشنهادها</span>
+</a>
+<!-- Tab 3: مالی (Financial/Escrow) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-space-sm py-space-xs active:scale-95 transition-transform duration-150 hover:text-primary" href="#financial">
+<span class="material-symbols-outlined text-[24px]">account_balance_wallet</span>
+<span class="text-label-sm font-label-sm mt-0.5">مالی</span>
+</a>
+<!-- Tab 4: پیام‌ها (Messages) -->
+<a class="relative flex flex-col items-center justify-center text-on-surface-variant px-space-sm py-space-xs active:scale-95 transition-transform duration-150 hover:text-primary" href="#messages">
+<span class="material-symbols-outlined text-[24px]">chat</span>
+<span class="text-label-sm font-label-sm mt-0.5">پیام‌ها</span>
+<span class="absolute top-1 right-2 w-2 h-2 rounded-full bg-primary"></span>
+</a>
+<!-- Tab 5: پروفایل (Profile) - MANDATORY ACTIVE STATE -->
+<a class="flex flex-col items-center justify-center bg-surface-container-high text-primary rounded-xl px-space-sm py-space-xs active:scale-95 transition-transform duration-150 font-bold" href="#profile">
+<span class="material-symbols-outlined text-[24px] fill-1">person</span>
+<span class="text-label-sm font-label-sm mt-0.5">پروفایل</span>
+</a>
+</nav>
+</div>
+<!-- Micro-interaction JavaScript for Instant Role Switcher Notification -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const switchBtn = document.getElementById('roleSwitchBtn');
+      if (switchBtn) {
+        switchBtn.addEventListener('click', () => {
+          // Subtle feedback vibration if supported
+          if (navigator.vibrate) {
+            navigator.vibrate(40);
+          }
+          // Visual toggle confirmation toast
+          const toast = document.createElement('div');
+          toast.className = 'fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-inverse-surface text-inverse-on-surface px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 font-label-md text-label-md border border-white/20 transition-all duration-300 transform scale-90 opacity-0';
+          toast.innerHTML = `
+            <span class="material-symbols-outlined text-secondary-fixed text-[18px]">cached</span>
+            <span>در حال جابجایی به پنل کارفرما...</span>
+          `;
+          document.body.appendChild(toast);
+          
+          setTimeout(() => {
+            toast.classList.remove('scale-90', 'opacity-0');
+            toast.classList.add('scale-100', 'opacity-100');
+          }, 10);
+
+          setTimeout(() => {
+            toast.classList.remove('scale-100', 'opacity-100');
+            toast.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => toast.remove(), 300);
+          }, 2000);
+        });
+      }
+    });
+  </script>
+</body></html>

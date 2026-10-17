@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+
+<html class="h-full" dir="rtl" lang="fa"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>کارجور | KARJOOR</title>
+<!-- Google Fonts: Plus Jakarta Sans & Vazirmatn for Persian Elegance -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Vazirmatn:wght@300;400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined (Mandatory Link) -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Theme Configuration Verbatim -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary-fixed": "#00174b",
+            "inverse-surface": "#213145",
+            "surface-container-high": "#dce9ff",
+            "primary-fixed": "#dbe1ff",
+            "inverse-on-surface": "#eaf1ff",
+            "error-container": "#ffdad6",
+            "on-tertiary": "#ffffff",
+            "surface-variant": "#d3e4fe",
+            "on-tertiary-container": "#ffede9",
+            "inverse-primary": "#b4c5ff",
+            "surface-bright": "#f8f9ff",
+            "surface-container-low": "#eff4ff",
+            "tertiary-fixed": "#ffdad2",
+            "error": "#ba1a1a",
+            "on-secondary-fixed-variant": "#005048",
+            "secondary-fixed": "#71f8e4",
+            "primary": "#004ac6",
+            "on-primary-fixed-variant": "#003ea8",
+            "on-error-container": "#93000a",
+            "surface": "#f8f9ff",
+            "primary-container": "#2563eb",
+            "surface-container-lowest": "#ffffff",
+            "on-secondary-fixed": "#00201c",
+            "surface-container-highest": "#d3e4fe",
+            "on-primary-container": "#eeefff",
+            "tertiary-container": "#bc472d",
+            "on-primary": "#ffffff",
+            "surface-container": "#e5eeff",
+            "on-surface": "#0b1c30",
+            "secondary-fixed-dim": "#4fdbc8",
+            "secondary-container": "#6df5e1",
+            "on-tertiary-fixed-variant": "#87210a",
+            "surface-dim": "#cbdbf5",
+            "tertiary": "#9b2f18",
+            "on-secondary": "#ffffff",
+            "primary-fixed-dim": "#b4c5ff",
+            "on-secondary-container": "#006f64",
+            "secondary": "#006b5f",
+            "on-background": "#0b1c30",
+            "tertiary-fixed-dim": "#ffb4a4",
+            "outline": "#737686",
+            "on-tertiary-fixed": "#3d0600",
+            "surface-tint": "#0053db",
+            "on-error": "#ffffff",
+            "on-surface-variant": "#434655",
+            "background": "#f8f9ff",
+            "outline-variant": "#c3c6d7"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-xl": "2.5rem",
+            "gutter": "1.5rem",
+            "margin": "2rem",
+            "space-lg": "1.5rem",
+            "gutter-lg": "2rem",
+            "gutter-sm": "1rem",
+            "margin-desktop": "3rem",
+            "space-sm": "0.5rem",
+            "space-xs": "0.25rem",
+            "space-md": "1rem",
+            "margin-mobile": "1rem"
+          },
+          "fontFamily": {
+            "headline-sm": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "title-md": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "display-lg": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "mono-currency": ["JetBrains Mono", "monospace"],
+            "headline-lg": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "label-md": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "body-sm": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "headline-lg-mobile": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "label-sm": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "body-md": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "headline-md": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "body-lg": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"]
+          },
+          "fontSize": {
+            "headline-sm": ["20px", { "lineHeight": "30px", "fontWeight": "600" }],
+            "title-md": ["18px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "display-lg": ["40px", { "lineHeight": "52px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+            "mono-currency": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+            "headline-lg": ["32px", { "lineHeight": "42px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "fontWeight": "500" }],
+            "body-md": ["14px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-lg": ["16px", { "lineHeight": "28px", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      font-family: 'Vazirmatn', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+    }
+
+    @keyframes pulse-subtle {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.35;
+      }
+      50% {
+        transform: scale(1.06);
+        opacity: 0.65;
+      }
+    }
+
+    @keyframes float-gentle {
+      0%, 100% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-4px);
+      }
+    }
+
+    .animate-ambient-glow {
+      animation: pulse-subtle 6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    .animate-mark {
+      animation: float-gentle 4s ease-in-out infinite;
+    }
+
+    @keyframes wave-dot {
+      0%, 80%, 100% {
+        transform: scale(0.75);
+        opacity: 0.4;
+      }
+      40% {
+        transform: scale(1.25);
+        opacity: 1;
+      }
+    }
+
+    .loader-dot-1 {
+      animation: wave-dot 1.4s ease-in-out infinite;
+    }
+    .loader-dot-2 {
+      animation: wave-dot 1.4s ease-in-out 0.2s infinite;
+    }
+    .loader-dot-3 {
+      animation: wave-dot 1.4s ease-in-out 0.4s infinite;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#F8FAFC] text-on-surface select-none h-full w-full overflow-hidden flex flex-col justify-between relative antialiased">
+<!-- Background Ambient Subtle Glows -->
+<div class="pointer-events-none absolute inset-0 overflow-hidden flex items-center justify-center z-0">
+<!-- Center Radial Glow -->
+<div class="w-[320px] h-[320px] rounded-full bg-gradient-to-tr from-primary-fixed-dim/30 via-[#71f8e4]/20 to-[#ffdad2]/20 blur-3xl animate-ambient-glow"></div>
+<!-- Upper Soft Fill -->
+<div class="absolute -top-24 left-1/2 -translate-x-1/2 w-[340px] h-[240px] bg-surface-container-high/40 rounded-full blur-3xl"></div>
+</div>
+<!-- Subtle Top Safe Notch Cushion -->
+<header class="relative z-10 w-full pt-6 px-6 flex justify-between items-center opacity-0 pointer-events-none">
+<span class="text-xs">KARJOOR</span>
+</header>
+<!-- Central Brand Cluster (Main Stage) -->
+<main class="relative z-10 flex-1 flex flex-col items-center justify-center px-gutter-sm max-w-[390px] mx-auto w-full text-center">
+<!-- KARJOOR Emblem Container with Premium Soft Shadow -->
+<div class="relative w-[116px] h-[116px] flex items-center justify-center mb-6 animate-mark">
+<!-- Backdrop Halo Shadow -->
+<div class="absolute inset-2 bg-primary-container/15 rounded-3xl blur-xl transform translate-y-3"></div>
+<!-- Vector SVG Interlocking Logo Symbol -->
+<svg class="relative w-[100px] h-[100px] drop-shadow-[0_12px_24px_rgba(37,99,235,0.18)]" fill="none" viewbox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<!-- Gradient for Royal Blue Ribbon -->
+<lineargradient gradientunits="userSpaceOnUse" id="blueGradient" x1="16" x2="84" y1="18" y2="82">
+<stop offset="0%" stop-color="#3B82F6"></stop>
+<stop offset="50%" stop-color="#2563EB"></stop>
+<stop offset="100%" stop-color="#1D4ED8"></stop>
+</lineargradient>
+<!-- Gradient for Vivid Teal Ribbon -->
+<lineargradient gradientunits="userSpaceOnUse" id="tealGradient" x1="84" x2="16" y1="18" y2="82">
+<stop offset="0%" stop-color="#2DD4BF"></stop>
+<stop offset="50%" stop-color="#14B8A6"></stop>
+<stop offset="100%" stop-color="#0F766E"></stop>
+</lineargradient>
+<!-- Coral Node Gradient -->
+<radialgradient cx="50%" cy="50%" id="coralGlow" r="50%">
+<stop offset="0%" stop-color="#FF8A65"></stop>
+<stop offset="85%" stop-color="#FF785A"></stop>
+<stop offset="100%" stop-color="#EA580C"></stop>
+</radialgradient>
+</defs>
+<!-- Dynamic Ribbon Path A: Flowing Primary Blue Interlocking Branch -->
+<path d="M26 18C21.5817 18 18 21.5817 18 26V74C18 78.4183 21.5817 82 26 82C30.4183 82 34 78.4183 34 74V54.5C37.8 51.2 43.1 48 50 48C56.9 48 62.2 45.8 67 41.5L74.8 33.7C78 30.5 78 25.5 74.8 22.3C71.6 19.1 66.5 19.1 63.3 22.3L52 33.6C46.8 38.8 40.5 41.2 34 42.4V26C34 21.5817 30.4183 18 26 18Z" fill="url(#blueGradient)"></path>
+<!-- Dynamic Ribbon Path B: Counter-flow Vivid Teal Ribbon Forming Intersecting Arch -->
+<path d="M74 82C78.4183 82 82 78.4183 82 74V26C82 21.5817 78.4183 18 74 18C69.5817 18 66 21.5817 66 26V45.5C62.2 48.8 56.9 52 50 52C43.1 52 37.8 54.2 33 58.5L25.2 66.3C22 69.5 22 74.5 25.2 77.7C28.4 80.9 33.5 80.9 36.7 77.7L48 66.4C53.2 61.2 59.5 58.8 66 57.6V74C66 78.4183 69.5817 82 74 82Z" fill="url(#tealGradient)"></path>
+<!-- Focal Micro-Accent Node (Floating Precision Escrow/Connection Point) -->
+<circle cx="50" cy="50" fill="url(#coralGlow)" r="5.5"></circle>
+<circle cx="50" cy="50" opacity="0.9" r="8" stroke="#FFFFFF" stroke-width="2"></circle>
+</svg>
+</div>
+<!-- Brand Typography Block -->
+<div class="flex flex-col items-center">
+<!-- Persian Title -->
+<h1 class="text-[38px] leading-[48px] font-black tracking-tight text-[#0F172A] drop-shadow-sm select-none">
+        کارجور
+      </h1>
+<!-- Latin Tracked-out Subtitle -->
+<span class="mt-1 font-headline-sm text-xs font-bold tracking-[0.28em] text-[#64748B] uppercase select-none ltr text-center pl-1">
+        KARJOOR
+      </span>
+<!-- Persian Slogan (Professionalism & High Trust Marketplace) -->
+<p class="font-body-md text-body-md text-[#475569] mt-3 font-normal leading-relaxed max-w-[280px]">
+        سامانه هوشمند فرصت‌های کاری و خدمات
+      </p>
+</div>
+<!-- Verified Institutional Micro-Pill -->
+<div class="mt-5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high/60 border border-outline-variant/30 text-[11px] font-medium text-secondary">
+<span class="w-1.5 h-1.5 rounded-full bg-[#14B8A6]"></span>
+<span>بازارگاه تخصصی و پرداخت امن امانی</span>
+</div>
+</main>
+<!-- Bottom Operational Status & Loader -->
+<footer class="relative z-10 w-full pb-8 pt-4 px-6 flex flex-col items-center justify-center max-w-[390px] mx-auto">
+<!-- Pulsing Triple Minimal Dots Loader -->
+<div aria-label="بارگذاری سامانه" class="flex items-center justify-center gap-2 mb-3.5">
+<!-- Dot 1: Royal Blue -->
+<span class="loader-dot-1 w-2.5 h-2.5 rounded-full bg-[#2563EB] shadow-[0_0_8px_rgba(37,99,235,0.4)]"></span>
+<!-- Dot 2: Vivid Teal -->
+<span class="loader-dot-2 w-2.5 h-2.5 rounded-full bg-[#14B8A6] shadow-[0_0_8px_rgba(20,184,166,0.4)]"></span>
+<!-- Dot 3: Coral Node -->
+<span class="loader-dot-3 w-2.5 h-2.5 rounded-full bg-[#FF785A] shadow-[0_0_8px_rgba(255,120,90,0.4)]"></span>
+</div>
+<!-- Version & Trust Mark -->
+<div class="flex items-center gap-1 text-[11px] font-normal text-[#94A3B8] tracking-normal select-none">
+<span>نسخه ۲.۰</span>
+<span class="text-[9px] opacity-60">•</span>
+<span>پلتفرم امن کاریابی و خدمات</span>
+</div>
+<!-- Safe-area Home Bar Touch Anchor for iOS/Modern Viewport -->
+<div class="w-32 h-1 bg-slate-200/80 rounded-full mt-4"></div>
+</footer>
+</body></html>

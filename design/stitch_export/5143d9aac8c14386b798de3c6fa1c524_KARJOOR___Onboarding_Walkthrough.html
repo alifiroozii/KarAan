@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-surface" dir="rtl" lang="fa"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>کارجور | ورود و آشنایی</title>
+<!-- Google Fonts: Plus Jakarta Sans & Vazirmatn for authentic Persian RTL typography -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Vazirmatn:wght@300;400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration JSON Verbatim -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-secondary-container": "#006f64",
+            "on-primary": "#ffffff",
+            "surface-container": "#e5eeff",
+            "secondary-fixed-dim": "#4fdbc8",
+            "secondary-fixed": "#71f8e4",
+            "on-tertiary-fixed": "#3d0600",
+            "surface-tint": "#0053db",
+            "on-tertiary-fixed-variant": "#87210a",
+            "on-secondary": "#ffffff",
+            "on-primary-fixed-variant": "#003ea8",
+            "tertiary-fixed-dim": "#ffb4a4",
+            "error": "#ba1a1a",
+            "on-primary-fixed": "#00174b",
+            "surface": "#f8f9ff",
+            "inverse-surface": "#213145",
+            "on-error-container": "#93000a",
+            "background": "#f8f9ff",
+            "secondary": "#006b5f",
+            "surface-bright": "#f8f9ff",
+            "tertiary-fixed": "#ffdad2",
+            "surface-container-lowest": "#ffffff",
+            "secondary-container": "#6df5e1",
+            "on-surface": "#0b1c30",
+            "surface-variant": "#d3e4fe",
+            "surface-container-highest": "#d3e4fe",
+            "primary": "#004ac6",
+            "primary-fixed": "#dbe1ff",
+            "on-tertiary": "#ffffff",
+            "on-tertiary-container": "#ffede9",
+            "outline": "#737686",
+            "error-container": "#ffdad6",
+            "surface-container-low": "#eff4ff",
+            "primary-fixed-dim": "#b4c5ff",
+            "on-secondary-fixed": "#00201c",
+            "on-error": "#ffffff",
+            "primary-container": "#2563eb",
+            "inverse-on-surface": "#eaf1ff",
+            "tertiary-container": "#bc472d",
+            "on-primary-container": "#eeefff",
+            "surface-dim": "#cbdbf5",
+            "on-background": "#0b1c30",
+            "tertiary": "#9b2f18",
+            "on-secondary-fixed-variant": "#005048",
+            "outline-variant": "#c3c6d7",
+            "on-surface-variant": "#434655",
+            "inverse-primary": "#b4c5ff",
+            "surface-container-high": "#dce9ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-sm": "0.5rem",
+            "gutter-sm": "1rem",
+            "gutter": "1.5rem",
+            "margin": "2rem",
+            "space-lg": "1.5rem",
+            "gutter-lg": "2rem",
+            "margin-mobile": "1rem",
+            "margin-desktop": "3rem",
+            "space-md": "1rem",
+            "space-xl": "2.5rem",
+            "space-xs": "0.25rem"
+          },
+          "fontFamily": {
+            "mono-currency": ["JetBrains Mono"],
+            "headline-sm": ["Vazirmatn", "Plus Jakarta Sans"],
+            "body-sm": ["Vazirmatn", "Plus Jakarta Sans"],
+            "body-md": ["Vazirmatn", "Plus Jakarta Sans"],
+            "headline-md": ["Vazirmatn", "Plus Jakarta Sans"],
+            "display-lg": ["Vazirmatn", "Plus Jakarta Sans"],
+            "label-md": ["Vazirmatn", "Plus Jakarta Sans"],
+            "body-lg": ["Vazirmatn", "Plus Jakarta Sans"],
+            "title-md": ["Vazirmatn", "Plus Jakarta Sans"],
+            "label-sm": ["Vazirmatn", "Plus Jakarta Sans"],
+            "headline-lg": ["Vazirmatn", "Plus Jakarta Sans"],
+            "headline-lg-mobile": ["Vazirmatn", "Plus Jakarta Sans"]
+          },
+          "fontSize": {
+            "mono-currency": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+            "headline-sm": ["20px", { "lineHeight": "30px", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "body-md": ["14px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "display-lg": ["40px", { "lineHeight": "52px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "body-lg": ["16px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "title-md": ["18px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "fontWeight": "500" }],
+            "headline-lg": ["32px", { "lineHeight": "42px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      font-family: 'Vazirmatn', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .custom-mesh-bg {
+      background: radial-gradient(circle at 85% 15%, rgba(37, 99, 235, 0.08) 0%, transparent 45%),
+                  radial-gradient(circle at 15% 75%, rgba(20, 184, 166, 0.07) 0%, transparent 50%),
+                  radial-gradient(circle at 50% 50%, rgba(255, 120, 90, 0.04) 0%, transparent 60%);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface antialiased min-h-screen flex flex-col justify-between selection:bg-primary selection:text-on-primary">
+<!-- Mobile Onboarding Container (Centered Frame on Larger Screens for Clean Mobile Sandbox) -->
+<div class="w-full max-w-md mx-auto min-h-screen flex flex-col justify-between bg-surface-bright relative shadow-2xl md:my-6 md:min-h-[860px] md:rounded-[32px] md:overflow-hidden md:border md:border-outline-variant/30">
+<!-- Decorative Ambient Glows -->
+<div class="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute top-1/3 -left-20 w-56 h-56 bg-secondary/10 rounded-full blur-2xl pointer-events-none"></div>
+<!-- Top Bar / Navigation Anchor (Task/Linear Suppression Rule Applied: BottomNavBar Suppressed) -->
+<header class="w-full pt-6 pb-2 px-space-md flex items-center justify-between z-10">
+<!-- Right Side: Brand Mark (RTL Lead) -->
+<div class="flex items-center gap-2">
+<div class="w-9 h-9 rounded-xl bg-primary-container flex items-center justify-center text-on-primary shadow-sm shadow-primary/30">
+<span class="material-symbols-outlined text-[20px]" data-icon="work" data-weight="fill" style="font-variation-settings: 'FILL' 1;">work</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm tracking-tight text-primary font-black leading-none">کارجور</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant font-medium tracking-wider">KARJOOR PLATFORM</span>
+</div>
+</div>
+<!-- Left Side: Secondary Skip Action -->
+<button class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors py-1.5 px-3 rounded-lg hover:bg-surface-container active:scale-95 duration-150" type="button">
+        رد کردن
+      </button>
+</header>
+<!-- Main Scrollable / Viewport Canvas -->
+<main class="flex-1 px-space-md py-space-xs flex flex-col justify-around z-10">
+<!-- Interactive Showcase Hero Card (Bento-style Modern Marketplace Illustration) -->
+<div class="relative w-full rounded-2xl p-space-md bg-surface-container-lowest border border-outline-variant/40 shadow-sm overflow-hidden custom-mesh-bg">
+<!-- Floating Micro Status Tag in Corner -->
+<div class="flex items-center justify-between mb-3">
+<div class="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-secondary-fixed/30 border border-secondary/20">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-on-secondary-container font-bold">سامانه پایش هوشمند</span>
+</div>
+<span class="font-mono-currency text-mono-currency text-outline text-[12px]">۱۴۰۳ / گواهی نماد</span>
+</div>
+<!-- Visual Composite Graphic -->
+<div class="relative h-44 w-full flex items-center justify-center my-1">
+<!-- Central Abstract Connection Ecosystem -->
+<div class="relative w-36 h-36 rounded-full bg-surface-container-low border border-primary/20 flex items-center justify-center">
+<div class="w-24 h-24 rounded-full bg-surface-container flex items-center justify-center shadow-inner">
+<div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-primary to-primary-container flex items-center justify-center text-on-primary shadow-lg shadow-primary/30 rotate-3 transition-transform hover:rotate-0">
+<span class="material-symbols-outlined text-[28px]" data-icon="handshake" data-weight="fill" style="font-variation-settings: 'FILL' 1;">handshake</span>
+</div>
+</div>
+<!-- Orbiting Feature 1: Verified Freelancer (Right RTL Anchor) -->
+<div class="absolute -right-3 top-2 bg-surface-container-lowest px-2.5 py-1.5 rounded-xl border border-outline-variant/50 shadow-sm flex items-center gap-1.5">
+<div class="w-6 h-6 rounded-lg bg-secondary/15 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[16px]" data-icon="verified_user" data-weight="fill" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">متخصص تاییدشده</span>
+</div>
+<!-- Orbiting Feature 2: Escrow Wallet Security (Bottom Left) -->
+<div class="absolute -left-3 bottom-2 bg-surface-container-lowest px-2.5 py-1.5 rounded-xl border border-outline-variant/50 shadow-sm flex items-center gap-1.5">
+<div class="w-6 h-6 rounded-lg bg-tertiary-container/15 flex items-center justify-center text-tertiary-container">
+<span class="material-symbols-outlined text-[16px]" data-icon="lock" data-weight="fill" style="font-variation-settings: 'FILL' 1;">lock</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">ضمانت مالی</span>
+</div>
+<!-- Orbiting Feature 3: Local Radar Project (Top Left) -->
+<div class="absolute -left-1 -top-2 bg-surface-container-lowest px-2 py-1 rounded-lg border border-outline-variant/40 shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[14px]" data-icon="near_me">near_me</span>
+<span class="font-label-sm text-[11px] text-on-surface-variant">پروژه‌های اطراف</span>
+</div>
+</div>
+</div>
+<!-- Step Indicator Dots -->
+<div class="flex items-center justify-center gap-1.5 pt-2">
+<!-- Step 1 (Active): Elongated pill in royal blue -->
+<span class="w-7 h-2 rounded-full bg-primary-container transition-all duration-300"></span>
+<!-- Step 2 -->
+<span class="w-2 h-2 rounded-full bg-outline-variant/60 transition-all duration-300"></span>
+<!-- Step 3 -->
+<span class="w-2 h-2 rounded-full bg-outline-variant/60 transition-all duration-300"></span>
+</div>
+</div>
+<!-- Typography Narrative -->
+<div class="mt-4 mb-2 text-center sm:text-right">
+<h1 class="font-headline-md text-headline-md text-on-surface font-extrabold tracking-tight mb-2">
+          در کارجور، کارها راحت‌تر جور میشن
+        </h1>
+<p class="font-body-md text-body-md text-on-surface-variant font-normal leading-relaxed">
+          سامانه هوشمند ارتباط مستقیم کارجویان متخصص و کارفرمایان معتبر همراه با تضمین صددرصدی پرداخت امن.
+        </p>
+</div>
+<!-- 3 Value Pillars (Micro-cards with Modern Fintech Tactility) -->
+<div class="space-y-2.5 my-2">
+<!-- Pillar 1: Location & Intelligent Matching (Primary / Royal Blue) -->
+<div class="group bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-3 flex items-start gap-3 transition-all duration-200 hover:border-primary hover:shadow-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary shrink-0 transition-transform group-hover:scale-105">
+<span class="material-symbols-outlined text-[20px]" data-icon="location_on" data-weight="fill" style="font-variation-settings: 'FILL' 1;">location_on</span>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="font-title-md text-[15px] font-bold text-on-surface leading-tight mb-0.5">
+              فرصت‌های کاری نزدیکت رو پیدا کن
+            </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
+              جستجوی هوشمند پروژه‌ها و کارهای محلی با موقعیت مکانی دقیق و دسته‌بندی تخصصی.
+            </p>
+</div>
+</div>
+<!-- Pillar 2: Verified Talents (Secondary / Teal) -->
+<div class="group bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-3 flex items-start gap-3 transition-all duration-200 hover:border-secondary hover:shadow-sm">
+<div class="w-10 h-10 rounded-lg bg-secondary-container/30 flex items-center justify-center text-secondary shrink-0 transition-transform group-hover:scale-105">
+<span class="material-symbols-outlined text-[20px]" data-icon="badge" data-weight="fill" style="font-variation-settings: 'FILL' 1;">badge</span>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="font-title-md text-[15px] font-bold text-on-surface leading-tight mb-0.5">
+              برای کارت نیروی مناسب پیدا کن
+            </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
+              دسترسی سریع به فریلنسرها، کارشناسان فنی و اکیپ‌های اجرایی با سوابق تاییدشده.
+            </p>
+</div>
+</div>
+<!-- Pillar 3: Secure Escrow Payment (Tertiary / Coral) -->
+<div class="group bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-3 flex items-start gap-3 transition-all duration-200 hover:border-tertiary-container hover:shadow-sm">
+<div class="w-10 h-10 rounded-lg bg-tertiary-fixed/40 flex items-center justify-center text-tertiary-container shrink-0 transition-transform group-hover:scale-105">
+<span class="material-symbols-outlined text-[20px]" data-icon="shield" data-weight="fill" style="font-variation-settings: 'FILL' 1;">shield</span>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="font-title-md text-[15px] font-bold text-on-surface leading-tight mb-0.5">
+              پرداخت امن و قرارداد مطمئن
+            </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
+              وجه پروژه در صندوق امانی محفوظ می‌ماند تا پس از رضایت و تایید نهایی کیفیت کار آزاد شود.
+            </p>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Action Section (Docked CTAs & Trust Footprint) -->
+<footer class="w-full px-space-md pb-6 pt-3 bg-surface-bright/95 backdrop-blur-md border-t border-outline-variant/20 flex flex-col gap-3.5 z-20">
+<!-- Primary Action CTA Button (Leftward Arrow for RTL Movement) -->
+<button class="w-full h-12 bg-primary-container text-on-primary rounded-[14px] font-title-md text-title-md font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary-container/25 hover:bg-primary active:scale-[0.98] transition-all duration-150" type="button">
+<span>شروع کار در کارجور</span>
+<span class="material-symbols-outlined text-[20px]" data-icon="arrow_back">arrow_back</span>
+</button>
+<!-- Secondary Login Prompt -->
+<div class="flex items-center justify-center gap-1.5 text-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">قبلاً ثبت‌نام کرده‌اید؟</span>
+<a class="font-label-md text-label-md text-primary font-bold hover:underline py-0.5" href="#login">
+          ورود به حساب
+        </a>
+</div>
+<!-- Trust Badge -->
+<div class="flex items-center justify-center gap-1.5 py-1 text-center">
+<span class="material-symbols-outlined text-secondary text-[16px]" data-icon="check_circle" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-label-sm text-label-sm text-outline font-medium">
+          بیش از ۵۰,۰۰۰ متخصص و کارفرما در سراسر ایران
+        </span>
+</div>
+</footer>
+</div>
+</body></html>

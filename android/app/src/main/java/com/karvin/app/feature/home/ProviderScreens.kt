@@ -98,6 +98,20 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.MapEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.karvin.app.core.designsystem.SmartRadarMapView
+import com.karvin.app.core.designsystem.InteractiveStreetMapView
+import com.karvin.app.core.designsystem.KarjoorColors
+import com.karvin.app.core.designsystem.RadarMarkerItem
+import com.karvin.app.core.designsystem.MapMarkerType
+import com.karvin.app.domain.model.toTomanString
+import com.karvin.app.domain.model.toRatingString
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.FilterAlt
+import androidx.compose.material.icons.filled.Search
+import com.karvin.app.core.location.LocationResult
+import com.karvin.app.core.location.LocationTracker
 import com.karvin.app.core.designsystem.AppTopBar
 import com.karvin.app.core.designsystem.Avatar
 import com.karvin.app.core.designsystem.KarvinFab
@@ -112,6 +126,7 @@ import com.karvin.app.data.FakeNearbyData
 import com.karvin.app.domain.model.DistanceCalculator
 import com.karvin.app.domain.model.DistanceFilter
 import com.karvin.app.domain.model.GeoPoint
+import com.karvin.app.domain.model.NearbyProvider
 import com.karvin.app.domain.model.NearbyServiceRequest
 import com.karvin.app.domain.model.ProviderMapFilter
 import com.karvin.app.domain.model.toPersianDigits
@@ -135,16 +150,25 @@ data class ProviderHomeUiState(
 
 data class ProviderMapUiState(
     val requests: List<NearbyServiceRequest> = emptyList(),
+    val providers: List<NearbyProvider> = emptyList(),
     val filteredRequests: List<NearbyServiceRequest> = emptyList(),
+    val filteredProviders: List<NearbyProvider> = emptyList(),
+    val entityFilter: com.karvin.app.feature.map.MapEntityFilter = com.karvin.app.feature.map.MapEntityFilter.ALL,
     val filter: ProviderMapFilter = ProviderMapFilter(),
-    val userPoint: GeoPoint = GeoPoint(35.7219, 51.3347),
+    val userPoint: GeoPoint = GeoPoint(35.7730, 51.3700),
     val selectedRequest: NearbyServiceRequest? = null,
+    val selectedProvider: NearbyProvider? = null,
     val isAvailable: Boolean = false,
     val loading: Boolean = true,
+    val isLocating: Boolean = false,
+    val gpsActive: Boolean = false,
+    val radarMode: Boolean = true,
 )
 
 @HiltViewModel
-class ProviderHomeViewModel @Inject constructor() : ViewModel() {
+class ProviderHomeViewModel @Inject constructor(
+    private val locationTracker: LocationTracker,
+) : ViewModel() {
     private val _homeState = MutableStateFlow(ProviderHomeUiState())
     val homeState: StateFlow<ProviderHomeUiState> = _homeState.asStateFlow()
 
@@ -153,8 +177,48 @@ class ProviderHomeViewModel @Inject constructor() : ViewModel() {
 
     init {
         val requests = FakeNearbyData.generateRequests()
+        val providers = FakeNearbyData.generateProviders()
         _homeState.update { it.copy(requests = requests, nearbyCount = requests.size) }
-        _mapState.update { it.copy(requests = requests, filteredRequests = requests, loading = false) }
+        _mapState.update {
+            it.copy(
+                requests = requests,
+                filteredRequests = requests,
+                providers = providers,
+                filteredProviders = providers,
+                loading = false,
+            )
+        }
+        refreshLocation()
+    }
+
+    fun refreshLocation(onMoved: ((GeoPoint) -> Unit)? = null) {
+        _mapState.update { it.copy(isLocating = true) }
+        locationTracker.refresh { result ->
+            when (result) {
+                is LocationResult.Available -> {
+                    val point = result.point
+                    val requests = FakeNearbyData.generateRequests(point)
+                    val providers = FakeNearbyData.generateProviders(point)
+                    _mapState.update { state ->
+                        state.copy(
+                            userPoint = point,
+                            requests = requests,
+                            filteredRequests = filterRequests(requests, point, state.filter),
+                            providers = providers,
+                            filteredProviders = providers,
+                            isLocating = false,
+                            gpsActive = true,
+                            loading = false,
+                        )
+                    }
+                    _homeState.update { it.copy(requests = requests, nearbyCount = requests.size) }
+                    onMoved?.invoke(point)
+                }
+                is LocationResult.Failed -> {
+                    _mapState.update { it.copy(isLocating = false) }
+                }
+            }
+        }
     }
 
     fun toggleAvailability() {
@@ -168,6 +232,14 @@ class ProviderHomeViewModel @Inject constructor() : ViewModel() {
             val filtered = filterRequests(state.requests, state.userPoint, filter)
             state.copy(filter = filter, filteredRequests = filtered)
         }
+    }
+
+    fun setEntityFilter(entityFilter: com.karvin.app.feature.map.MapEntityFilter) {
+        _mapState.update { it.copy(entityFilter = entityFilter) }
+    }
+
+    fun toggleRadarMode() {
+        _mapState.update { it.copy(radarMode = !it.radarMode) }
     }
 
     private fun filterRequests(
@@ -189,16 +261,23 @@ class ProviderHomeViewModel @Inject constructor() : ViewModel() {
     }
 
     fun selectRequest(request: NearbyServiceRequest?) {
-        _mapState.update { it.copy(selectedRequest = request) }
+        _mapState.update { it.copy(selectedRequest = request, selectedProvider = null) }
+    }
+
+    fun selectProvider(provider: NearbyProvider?) {
+        _mapState.update { it.copy(selectedProvider = provider, selectedRequest = null) }
     }
 
     fun searchAround(center: GeoPoint) {
         val requests = FakeNearbyData.generateRequests(center)
+        val providers = FakeNearbyData.generateProviders(center)
         _mapState.update {
             it.copy(
                 userPoint = center,
                 requests = requests,
                 filteredRequests = filterRequests(requests, center, it.filter),
+                providers = providers,
+                filteredProviders = providers,
             )
         }
     }
@@ -519,6 +598,7 @@ fun ProviderMapScreen(
     val state by viewModel.mapState.collectAsStateWithLifecycle()
     var listMode by remember { mutableStateOf(false) }
     var showMapKeyWarning by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(
             LatLng(state.userPoint.latitude, state.userPoint.longitude),
@@ -558,95 +638,261 @@ fun ProviderMapScreen(
                 item { Spacer(Modifier.height(20.dp)) }
             }
         } else {
-            ProviderGoogleMap(
-                state = state,
-                onMapReady = { showMapKeyWarning = !it },
-                cameraPositionState = cameraPositionState,
-                onRequestClick = { viewModel.selectRequest(it) },
-                onMyLocation = {},
-                onSearchThisArea = {
-                    val target = cameraPositionState.position.target
-                    viewModel.searchAround(GeoPoint(target.latitude, target.longitude))
+            // Modern High-Fidelity Google Stitch Interactive Street Map for Performers (Jobs & Colleagues)
+            val radarMarkers = remember(state.filteredRequests, state.filteredProviders, state.entityFilter) {
+                val reqMarkers = if (state.entityFilter == com.karvin.app.feature.map.MapEntityFilter.PROVIDERS) emptyList() else {
+                    state.filteredRequests.map { req ->
+                        RadarMarkerItem(
+                            id = "request_${req.id}",
+                            title = req.title,
+                            subtitle = "${req.category.title} • ${req.approximateAddress}",
+                            point = req.point,
+                            isUrgent = req.isUrgent,
+                            isVerified = false,
+                            badgeLabel = req.budgetLabel,
+                            initial = req.title.take(1),
+                            priceLabel = req.budgetLabel,
+                            category = req.category.title,
+                            type = MapMarkerType.JOB,
+                            rating = req.requesterRating,
+                        )
+                    }
+                }
+                val provMarkers = if (state.entityFilter == com.karvin.app.feature.map.MapEntityFilter.REQUESTS) emptyList() else {
+                    state.filteredProviders.map { p ->
+                        RadarMarkerItem(
+                            id = "provider_${p.id}",
+                            title = p.name,
+                            subtitle = "${p.primarySkill} • ${p.responseTime}",
+                            point = p.point,
+                            isUrgent = false,
+                            isVerified = p.isVerified,
+                            badgeLabel = "★${p.rating.toRatingString()}",
+                            initial = p.name.take(1),
+                            priceLabel = "از ${p.basePrice.toTomanString()}",
+                            category = p.primarySkill,
+                            type = MapMarkerType.PERFORMER,
+                            rating = p.rating,
+                        )
+                    }
+                }
+                reqMarkers + provMarkers
+            }
+
+            val selectedMarkerId = when {
+                state.selectedRequest != null -> "request_${state.selectedRequest?.id}"
+                state.selectedProvider != null -> "provider_${state.selectedProvider?.id}"
+                else -> null
+            }
+
+            InteractiveStreetMapView(
+                centerPoint = state.userPoint,
+                userPoint = state.userPoint,
+                markers = radarMarkers,
+                selectedMarkerId = selectedMarkerId,
+                isLocating = state.isLocating,
+                initialZoom = 14.5f,
+                showRadarRings = state.radarMode,
+                onMarkerClick = { marker ->
+                    if (marker.type == MapMarkerType.JOB) {
+                        val rawId = marker.id.removePrefix("request_")
+                        val req = state.filteredRequests.firstOrNull { it.id == rawId }
+                        viewModel.selectRequest(req)
+                    } else {
+                        val rawId = marker.id.removePrefix("provider_")
+                        val prov = state.filteredProviders.firstOrNull { it.id == rawId }
+                        viewModel.selectProvider(prov)
+                    }
+                },
+                onMyLocationClick = {
+                    viewModel.refreshLocation { point ->
+                        scope.launch {
+                            cameraPositionState.animate(
+                                CameraUpdateFactory.newLatLngZoom(LatLng(point.latitude, point.longitude), 14.5f)
+                            )
+                        }
+                    }
                 },
             )
         }
 
-        // Floating search bar
+        // Floating Top Header (Search, Categories, Stitch Stats Pill, List/Map toggle)
         Column(
             Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp, start = 16.dp, end = 16.dp),
+                .padding(top = 10.dp, start = 14.dp, end = 14.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // Row 1: Search Input + Filter button + Map/List toggle
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                androidx.compose.material3.OutlinedTextField(
+                OutlinedTextField(
                     value = state.filter.query,
                     onValueChange = { viewModel.updateFilter(state.filter.copy(query = it)) },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("جستجو در درخواست‌ها") },
+                    placeholder = { Text("جستجو در فرصت‌های کاری و همکاران...", fontSize = 13.sp) },
                     singleLine = true,
-                    leadingIcon = { Icon(Icons.Default.MyLocation, null) },
-                    shape = RoundedCornerShape(16.dp),
+                    leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.primary) },
+                    shape = RoundedCornerShape(20.dp),
+                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    ),
                 )
+
+                // List / Map Toggle Button
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    shadowElevation = 4.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                    modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { listMode = !listMode },
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(if (listMode) "🗺️" else "📋", fontSize = 14.sp)
+                        Text(
+                            if (listMode) "نقشه" else "لیست",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
             }
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+            // Row 2: Entity Filter Pills (همه / فرصت‌های کاری / همکاران) + Radar Toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Entity Segmented Controls
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    shadowElevation = 3.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(3.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        listOf(
+                            Triple(com.karvin.app.feature.map.MapEntityFilter.ALL, "🌟 همه", (state.requests.size + state.providers.size)),
+                            Triple(com.karvin.app.feature.map.MapEntityFilter.REQUESTS, "💼 کارها", state.requests.size),
+                            Triple(com.karvin.app.feature.map.MapEntityFilter.PROVIDERS, "👨‍🔧 همکاران", state.providers.size),
+                        ).forEach { (f, label, count) ->
+                            val isSel = state.entityFilter == f
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isSel) MaterialTheme.colorScheme.primary else Color.Transparent)
+                                    .clickable { viewModel.setEntityFilter(f) }
+                                    .padding(vertical = 6.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = "$label (${count.toString().toPersianDigits()})",
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSel) Color.White else MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Radar Toggle Button
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (state.radarMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    shadowElevation = 3.dp,
+                    border = BorderStroke(1.dp, if (state.radarMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { viewModel.toggleRadarMode() },
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(if (state.radarMode) "📡" else "🗺️", fontSize = 13.sp)
+                        Text(
+                            text = if (state.radarMode) "رادار زنده" else "نقشه ساده",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (state.radarMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+            }
+
+            // Row 3: Category chips
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 FilterChip(
                     selected = state.filter.categoryId == null,
                     onClick = { viewModel.updateFilter(state.filter.copy(categoryId = null)) },
-                    label = { Text("همه") },
+                    label = { Text("همه دسته‌ها", fontWeight = FontWeight.Bold) },
+                    shape = RoundedCornerShape(14.dp),
                 )
-                categories.take(4).forEach { category ->
-                    FilterChip(
-                        selected = state.filter.categoryId == category.id,
-                        onClick = { viewModel.updateFilter(state.filter.copy(categoryId = if (state.filter.categoryId == category.id) null else category.id)) },
-                        label = { Text(category.title) },
-                    )
-                }
-            }
-        }
-
-        // Bottom area
-        Column(
-            Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            // Radius chips
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(1.0, 3.0, 5.0, 10.0, 20.0).forEach { km ->
-                    FilterChip(
-                        selected = state.filter.distanceFilter == DistanceFilter.values().firstOrNull { it.maxKm == km },
-                        onClick = { viewModel.updateFilter(state.filter.copy(distanceFilter = DistanceFilter.values().firstOrNull { it.maxKm == km } ?: DistanceFilter.ALL)) },
-                        label = { Text("${km.toInt().toString().toPersianDigits()} کیلومتر") },
-                    )
-                }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SingleChoiceSegmentedButtonRow(Modifier.weight(1f)) {
-                    listOf("نقشه", "لیست").forEachIndexed { index, title ->
-                        SegmentedButton(
-                            selected = listMode == (index == 1),
-                            onClick = { listMode = index == 1 },
-                            shape = SegmentedButtonDefaults.itemShape(index, 2),
-                            icon = {},
-                        ) { Text(title) }
+                categories.forEach { category ->
+                    val isSelected = state.filter.categoryId == category.id
+                    val icon = when {
+                        category.title.contains("برق") -> "⚡"
+                        category.title.contains("پکیج") || category.title.contains("تعمیر") -> "❄️"
+                        category.title.contains("لوله") -> "🔧"
+                        category.title.contains("نظافت") -> "🧹"
+                        category.title.contains("نقاش") -> "🎨"
+                        else -> "💼"
                     }
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { viewModel.updateFilter(state.filter.copy(categoryId = if (isSelected) null else category.id)) },
+                        label = { Text("$icon ${category.title}") },
+                        shape = RoundedCornerShape(14.dp),
+                    )
                 }
-                // Availability badge
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = if (state.isAvailable) com.karvin.app.core.designsystem.OnlineGreen.copy(alpha = .14f) else MaterialTheme.colorScheme.surfaceVariant,
+            }
+
+            // Row 4: Floating Status Pill (matching Stitch 7cb59bda)
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                shadowElevation = 3.dp,
+                border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(KarjoorColors.Secondary),
+                    )
                     Text(
-                        if (state.isAvailable) "آنلاین" else "آفلاین",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = if (state.isAvailable) com.karvin.app.core.designsystem.OnlineGreenDark else MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = "شعاع: ${state.filter.distanceFilter.label}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text("•", color = MaterialTheme.colorScheme.outlineVariant, fontSize = 10.sp)
+                    Text(
+                        text = "${state.filteredRequests.size.toString().toPersianDigits()} فرصت کاری و ${state.filteredProviders.size.toString().toPersianDigits()} همکار در محدوده شما",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
@@ -664,17 +910,9 @@ fun ProviderMapScreen(
         }
     }    }
 
-        if (showMapKeyWarning) {
-        AlertDialog(
-            onDismissRequest = { showMapKeyWarning = false },
-            title = { Text("حالت نمایشی نقشه") },
-            text = { Text("کلید Google Maps تنظیم نشده است؛ اطلاعات به‌صورت نمایشی نمایش داده می‌شوند.") },
-            confirmButton = { TextButton(onClick = { showMapKeyWarning = false }) { Text("متوجه شدم") } },
-        )
-    }
+
 
     // Request bottom sheet
-
     state.selectedRequest?.let { request ->
         RequestBottomSheet(
             request = request,
@@ -682,6 +920,23 @@ fun ProviderMapScreen(
             onDeclare = {
                 viewModel.selectRequest(null)
                 navController.navigate(Routes.AvailabilityDeclared)
+            },
+        )
+    }
+
+    // Colleague/Provider bottom sheet
+    state.selectedProvider?.let { provider ->
+        com.karvin.app.feature.map.ProviderBottomSheet(
+            provider = provider,
+            userPoint = state.userPoint,
+            onDismiss = { viewModel.selectProvider(null) },
+            onViewProfile = {
+                viewModel.selectProvider(null)
+                navController.navigate(Routes.providerProfile(provider.id))
+            },
+            onRequest = {
+                viewModel.selectProvider(null)
+                navController.navigate(Routes.Chat)
             },
         )
     }
@@ -869,14 +1124,48 @@ private fun RequestBottomSheet(
                 }
             }
 
+            // Escrow Assurance
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFFF0FDF4),
+                border = BorderStroke(1.dp, Color(0xFF86EFAC)),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    modifier = Modifier.padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Verified,
+                        contentDescription = null,
+                        tint = Color(0xFF16A34A),
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Column {
+                        Text(
+                            "مبلغ بودجه در حساب امانی کارجور (Escrow)",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF15803D),
+                        )
+                        Text(
+                            "پس از انجام خدمت و تایید کار، وجه بلافاصله به حساب شما واریز می‌شود.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF166534),
+                        )
+                    }
+                }
+            }
+
             // CTA
             Button(
                 onClick = onDeclare,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             ) {
-                Text("اعلام آمادگی", color = MaterialTheme.colorScheme.onSecondary)
+                Text("اعلام آمادگی و ارسال پیشنهاد", color = Color.White, fontWeight = FontWeight.Bold)
             }
 
             TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {

@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="fa-IR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>کارجور | داشبورد کارفرما</title>
+<!-- Fonts: Vazirmatn for authentic Persian RTL typography and Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Vazirmatn:wght@300;400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-tint": "#0053db",
+            "primary-fixed-dim": "#b4c5ff",
+            "on-tertiary-fixed-variant": "#87210a",
+            "on-primary-container": "#eeefff",
+            "background": "#f8f9ff",
+            "secondary-fixed": "#71f8e4",
+            "inverse-on-surface": "#eaf1ff",
+            "surface": "#f8f9ff",
+            "surface-dim": "#cbdbf5",
+            "on-background": "#0b1c30",
+            "primary": "#004ac6",
+            "on-secondary": "#ffffff",
+            "surface-container-highest": "#d3e4fe",
+            "on-tertiary-fixed": "#3d0600",
+            "surface-variant": "#d3e4fe",
+            "surface-container": "#e5eeff",
+            "error-container": "#ffdad6",
+            "tertiary-fixed": "#ffdad2",
+            "surface-bright": "#f8f9ff",
+            "inverse-surface": "#213145",
+            "on-primary": "#ffffff",
+            "on-secondary-container": "#006f64",
+            "on-error-container": "#93000a",
+            "secondary-container": "#6df5e1",
+            "on-surface": "#0b1c30",
+            "secondary-fixed-dim": "#4fdbc8",
+            "inverse-primary": "#b4c5ff",
+            "on-secondary-fixed": "#00201c",
+            "tertiary-container": "#bc472d",
+            "on-secondary-fixed-variant": "#005048",
+            "outline": "#737686",
+            "outline-variant": "#c3c6d7",
+            "primary-container": "#2563eb",
+            "secondary": "#006b5f",
+            "on-error": "#ffffff",
+            "on-tertiary": "#ffffff",
+            "error": "#ba1a1a",
+            "surface-container-high": "#dce9ff",
+            "on-primary-fixed": "#00174b",
+            "primary-fixed": "#dbe1ff",
+            "surface-container-lowest": "#ffffff",
+            "tertiary": "#9b2f18",
+            "on-tertiary-container": "#ffede9",
+            "tertiary-fixed-dim": "#ffb4a4",
+            "on-primary-fixed-variant": "#003ea8",
+            "on-surface-variant": "#434655",
+            "surface-container-low": "#eff4ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "2xl": "1rem",
+            "3xl": "1.5rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter-sm": "1rem",
+            "gutter-lg": "2rem",
+            "margin-desktop": "3rem",
+            "space-xl": "2.5rem",
+            "margin": "2rem",
+            "gutter": "1.5rem",
+            "space-xs": "0.25rem",
+            "space-sm": "0.5rem",
+            "space-lg": "1.5rem",
+            "space-md": "1rem",
+            "margin-mobile": "1rem"
+          },
+          "fontFamily": {
+            "headline-lg-mobile": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "headline-lg": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "title-md": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "body-sm": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "headline-sm": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "label-md": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "mono-currency": ["JetBrains Mono", "Vazirmatn", "monospace"],
+            "headline-md": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "display-lg": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "body-lg": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "label-sm": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"],
+            "body-md": ["Vazirmatn", "Plus Jakarta Sans", "sans-serif"]
+          },
+          "fontSize": {
+            "headline-lg-mobile": ["24px", { "lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-lg": ["32px", { "lineHeight": "42px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "title-md": ["17px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "19px", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "mono-currency": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+            "headline-md": ["22px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "display-lg": ["36px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+            "body-lg": ["15px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "fontWeight": "500" }],
+            "body-md": ["13px", { "lineHeight": "22px", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      font-family: 'Vazirmatn', 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .fill-icon {
+      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.6); }
+      70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(20, 184, 166, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(20, 184, 166, 0); }
+    }
+    .live-pulse {
+      animation: pulse-ring 2.2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface antialiased min-h-screen pb-28 selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Mobile Viewport Container Constrained to 440px on mobile with desktop preview framing -->
+<div class="max-w-md mx-auto min-h-screen bg-background relative shadow-2xl md:my-6 md:rounded-3xl md:border md:border-outline-variant overflow-x-hidden">
+<!-- Top App Bar Docked Full-Width Top -->
+<header class="bg-surface-container-lowest sticky top-0 z-40 px-space-md py-3 shadow-sm border-b border-outline-variant">
+<div class="flex items-center justify-between">
+<!-- Right side (RTL Start): Employer Identity & Verification -->
+<div class="flex items-center gap-2.5">
+<div class="relative">
+<img class="w-11 h-11 rounded-full object-cover ring-2 ring-primary-fixed-dim shadow-xs" data-alt="Close up modern professional studio portrait of an Iranian executive tech founder in Tehran wearing an indigo textured shirt, soft rim lighting, minimalist clean slate corporate background, high dynamic range." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDn-gJolmscmIhs_n0pD0fxV8SCLCguGqD0JjxAerpHtUV6vHKoOm-Dz6Ku6_sSBDNf3d8igqcGKJA1QIUNlxgQO4OVaNjUrf1DxqhRtBER8OY0DnJd43peT8DAvJTsmkve86zB6ntCULSHCoOXuouT1ff5HbZTt4_C-thJi0muPTylDxPczLQmcMkQ6nJNHIyYJ4Qh9VmDevUHS_MkYlbg9KPTU18dAWWDd4eEpgRfm3yMqu13EDvvBS4-YAmjDJPoVX15qM-dRr4"/>
+<span class="absolute -bottom-0.5 -right-0.5 bg-surface-container-lowest rounded-full p-0.5 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-sm fill-icon" data-icon="verified">verified</span>
+</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<h1 class="text-title-md font-title-md text-on-surface font-bold">علی فیروزی</h1>
+<span class="bg-secondary-fixed/50 text-on-secondary-fixed text-[10px] px-1.5 py-0.5 rounded-full font-label-sm font-semibold">کارفرمای طلایی</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant flex items-center gap-1">
+<span>شرکت نوین آوا</span>
+<span class="text-outline-variant text-[10px]">•</span>
+<span class="text-primary font-medium">سطح تایید ۲</span>
+</p>
+</div>
+</div>
+<!-- Left side (RTL End): Wallet and Notification Cluster -->
+<div class="flex items-center gap-1.5">
+<!-- Mini Wallet Pill -->
+<div class="flex items-center bg-surface-container-low border border-outline-variant/60 rounded-xl px-2.5 py-1.5 gap-1.5">
+<span class="material-symbols-outlined text-primary text-base" data-icon="account_balance_wallet">account_balance_wallet</span>
+<div class="flex flex-col text-left leading-none">
+<span class="text-[11px] font-mono-currency font-semibold text-on-surface">۲,۴۵۰,۰۰۰</span>
+<span class="text-[8px] text-on-surface-variant">تومان</span>
+</div>
+<button class="w-5 h-5 rounded-md bg-primary-container text-white flex items-center justify-center active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-xs" data-icon="add">add</span>
+</button>
+</div>
+<!-- Notification Bell with Active Badge -->
+<button class="relative w-9 h-9 rounded-xl flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-95 transition-all">
+<span class="material-symbols-outlined text-xl" data-icon="notifications">notifications</span>
+<span class="absolute top-1.5 right-1.5 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-error text-[9px] font-bold text-white shadow-xs">
+              ۳
+            </span>
+</button>
+</div>
+</div>
+<!-- City and Sub-location Filter Bar -->
+<div class="mt-2.5 pt-2 flex items-center justify-between border-t border-outline-variant/30 text-body-sm font-body-sm">
+<button class="flex items-center gap-1 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-primary text-base" data-icon="location_on">location_on</span>
+<span class="font-medium text-on-surface">تهران، سعادت‌آباد</span>
+<span class="material-symbols-outlined text-xs" data-icon="keyboard_arrow_down">keyboard_arrow_down</span>
+</button>
+<div class="flex items-center gap-1.5 text-secondary text-label-sm font-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span>پشتیبانی VIP فعال</span>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="px-space-md pt-3.5 space-y-4">
+<!-- SECTION 2: Massive Hero Action Card (ثبت سریع پروژه) -->
+<section class="relative overflow-hidden rounded-3xl bg-gradient-to-bl from-primary to-[#1d4ed8] text-white p-5 shadow-lg shadow-primary/20">
+<!-- Subtle Vector Graphic Overlay Watermark -->
+<div class="absolute -left-12 -bottom-10 opacity-15 pointer-events-none select-none">
+<span class="material-symbols-outlined text-[170px]" data-icon="rocket_launch">rocket_launch</span>
+</div>
+<div class="absolute -right-10 -top-8 w-36 h-36 rounded-full bg-white/10 blur-xl pointer-events-none"></div>
+<div class="relative z-10 space-y-3">
+<div class="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-md px-2.5 py-1 rounded-full text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-xs text-secondary-fixed" data-icon="bolt">bolt</span>
+<span>بیمه کامل قرارداد و ضمانت تحویل کار</span>
+</div>
+<h2 class="text-headline-lg-mobile font-headline-lg-mobile font-extrabold tracking-tight">
+            چه کاری داری که باید انجام بشه؟
+          </h2>
+<p class="text-body-sm font-body-sm text-primary-fixed leading-relaxed">
+            درخواستت رو فقط در ۲ دقیقه ثبت کن تا برترین متخصصان کارجور با قیمت رقابتی بهت پیشنهاد بدن.
+          </p>
+<!-- Main High-Contrast CTA Button -->
+<div class="pt-1">
+<button class="w-full bg-white text-primary font-title-md font-bold py-3.5 px-5 rounded-2xl flex items-center justify-between shadow-md hover:bg-surface-container active:scale-[0.98] transition-all duration-150">
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-xl text-primary font-bold" data-icon="add_circle">add_circle</span>
+<span>ثبت درخواست جدید</span>
+</span>
+<span class="material-symbols-outlined text-lg rtl:rotate-180" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<!-- Quick Category Chips Beneath CTA -->
+<div class="pt-2">
+<span class="text-[11px] text-primary-fixed/80 block mb-1.5 font-label-sm">دسته‌بندی‌های پرکاربرد امروز:</span>
+<div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+<button class="bg-white/15 hover:bg-white/25 active:bg-white/30 backdrop-blur-xs text-white text-label-sm font-label-sm px-2.5 py-1 rounded-xl whitespace-nowrap transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="build">build</span>
+<span>تعمیرات و تاسیسات</span>
+</button>
+<button class="bg-white/15 hover:bg-white/25 active:bg-white/30 backdrop-blur-xs text-white text-label-sm font-label-sm px-2.5 py-1 rounded-xl whitespace-nowrap transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="cleaning_services">cleaning_services</span>
+<span>نظافت منزل</span>
+</button>
+<button class="bg-white/15 hover:bg-white/25 active:bg-white/30 backdrop-blur-xs text-white text-label-sm font-label-sm px-2.5 py-1 rounded-xl whitespace-nowrap transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="design_services">design_services</span>
+<span>طراحی و دیجیتال</span>
+</button>
+<button class="bg-white/15 hover:bg-white/25 active:bg-white/30 backdrop-blur-xs text-white text-label-sm font-label-sm px-2.5 py-1 rounded-xl whitespace-nowrap transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="local_shipping">local_shipping</span>
+<span>باربری</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 3: Live Ongoing Order Tracker Card (رهگیری زنده سفارش فعال) -->
+<section class="bg-surface-container-lowest border border-outline-variant/70 rounded-3xl p-4 shadow-sm relative overflow-hidden">
+<!-- Top Status Pill & Service Title -->
+<div class="flex items-center justify-between pb-3 border-b border-outline-variant/40">
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm font-bold">
+<span class="w-2 h-2 rounded-full bg-emerald-500 live-pulse"></span>
+<span>سفارش جاری • در مسیر</span>
+</span>
+<span class="text-body-sm font-mono-currency text-on-surface-variant">#KJ-۸۴۹۲</span>
+</div>
+<span class="text-label-sm font-label-sm text-primary font-bold">کد تایید: ۸۳۹۱</span>
+</div>
+<div class="pt-3">
+<h3 class="text-headline-sm font-headline-sm text-on-surface font-bold">تعمیر و سرویس اسپلیت ۲۴ هزار</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-0.5">سفارش فوری تاسیسات سرمایشی • ساختمان نوین</p>
+</div>
+<!-- Worker Profile Row -->
+<div class="mt-3.5 bg-surface-container-low rounded-2xl p-3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="relative">
+<img class="w-12 h-12 rounded-xl object-cover border border-white shadow-xs" data-alt="Professional portrait shot of a mid-30s certified technician wearing branded blue clean workwear holding tools in an ultra-modern bright minimalist workshop in Tehran, confident friendly smile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbZsW8yUdWuSN7_Y6TmVD4bjJFaZ6jcJxGogFlcKBgHgF080HIV3nOOHJG761DwUEaiuBYWwNgAfDGsLZXvov3-NyhZIZzgrfZHj5ZlBiXYwTnWOemExFZbsYdOqn8jBac3c5yne_UY8fRTkJxPyWJszVkklK4V11td0x41LEhYI07UwP_2mUXOqXZi1S4OFOGcEWwuNPpPFmPdAQV3eNh8g9YCoQitqisFZ8TT20f7S5U-koohfMug6roJxQW0e2J8pX5EvJQdYA"/>
+<span class="absolute -top-1 -right-1 bg-secondary text-white rounded-full p-0.5 flex items-center justify-center">
+<span class="material-symbols-outlined text-[10px] fill-icon" data-icon="check">check</span>
+</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<h4 class="text-title-md font-title-md text-on-surface font-bold">رضا اکبری</h4>
+<span class="text-secondary text-[11px] font-bold bg-secondary/10 px-1.5 py-0.5 rounded-md">تکنسین ارشد</span>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<div class="flex items-center text-amber-500 text-xs">
+<span class="material-symbols-outlined text-xs fill-icon" data-icon="star">star</span>
+<span class="font-bold text-on-surface font-mono-currency mr-0.5">۴.۹</span>
+<span class="text-on-surface-variant font-normal mr-1">(۱۴۲ نظر)</span>
+</div>
+<span class="text-outline-variant">•</span>
+<span class="text-on-surface-variant text-body-sm">ضمانت کیفی</span>
+</div>
+</div>
+</div>
+<div class="text-left">
+<span class="text-xs text-on-surface-variant block font-label-sm">دستمزد توافقی</span>
+<span class="text-title-md font-mono-currency font-bold text-primary">۷۸۰,۰۰۰ <span class="text-[10px] font-normal text-on-surface-variant">تومان</span></span>
+</div>
+</div>
+<!-- Simulated Mini-Map Preview Card -->
+<div class="mt-3 relative rounded-2xl overflow-hidden border border-outline-variant/60 bg-surface-container">
+<div class="h-28 w-full bg-slate-100 relative">
+<div class="w-full h-full bg-cover bg-center opacity-85" data-alt="Stylized top-down GPS navigation digital route map showing street grid patterns of Saadat Abad district in Tehran with an accented vibrant blue route vector path and subtle GPS waypoints in clean flat modern UI style." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCJ74_LWrqtruOaPopx5k9ZpfDUx2_BkS3liLXeBZh3fBL6093Ug7HXv1WUlFidqQCRxozyIRLPvDKPonyo8Dv9AztoIXFw1jnMai3iwHCtUOwBkBEROXe7R4lizOXhXep4r5h28k_dIg34aU3DkhWnE4Ub0v3ljUvVG5rxCjSyyENDw_OqTP4NqpK_hgWlLHkSudFKONc5P59BvAWjvXucOs_3fLdrfZV0wqc4J7CA-Mf_IBVOs76qufFPvhHBXt6jQ-Z1jekF9VQ')"></div>
+<!-- Map Overlay UI Overlay elements -->
+<div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent flex flex-col justify-between p-2.5">
+<div class="self-start bg-white/95 backdrop-blur-md rounded-xl px-2.5 py-1 shadow-sm flex items-center gap-1.5 text-xs text-on-surface">
+<span class="material-symbols-outlined text-error text-sm" data-icon="near_me">near_me</span>
+<span class="font-bold">در مسیر به سمت سعادت‌آباد</span>
+<span class="bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-md font-mono-currency font-bold">۷ دقیقه تا رسیدن</span>
+</div>
+<div class="text-white text-[11px] flex items-center gap-1 font-medium bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded-lg self-end">
+<span class="material-symbols-outlined text-xs" data-icon="pin_drop">pin_drop</span>
+<span>مقصد: برج آسمان، واحد ۴۰۲</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Direct Action Buttons Row -->
+<div class="mt-3.5 grid grid-cols-2 gap-2.5">
+<button class="flex items-center justify-center gap-2 bg-primary-container text-white py-2.5 px-3 rounded-xl font-title-md font-semibold hover:bg-blue-700 active:scale-95 transition-all shadow-xs">
+<span class="material-symbols-outlined text-lg" data-icon="call">call</span>
+<span>تماس فوری</span>
+</button>
+<button class="relative flex items-center justify-center gap-2 bg-surface-container-low border border-outline-variant text-on-surface py-2.5 px-3 rounded-xl font-title-md font-semibold hover:bg-surface-container active:scale-95 transition-all">
+<span class="material-symbols-outlined text-lg text-primary" data-icon="chat">chat</span>
+<span>چت آنلاین</span>
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+</button>
+</div>
+</section>
+<!-- SECTION 4: Status & Metric Summary Grid (آمار و گردش کار) -->
+<section>
+<div class="flex items-center justify-between mb-2.5">
+<h3 class="text-headline-sm font-headline-sm text-on-surface font-bold">گردش کار و وضعیت</h3>
+<span class="text-body-sm font-body-sm text-primary font-medium">گزارش مالی هفته</span>
+</div>
+<div class="grid grid-cols-2 gap-2.5">
+<!-- Tile 1: Active Requests -->
+<div class="bg-surface-container-lowest border border-outline-variant/70 rounded-2xl p-3.5 flex flex-col justify-between hover:border-primary transition-colors">
+<div class="flex items-center justify-between">
+<span class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-lg" data-icon="layers">layers</span>
+</span>
+<span class="text-xs bg-primary/10 text-primary font-bold px-1.5 py-0.5 rounded-md">جاری</span>
+</div>
+<div class="mt-3">
+<span class="text-headline-md font-headline-md font-extrabold text-on-surface font-mono-currency">۳</span>
+<p class="text-label-md font-label-md text-on-surface-variant font-medium mt-0.5">درخواست‌های باز</p>
+</div>
+</div>
+<!-- Tile 2: New Proposals (Attention Amber) -->
+<div class="bg-surface-container-lowest border border-amber-300/80 rounded-2xl p-3.5 flex flex-col justify-between relative overflow-hidden bg-gradient-to-br from-white to-amber-50/40">
+<div class="flex items-center justify-between">
+<span class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-lg" data-icon="local_fire_department">local_fire_department</span>
+</span>
+<span class="text-[10px] bg-amber-500 text-white font-bold px-1.5 py-0.5 rounded-md animate-pulse">اقدام فوری</span>
+</div>
+<div class="mt-3">
+<div class="flex items-baseline gap-1">
+<span class="text-headline-md font-headline-md font-extrabold text-amber-700 font-mono-currency">۵</span>
+<span class="text-xs text-amber-800 font-medium">جدید</span>
+</div>
+<p class="text-label-md font-label-md text-on-surface-variant font-medium mt-0.5">پیشنهاد بررسی‌نشده</p>
+</div>
+</div>
+<!-- Tile 3: Ongoing (Emerald) -->
+<div class="bg-surface-container-lowest border border-outline-variant/70 rounded-2xl p-3.5 flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+<span class="material-symbols-outlined text-lg" data-icon="pending_actions">pending_actions</span>
+</span>
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+</div>
+<div class="mt-3">
+<span class="text-headline-md font-headline-md font-extrabold text-on-surface font-mono-currency">۱</span>
+<p class="text-label-md font-label-md text-on-surface-variant font-medium mt-0.5">در حال انجام (امروز)</p>
+</div>
+</div>
+<!-- Tile 4: Completed Projects -->
+<div class="bg-surface-container-lowest border border-outline-variant/70 rounded-2xl p-3.5 flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="w-8 h-8 rounded-xl bg-surface-container text-on-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-lg" data-icon="task_alt">task_alt</span>
+</span>
+<span class="text-secondary text-xs flex items-center">
+<span class="material-symbols-outlined text-sm" data-icon="thumb_up">thumb_up</span>
+</span>
+</div>
+<div class="mt-3">
+<span class="text-headline-md font-headline-md font-extrabold text-on-surface font-mono-currency">۱۴</span>
+<p class="text-label-md font-label-md text-on-surface-variant font-medium mt-0.5">پروژه با موفقیت انجام‌شده</p>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 5: Active Projects & Requests (پروژه‌های باز و درخواست‌های من) -->
+<section class="space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<h3 class="text-headline-sm font-headline-sm text-on-surface font-bold">درخواست‌های باز شما</h3>
+<span class="bg-surface-container-highest text-primary text-xs font-bold px-2 py-0.5 rounded-full font-mono-currency">۲ فعال</span>
+</div>
+<button class="text-body-sm font-body-sm text-primary font-bold hover:underline flex items-center">
+<span>مشاهده همه (۳)</span>
+<span class="material-symbols-outlined text-base rtl:rotate-180" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+<!-- Request Card 1 -->
+<article class="bg-surface-container-lowest border border-outline-variant/70 rounded-3xl p-4 shadow-sm hover:border-primary/50 transition-all">
+<div class="flex items-start justify-between">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="bg-rose-50 text-rose-700 border border-rose-200 text-label-sm font-label-sm font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="alarm">alarm</span>
+                  فوری
+                </span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">ثبت شده ۱ ساعت پیش</span>
+</div>
+<h4 class="text-title-md font-title-md text-on-surface font-bold pt-1">تعمیرات لوله‌کشی و نشتی پکیج</h4>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined text-lg" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-2 line-clamp-1">
+            نشتی آب از مدار زیرین پکیج بوتان نیاز به تعویض شیر اطمینان و آب‌بندی اتصالات فوری دارد.
+          </p>
+<div class="mt-3.5 pt-3 border-t border-outline-variant/40 flex items-center justify-between">
+<div>
+<span class="text-[11px] text-on-surface-variant block font-label-sm">بودجه پیشنهادی:</span>
+<span class="text-title-md font-mono-currency font-bold text-on-surface">۶۵۰,۰۰۰ <span class="text-xs font-normal text-on-surface-variant">تومان</span></span>
+</div>
+<!-- Applicant Avatars indicator -->
+<div class="flex items-center gap-2">
+<div class="flex -space-x-2 space-x-reverse">
+<img class="w-7 h-7 rounded-full border-2 border-white object-cover" data-alt="Modern close up avatar portrait of a licensed Iranian professional plumber with short black hair wearing gray uniform against neutral studio background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-fwCB4TIByY9tk9MmhrDBcMgSZFGnAGr1el2X_TARL22dcuZOoXQ4Nr5xAWCSs4tWDlPYUKOUkimzDXlvIM7Ljs0PTt69X4RRq0Qlssf2eRzu42gUJzFHo_L1apmeLfIqFtUC-SjXyj33532DU9RVfjZ3sU4XhzEM0IggKVdtGyiG5RtD_2f5YCb-3-qJ1t4TlQF_OLmi33SkpanBhE03jCGy5xTcJxbzl7kSyWlxwMtBq8t1SR6YyUn94ASCWWHzOJFnEdMezPs"/>
+<img class="w-7 h-7 rounded-full border-2 border-white object-cover" data-alt="Professional modern studio avatar of an experienced Middle Eastern service engineer smiling outdoors against clean city building bokeh." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgD3HiQX1ATy6aqiy6ix_RcuG7utrpc44T5I3JI_Ddks2q554QzkvWJCa8ydjpl7nlG8hYZl8iRNVnSHcF9xsxhoJEbp2Y6jXsEOJuLcsUQoDoACk6tHxc-SGWypFHayDZdz4KYzXgvD0QfCKrN85IH5zotHKG-2ESUAWzuvXH8WQCWfNI_uHvaDp9P4qZKy6DBptCpMl2v3dY246EvB-1hXTeKw-4GoDHjJsQRl9I-p7CIw6D-YbS3hJklJorW1Dln4l0eIhJPXE"/>
+<div class="w-7 h-7 rounded-full bg-primary-fixed text-primary text-[10px] font-bold flex items-center justify-center border-2 border-white">
+                  +۲
+                </div>
+</div>
+<span class="text-label-sm font-label-sm font-semibold text-primary">۴ پیشنهاد</span>
+</div>
+</div>
+<!-- Card Action Button -->
+<div class="mt-3">
+<button class="w-full bg-surface-container hover:bg-surface-container-high text-primary font-title-md font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 active:scale-[0.99] transition-all">
+<span>بررسی پیشنهادها</span>
+<span class="material-symbols-outlined text-base rtl:rotate-180" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</article>
+<!-- Request Card 2 -->
+<article class="bg-surface-container-lowest border border-outline-variant/70 rounded-3xl p-4 shadow-sm hover:border-primary/50 transition-all">
+<div class="flex items-start justify-between">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="bg-blue-50 text-blue-700 border border-blue-200 text-label-sm font-label-sm font-bold px-2 py-0.5 rounded-md">
+                  برای فردا صبح
+                </span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">سعادت‌آباد، علامه شمالی</span>
+</div>
+<h4 class="text-title-md font-title-md text-on-surface font-bold pt-1">نظافت کامل واحد ۱۲۰ متری</h4>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined text-lg" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-2 line-clamp-1">
+            شامل نظافت ۲ اتاق خواب، پذیرایی، تمیزکاری شیشه‌ها و بالکن. وسایل مصرفی در محل آماده است.
+          </p>
+<div class="mt-3.5 pt-3 border-t border-outline-variant/40 flex items-center justify-between">
+<div>
+<span class="text-[11px] text-on-surface-variant block font-label-sm">دستمزد مصوب:</span>
+<span class="text-title-md font-mono-currency font-bold text-on-surface">۵۰۰,۰۰۰ <span class="text-xs font-normal text-on-surface-variant">تومان</span></span>
+</div>
+<!-- Applicant Count Badge -->
+<div class="flex items-center gap-1.5 bg-amber-50 text-amber-800 border border-amber-200 px-2 py-1 rounded-xl text-label-sm font-label-sm font-bold">
+<span class="material-symbols-outlined text-sm text-amber-600" data-icon="assignment_ind">assignment_ind</span>
+<span>۳ پیشنهاد دریافتی</span>
+</div>
+</div>
+<!-- Card Action Button -->
+<div class="mt-3">
+<button class="w-full bg-surface-container hover:bg-surface-container-high text-primary font-title-md font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 active:scale-[0.99] transition-all">
+<span>بررسی پیشنهادها</span>
+<span class="material-symbols-outlined text-base rtl:rotate-180" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</article>
+</section>
+<!-- Trust & Escrow Guarantee Micro Banner -->
+<section class="bg-surface-container-low border border-outline-variant/60 rounded-2xl p-3 flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-2xl" data-icon="shield_with_heart">shield_with_heart</span>
+</div>
+<div class="text-right">
+<h5 class="text-label-md font-label-md font-bold text-on-surface">سامانه پرداخت امن کارجور (Escrow)</h5>
+<p class="text-body-sm font-body-sm text-on-surface-variant leading-tight mt-0.5">مبلغ پس از تایید نهایی کیفیت کار توسط شما به حساب متخصص واریز خواهد شد.</p>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar (Mandated by Shared Components JSON & Destination Shell Rules) -->
+<!-- Destination count: 5 with elevated center action affordance for marketplace quick creation -->
+<nav class="fixed bottom-0 left-0 w-full z-50 bg-surface-container-lowest dark:bg-inverse-surface shadow-sm dark:shadow-none flex justify-around items-center px-space-sm py-space-xs border-t border-outline-variant/50 max-w-md mx-auto right-0">
+<!-- Tab 1: Dashboard (Mapped to "پروژه‌ها" / Active Home Tab) -->
+<a class="flex flex-col items-center justify-center bg-surface-container-high dark:bg-primary-container text-primary dark:text-on-primary-container rounded-xl px-space-sm py-space-xs active:scale-95 transition-transform duration-150" href="#projects">
+<span class="material-symbols-outlined fill-icon text-xl" data-icon="work">work</span>
+<span class="text-label-sm font-label-sm mt-0.5 font-bold">پروژه‌ها</span>
+</a>
+<!-- Tab 2: Proposals / Requests -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-space-sm py-space-xs hover:text-primary active:scale-95 transition-transform duration-150" href="#proposals">
+<span class="material-symbols-outlined text-xl" data-icon="assignment">assignment</span>
+<span class="text-label-sm font-label-sm mt-0.5">پیشنهادها</span>
+</a>
+<!-- Tab 3: Center Elevated Action Floating Button (ثبت کار) -->
+<div class="relative -top-4 flex flex-col items-center">
+<button class="w-13 h-13 w-12 h-12 rounded-full bg-primary-container text-white shadow-lg shadow-primary-container/40 flex items-center justify-center hover:bg-blue-700 active:scale-90 transition-all">
+<span class="material-symbols-outlined text-2xl font-bold" data-icon="add">add</span>
+</button>
+<span class="text-[10px] font-bold text-primary mt-1">ثبت کار</span>
+</div>
+<!-- Tab 4: Messages -->
+<a class="relative flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-space-sm py-space-xs hover:text-primary active:scale-95 transition-transform duration-150" href="#messages">
+<span class="material-symbols-outlined text-xl" data-icon="chat">chat</span>
+<span class="text-label-sm font-label-sm mt-0.5">پیام‌ها</span>
+<span class="absolute top-1 right-2 w-2 h-2 rounded-full bg-error"></span>
+</a>
+<!-- Tab 5: Profile & Finance -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant px-space-sm py-space-xs hover:text-primary active:scale-95 transition-transform duration-150" href="#profile">
+<span class="material-symbols-outlined text-xl" data-icon="person">person</span>
+<span class="text-label-sm font-label-sm mt-0.5">پروفایل</span>
+</a>
+</nav>
+</div>
+</body></html>

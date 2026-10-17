@@ -2,6 +2,7 @@ package com.karvin.app.core.designsystem
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -45,7 +47,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -58,8 +65,6 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.composed
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -78,28 +83,38 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 // Shared brand accents used across screens (theme-safe in light and dark).
-val StarGold: Color @Composable get() = MaterialTheme.colorScheme.star
-val OnlineGreen: Color @Composable get() = MaterialTheme.colorScheme.online
-val OnlineGreenDark: Color @Composable get() = MaterialTheme.colorScheme.online
-val ProviderAmber: Color @Composable get() = MaterialTheme.colorScheme.provider
+val StarGold: Color @Composable get() = KarjoorColors.Warning
+val OnlineGreen: Color @Composable get() = KarjoorColors.Success
+val OnlineGreenDark: Color @Composable get() = KarjoorColors.Success
+val ProviderAmber: Color @Composable get() = KarjoorColors.Secondary
 
+/**
+ * Legacy brand-mark entry point, now delegating to the KARJOOR mark.
+ *
+ * Kept so existing screens keep compiling; new code should call [KarjoorMark].
+ */
 @Composable
-fun KarvinLogo(modifier: Modifier = Modifier) {
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(34.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.secondary),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text("ک", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSecondary)
-        }
-        Spacer(Modifier.width(10.dp))
-        Text("کاروین", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
-    }
+fun KarvinBrandMark(
+    size: androidx.compose.ui.unit.Dp = 36.dp,
+    modifier: Modifier = Modifier,
+) {
+    KarjoorMark(modifier = modifier, size = size)
 }
 
+/**
+ * Legacy horizontal lockup, now delegating to the KARJOOR lockup with the
+ * KARJOOR wordmark and Latin subtitle.
+ *
+ * Kept for existing call sites; new code should call [KarjoorLogo] directly.
+ */
+@Composable
+fun KarvinLogo(
+    modifier: Modifier = Modifier,
+    size: androidx.compose.ui.unit.Dp = 36.dp,
+    showSubtitle: Boolean = false,
+) {
+    KarjoorLogo(modifier = modifier, markSize = size, showSubtitle = showSubtitle)
+}
 @Composable
 fun AppTopBar(
     title: String,

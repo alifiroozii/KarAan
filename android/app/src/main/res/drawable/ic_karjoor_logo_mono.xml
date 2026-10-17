@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KARJOOR monochrome logo. Single flat colour for themed icons, watermarks
+     and small sizes where two-tone detail would muddy the silhouette. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48"
+    android:tint="#11244A">
+
+    <path
+        android:strokeColor="#11244A"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M14,8 L14,40" />
+
+    <path
+        android:strokeColor="#11244A"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M14,21 C22,19 30,15 36,10" />
+
+    <path
+        android:strokeColor="#11244A"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M14,26 C22,28 30,33 36,38" />
+</vector>

@@ -1,12 +1,17 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+      KARJOOR launches on the light theme only in this release.
+      windowLightStatusBar=true keeps system icons dark against the #F8FAFC splash,
+      which is required for readable contrast instead of white-on-light.
+    -->
     <style name="Theme.Karvin" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
-        <item name="android:windowLightStatusBar">false</item>
-        <item name="android:statusBarColor">@color/karvin_splash</item>
-        <item name="android:navigationBarColor">@color/karvin_splash</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">@color/karjoor_splash_background</item>
+        <item name="android:navigationBarColor">@color/karjoor_navigation_bar</item>
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:windowNoTitle">true</item>
-        <item name="android:windowSplashScreenBackground" tools:targetApi="31">@color/karvin_splash</item>
-        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="31">@drawable/ic_launcher_foreground</item>
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">@color/karjoor_splash_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="31">@drawable/ic_karjoor_launcher_foreground</item>
     </style>
 </resources>

@@ -87,6 +87,9 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.karvin.app.core.designsystem.Avatar
+import com.karvin.app.core.designsystem.InteractiveStreetMapView
+import com.karvin.app.core.designsystem.RadarMarkerItem
+import com.karvin.app.core.designsystem.MapMarkerType
 import com.karvin.app.core.designsystem.JobCard
 import com.karvin.app.core.designsystem.OnlinePill
 import com.karvin.app.core.designsystem.PrimaryButton
@@ -446,18 +449,60 @@ private fun LocationExplanation(onContinue: () -> Unit, onDemo: () -> Unit, onLa
 
 @Composable
 private fun RealJobMap(jobs: List<Job>, userPoint: GeoPoint, onSelect: (Job) -> Unit) {
-    val camera = rememberCameraPositionState { position = CameraPosition.fromLatLngZoom(LatLng(userPoint.latitude, userPoint.longitude), 13f) }
-    GoogleMap(Modifier.fillMaxSize(), cameraPositionState = camera, properties = MapProperties(isMyLocationEnabled = false), uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false)) { jobs.forEach { job -> Marker(state = MarkerState(LatLng(job.point.latitude, job.point.longitude)), title = job.title, snippet = job.category.title, onClick = { onSelect(job); true }) } }
+    val markers = remember(jobs) {
+        jobs.map { job ->
+            RadarMarkerItem(
+                id = job.id,
+                title = job.title,
+                subtitle = job.category.title,
+                point = job.point,
+                isUrgent = false,
+                isVerified = false,
+                badgeLabel = job.amount.toRialString(),
+                initial = job.title.take(1),
+                priceLabel = job.amount.toRialString(),
+                category = job.category.title,
+                type = MapMarkerType.JOB,
+                rating = 4.8,
+            )
+        }
+    }
+    InteractiveStreetMapView(
+        centerPoint = userPoint,
+        userPoint = userPoint,
+        markers = markers,
+        onMarkerClick = { m ->
+            jobs.firstOrNull { it.id == m.id }?.let { onSelect(it) }
+        },
+    )
 }
 
 @Composable
 private fun RealWorkerMap(workers: List<User>, radiusKm: Double? = null, onSelect: (User) -> Unit) {
-    val camera = rememberCameraPositionState { position = CameraPosition.fromLatLngZoom(LatLng(FakeData.center.latitude, FakeData.center.longitude), 13f) }
-    val primary = MaterialTheme.colorScheme.primary
-    GoogleMap(Modifier.fillMaxSize(), cameraPositionState = camera, uiSettings = MapUiSettings(zoomControlsEnabled = false)) {
-        if (radiusKm != null) {
-            Circle(center = LatLng(FakeData.center.latitude, FakeData.center.longitude), radius = radiusKm * 1000.0, strokeColor = primary, strokeWidth = 4f, fillColor = primary.copy(alpha = 0.12f))
+    val markers = remember(workers) {
+        workers.map { worker ->
+            RadarMarkerItem(
+                id = worker.id,
+                title = worker.name,
+                subtitle = worker.skills.firstOrNull() ?: "متخصص",
+                point = worker.point,
+                isUrgent = false,
+                isVerified = worker.isVerified,
+                badgeLabel = "${worker.rating.toString().toPersianDigits()}★",
+                initial = worker.name.take(1),
+                priceLabel = "متخصص تایید شده",
+                category = worker.skills.firstOrNull() ?: "عمومی",
+                type = MapMarkerType.PERFORMER,
+                rating = worker.rating,
+            )
         }
-        workers.forEach { worker -> Marker(state = MarkerState(LatLng(worker.point.latitude, worker.point.longitude)), title = worker.name, snippet = worker.skills.firstOrNull(), onClick = { onSelect(worker); true }) }
     }
+    InteractiveStreetMapView(
+        centerPoint = FakeData.center,
+        userPoint = DefaultHomePoint,
+        markers = markers,
+        onMarkerClick = { m ->
+            workers.firstOrNull { it.id == m.id }?.let { onSelect(it) }
+        },
+    )
 }

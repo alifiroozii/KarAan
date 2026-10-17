@@ -1,4 +1,25 @@
 <resources>
-    <color name="karvin_splash">#12355B</color>
-    <color name="ic_launcher_background">#12355B</color>
+    <!-- KARJOOR brand palette — single source of truth for XML resources. -->
+    <color name="karjoor_primary">#2563EB</color>
+    <color name="karjoor_primary_pressed">#1D4ED8</color>
+    <color name="karjoor_secondary">#14B8A6</color>
+    <color name="karjoor_navy">#11244A</color>
+    <color name="karjoor_accent_coral">#FF785A</color>
+    <color name="karjoor_background">#F8FAFC</color>
+    <color name="karjoor_surface">#FFFFFF</color>
+    <color name="karjoor_text_primary">#0F172A</color>
+    <color name="karjoor_text_secondary">#64748B</color>
+    <color name="karjoor_border">#E2E8F0</color>
+    <color name="karjoor_success">#16A34A</color>
+    <color name="karjoor_warning">#F59E0B</color>
+    <color name="karjoor_error">#DC2626</color>
+
+    <!-- Splash and system bar background. Light theme only in this release. -->
+    <color name="karjoor_splash_background">#F8FAFC</color>
+    <color name="karjoor_status_bar">#F8FAFC</color>
+    <color name="karjoor_navigation_bar">#FFFFFF</color>
+
+    <!-- Legacy aliases kept so existing themes/manifests keep resolving. -->
+    <color name="karvin_splash">#F8FAFC</color>
+    <color name="ic_launcher_background">#F8FAFC</color>
 </resources>
