@@ -3,9 +3,26 @@ import { NextRequest, NextResponse } from "next/server";
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Allow unrestricted access to the admin login page
-  if (pathname === "/admin/login") {
+  // Allow unrestricted access to the admin login page and API routes
+  if (pathname === "/admin/login" || pathname.startsWith("/api/")) {
     return NextResponse.next();
+  }
+
+  // Redirect legacy login/auth routes to admin login
+  if (pathname === "/login" || pathname === "/register" || pathname === "/verify-otp") {
+    return NextResponse.redirect(new URL("/admin/login", request.url));
+  }
+
+  // Redirect root and legacy portal routes directly to /admin
+  if (
+    pathname === "/" ||
+    pathname.startsWith("/worker") ||
+    pathname.startsWith("/employer") ||
+    pathname.startsWith("/demo") ||
+    pathname.startsWith("/design-system") ||
+    pathname.startsWith("/about")
+  ) {
+    return NextResponse.redirect(new URL("/admin", request.url));
   }
 
   // Protect all /admin routes
@@ -29,4 +46,8 @@ export function proxy(request: NextRequest) {
 // Fallback for older middleware conventions if queried
 export const middleware = proxy;
 
-export const config = { matcher: ["/admin/:path*"] };
+export const config = {
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|apk)$).*)",
+  ],
+};

@@ -1,5 +1,17 @@
 import { describe, it, expect } from "vitest";
-import { RadarWorkerCandidate } from "@/app/employer/live/page";
+
+export interface RadarWorkerCandidate {
+  id: string;
+  maskedName: string;
+  approxDistanceKm: number;
+  rating: number;
+  reliabilityScore: number;
+  completedShifts: number;
+  primarySkill: string;
+  status: "AVAILABLE" | "EN_ROUTE" | "ON_SHIFT";
+  approxLat: number;
+  approxLng: number;
+}
 
 describe("Employer Live Map Unit Tests", () => {
   const mockCandidates: RadarWorkerCandidate[] = [

@@ -58,12 +58,8 @@ describe("Prompt 35 messaging architecture guards", () => {
     expect(invalidation).toContain('["conversations"]');
   });
 
-  it("exposes real Worker and Employer messaging entry points", () => {
-    const worker = source("src/app/worker/page.tsx");
-    const employer = source("src/app/employer/shifts/[id]/page.tsx");
+  it("exposes real messaging components and infinite query", () => {
     const center = source("src/components/messaging/messaging-center.tsx");
-    expect(worker).toContain("WorkerCurrentChatButton");
-    expect(employer).toContain("EmployerAssignmentChatLauncher");
     expect(center).toContain("useInfiniteQuery");
     expect(center).toContain("خوانده شد");
   });

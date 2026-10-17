@@ -10,7 +10,7 @@ describe("Prompt 36 admin operations architecture guards", () => {
   it("removes hard-coded dashboard metrics and reads production overview API", () => {
     const page = source("src/app/admin/page.tsx");
     const overview = source("src/components/admin/admin-overview.tsx");
-    expect(page).toContain("AdminOverview");
+    expect(page).toContain("AdminUserManagement");
     expect(overview).toContain('fetch("/api/admin/overview"');
     expect(overview).not.toContain("۱,۲۴۸");
     expect(overview).not.toContain("۳,۵۶۰");

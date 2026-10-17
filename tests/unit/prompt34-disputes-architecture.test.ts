@@ -42,11 +42,9 @@ describe("Prompt 34 dispute architecture guards", () => {
     expect(route).toContain("openFromTimesheet");
   });
 
-  it("keeps production demo navigable even when interactive demo backend fails", () => {
+  it("keeps demo route resilient with fallback destination", () => {
     const demoRoute = source("src/app/api/auth/demo/route.ts");
-    const demoPage = source("src/app/demo/[role]/[[...section]]/page.tsx");
     expect(demoRoute).toContain("fallbackDestination");
     expect(demoRoute).toContain("wantsHtml");
-    expect(demoPage).toContain("Read-only fallback");
   });
 });

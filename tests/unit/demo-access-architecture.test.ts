@@ -20,12 +20,12 @@ describe("temporary demo access architecture guards", () => {
 
   it("issues a real HttpOnly session instead of disabling middleware auth", () => {
     const route = source("src/app/api/auth/demo/route.ts");
-    const middleware = source("src/middleware.ts");
+    const middleware = source("src/proxy.ts");
 
     expect(route).toContain('response.cookies.set("karaan_session"');
     expect(route).toContain("httpOnly: true");
     expect(middleware).toContain('pathname.startsWith("/admin")');
-    expect(middleware).toContain('req.cookies.get("karaan_session")');
+    expect(middleware).toContain('request.cookies.get("karaan_session")');
   });
 
   it("provisions review-safe Worker and Employer domain foundations", () => {
@@ -38,13 +38,8 @@ describe("temporary demo access architecture guards", () => {
     expect(service).toContain("branches");
   });
 
-  it("explains the current release and exposes both demo entry points on landing", () => {
+  it("redirects root landing directly to admin dashboard", () => {
     const landing = source("src/app/page.tsx");
-
-    expect(landing).toContain("آخرین نسخه کارآن روی Main");
-    expect(landing).toContain("Prompt 24 تا 33");
-    expect(landing).toContain("مشاهده پنل کارگر — بدون OTP");
-    expect(landing).toContain("مشاهده پنل کارفرما — بدون OTP");
-    expect(landing).toContain("سیستم Auth و OTP اصلی حذف نشده");
+    expect(landing).toContain('redirect("/admin")');
   });
 });
