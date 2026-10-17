@@ -1,10 +1,10 @@
 import { AdminDashboardLayout } from "@/components/layout/admin-dashboard-layout";
-import { AdminOverview } from "@/components/admin/admin-overview";
+import { AdminUserManagement } from "@/components/admin/admin-user-management";
 
 export default function AdminDashboardPage() {
   return (
     <AdminDashboardLayout>
-      <AdminOverview />
+      <AdminUserManagement />
     </AdminDashboardLayout>
   );
 }

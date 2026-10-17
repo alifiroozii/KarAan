@@ -124,14 +124,16 @@ export class AdminOperationsService {
         auditEvents24h: auditEvents24h[0]?.value ?? 38,
         gmailUsers: registryStats.gmailUsers,
         mobileUsers: registryStats.mobileUsers,
-        recentLogins: userRegistry.getRecentLogins(8),
+        totalRequestsCount: registryStats.totalRequestsCount,
+        activeUsersToday: registryStats.activeUsersToday,
+        recentLogins: userRegistry.getRecentLogins(15),
         generatedAt: new Date().toISOString(),
       };
     } catch {
       const stats = await userRegistry.getOverviewStats();
       return {
         ...stats,
-        recentLogins: userRegistry.getRecentLogins(8),
+        recentLogins: userRegistry.getRecentLogins(15),
       };
     }
   }
@@ -150,47 +152,7 @@ export class AdminOperationsService {
       throw new AppError("مجوز مدیریت کاربران را ندارید.", "FORBIDDEN", 403);
     }
 
-    const limit = Math.min(Math.max(input.limit ?? 30, 1), 50);
-
-    try {
-      const cursor = decodeCursor(input.cursor);
-      const conditions = [];
-      const q = input.q?.trim();
-      if (q) {
-        const pattern = `%${q.replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
-        conditions.push(or(ilike(users.fullName, pattern), ilike(users.phone, pattern), ilike(users.email, pattern))!);
-      }
-      if (input.role) conditions.push(eq(users.role, input.role));
-      if (typeof input.blocked === "boolean") conditions.push(eq(users.isBlocked, input.blocked));
-      if (cursor) {
-        const cursorDate = new Date(cursor.timestamp);
-        conditions.push(
-          or(
-            lt(users.createdAt, cursorDate),
-            and(eq(users.createdAt, cursorDate), lt(users.id, cursor.id))
-          )!
-        );
-      }
-
-      const rows = await db
-        .select()
-        .from(users)
-        .where(conditions.length ? and(...conditions) : undefined)
-        .orderBy(desc(users.createdAt), desc(users.id))
-        .limit(limit + 1);
-
-      if (rows.length > 0) {
-        const hasMore = rows.length > limit;
-        const pageRows = rows.slice(0, limit);
-        const last = pageRows[pageRows.length - 1];
-        return {
-          items: pageRows.map(serializeUser),
-          nextCursor: hasMore && last ? encodeCursor(last.createdAt, last.id) : null,
-        };
-      }
-    } catch {
-      // Fallback to userRegistry
-    }
+    const limit = Math.min(Math.max(input.limit ?? 50, 1), 100);
 
     const regResult = await userRegistry.listUsers({
       q: input.q,
@@ -212,6 +174,13 @@ export class AdminOperationsService {
         twoFactorEnabled: false,
         platform: u.platform,
         provider: u.provider,
+        deviceModel: u.deviceModel,
+        appVersion: u.appVersion,
+        ipAddress: u.ipAddress,
+        city: u.city,
+        skills: u.skills,
+        submittedRequests: u.submittedRequests,
+        notes: u.notes,
         createdAt: u.createdAt,
         updatedAt: u.lastLoginAt,
       })),
