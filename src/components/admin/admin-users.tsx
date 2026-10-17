@@ -96,74 +96,105 @@ export function AdminUsers() {
   return (
     <section className="space-y-5">
       <div>
-        <h2 className="text-2xl font-black">مدیریت کاربران</h2>
-        <p className="mt-1 text-sm text-slate-400">جست‌وجو، فیلتر و مسدودسازی امن همراه با ثبت Audit و لغو Session.</p>
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white">مدیریت کاربران سامانه</h2>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          جست‌وجو، فیلتر و مسدودسازی امن همراه با ثبت Audit و لغو Session همگام با اپلیکیشن موبایل.
+        </p>
       </div>
 
-      <div className="grid gap-3 rounded-3xl border border-slate-800 bg-slate-900/60 p-4 md:grid-cols-[1fr_180px_160px]">
-        <label className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-3">
-          <Search className="h-4 w-4 text-slate-500" />
-          <input value={q} onChange={(event) => setQ(event.target.value)} placeholder="نام، موبایل یا ایمیل" className="w-full bg-transparent py-2.5 text-sm outline-none" />
+      {/* Filter and Search Bar */}
+      <div className="grid gap-3 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4 md:grid-cols-[1fr_180px_160px] shadow-xs">
+        <label className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-slate-900 dark:text-slate-100 focus-within:border-indigo-500">
+          <Search className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+          <input
+            value={q}
+            onChange={(event) => setQ(event.target.value)}
+            placeholder="جست‌وجوی نام، موبایل یا جیمیل…"
+            className="w-full bg-transparent py-2.5 text-xs sm:text-sm outline-none placeholder-slate-400"
+          />
         </label>
-        <select value={role} onChange={(event) => setRole(event.target.value)} className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-xs outline-none">
-          {roles.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+
+        <select
+          value={role}
+          onChange={(event) => setRole(event.target.value)}
+          className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-500"
+        >
+          {roles.map((item) => (
+            <option key={item.value} value={item.value}>
+              {item.label}
+            </option>
+          ))}
         </select>
-        <select value={blocked} onChange={(event) => setBlocked(event.target.value)} className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-xs outline-none">
+
+        <select
+          value={blocked}
+          onChange={(event) => setBlocked(event.target.value)}
+          className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-500"
+        >
           <option value="">همه وضعیت‌ها</option>
           <option value="false">فعال</option>
           <option value="true">مسدود</option>
         </select>
       </div>
 
-      {query.isError && <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">{query.error.message}</div>}
-      {statusMutation.isError && <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">{statusMutation.error.message}</div>}
+      {query.isError && (
+        <div className="rounded-2xl border border-red-500/30 bg-red-50 dark:bg-red-500/10 p-4 text-xs font-bold text-red-600 dark:text-red-300">
+          {query.error.message}
+        </div>
+      )}
+      {statusMutation.isError && (
+        <div className="rounded-2xl border border-red-500/30 bg-red-50 dark:bg-red-500/10 p-4 text-xs font-bold text-red-600 dark:text-red-300">
+          {statusMutation.error.message}
+        </div>
+      )}
 
-      <div className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/50">
+      {/* Users Table */}
+      <div className="overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-right text-xs">
-            <thead className="bg-slate-900 text-slate-400">
+            <thead className="bg-slate-50 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400">
               <tr>
-                <th className="p-4">کاربر / مشخصات</th>
-                <th className="p-4">نقش در سامانه</th>
-                <th className="p-4">حساب جیمیل / موبایل</th>
-                <th className="p-4">پلتفرم ورودی</th>
-                <th className="p-4">وضعیت حساب</th>
-                <th className="p-4">عملیات مدیریت</th>
+                <th className="p-4 font-semibold">کاربر / مشخصات</th>
+                <th className="p-4 font-semibold">نقش در سامانه</th>
+                <th className="p-4 font-semibold">حساب جیمیل / موبایل</th>
+                <th className="p-4 font-semibold">پلتفرم ورودی</th>
+                <th className="p-4 font-semibold">وضعیت حساب</th>
+                <th className="p-4 font-semibold">عملیات مدیریت</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {users.map((user) => {
                 const isWorker = user.role === "WORKER";
                 const isEmployer = user.role === "EMPLOYER";
                 const hasGmail = user.email && user.email.includes("@");
 
                 return (
-                  <tr key={user.id} className="hover:bg-slate-900/70 transition">
+                  <tr key={user.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-300 font-bold border border-indigo-500/20">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-500/20">
                           {user.fullName ? user.fullName[0] : "ک"}
                         </div>
                         <div>
-                          <p className="font-bold text-white text-xs">{user.fullName}</p>
-                          <p className="mt-0.5 text-[10px] text-slate-500 font-mono">ID: {user.id.slice(0, 12)}</p>
+                          <p className="font-bold text-slate-900 dark:text-white text-xs">{user.fullName}</p>
+                          <p className="mt-0.5 text-[10px] text-slate-400 font-mono">ID: {user.id.slice(0, 12)}</p>
                         </div>
                       </div>
                     </td>
 
                     <td className="p-4">
                       {isWorker && (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-300">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-300">
                           متخصص و کارجو
                         </span>
                       )}
                       {isEmployer && (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-300">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
                           درخواست‌کننده (کارفرما)
                         </span>
                       )}
                       {!isWorker && !isEmployer && (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-bold text-indigo-300">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-1 text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
                           مدیر سامانه
                         </span>
                       )}
@@ -172,30 +203,32 @@ export function AdminUsers() {
                     <td className="p-4">
                       <div className="space-y-0.5">
                         {hasGmail ? (
-                          <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-200">
-                            <span className="rounded bg-rose-500/20 text-rose-300 px-1.5 py-0.2 text-[9px] font-bold">Gmail</span>
+                          <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-800 dark:text-slate-200">
+                            <span className="rounded bg-rose-50 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 px-1.5 py-0.2 text-[9px] font-bold">
+                              Gmail
+                            </span>
                             <span>{user.email}</span>
                           </div>
                         ) : (
-                          <span className="text-slate-500 text-[10px]">بدون ایمیل</span>
+                          <span className="text-slate-400 text-[10px]">بدون ایمیل</span>
                         )}
-                        <p className="text-[10px] text-slate-400 font-mono">{user.phone}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{user.phone}</p>
                       </div>
                     </td>
 
                     <td className="p-4">
-                      <span className="inline-flex items-center gap-1 rounded-lg bg-slate-800 border border-slate-700 px-2 py-0.5 text-[10px] text-slate-300">
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 text-[10px] text-slate-700 dark:text-slate-300">
                         {user.phone.startsWith("0999") || user.fullName.includes("اندروید") ? "📱 اپ موبایل" : "💻 وب / موبایل"}
                       </span>
                     </td>
 
                     <td className="p-4">
                       {user.isBlocked ? (
-                        <span className="rounded-full bg-red-500/10 border border-red-500/20 px-2.5 py-0.5 text-[11px] font-bold text-red-300">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 px-2.5 py-0.5 text-[11px] font-bold text-red-700 dark:text-red-300">
                           مسدود شده
                         </span>
                       ) : (
-                        <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
                           فعال
                         </span>
                       )}
@@ -207,10 +240,10 @@ export function AdminUsers() {
                           setActionTarget(user);
                           setReason("");
                         }}
-                        className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition ${
+                        className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
                           user.isBlocked
-                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
-                            : "border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+                            ? "border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/20"
+                            : "border-red-500/30 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20"
                         }`}
                       >
                         {user.isBlocked ? <RotateCcw className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
@@ -223,21 +256,22 @@ export function AdminUsers() {
             </tbody>
           </table>
         </div>
+
         {query.isLoading && (
-          <div className="flex items-center gap-2 p-5 text-xs text-slate-400">
+          <div className="flex items-center gap-2 p-5 text-xs text-slate-500 dark:text-slate-400">
             <Loader2 className="h-4 w-4 animate-spin" />
             در حال دریافت کاربران…
           </div>
         )}
         {!query.isLoading && users.length === 0 && (
-          <p className="p-6 text-center text-sm text-slate-500">کاربری با این فیلتر پیدا نشد.</p>
+          <p className="p-6 text-center text-sm text-slate-400">کاربری با این فیلتر پیدا نشد.</p>
         )}
         {query.hasNextPage && (
-          <div className="border-t border-slate-800 p-3 text-center">
+          <div className="border-t border-slate-200 dark:border-slate-800 p-3 text-center">
             <button
               onClick={() => void query.fetchNextPage()}
               disabled={query.isFetchingNextPage}
-              className="rounded-xl border border-slate-700 px-4 py-2 text-xs font-bold disabled:opacity-50"
+              className="rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50"
             >
               {query.isFetchingNextPage ? "در حال دریافت…" : "نمایش بیشتر"}
             </button>
@@ -245,12 +279,40 @@ export function AdminUsers() {
         )}
       </div>
 
+      {/* Block/Unblock Action Modal */}
       {actionTarget && (
-        <div className="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-5">
-          <p className="text-sm font-black">{actionTarget.isBlocked ? "رفع مسدودی" : "مسدود کردن"} — {actionTarget.fullName}</p>
-          <p className="mt-1 text-xs leading-6 text-slate-400">در حالت مسدودسازی، همه Sessionهای فعال کاربر در همان Transaction لغو می‌شوند.</p>
-          <textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={3} placeholder="دلیل عملیات (حداقل ۵ کاراکتر)" className="mt-3 w-full rounded-2xl border border-slate-700 bg-slate-950 p-3 text-sm outline-none focus:border-indigo-500" />
-          <div className="mt-3 flex gap-2"><button disabled={reason.trim().length < 5 || statusMutation.isPending} onClick={() => statusMutation.mutate({ user: actionTarget, reasonText: reason.trim() })} className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">{statusMutation.isPending ? "در حال ثبت…" : "تأیید عملیات"}</button><button onClick={() => { setActionTarget(null); setReason(""); }} className="rounded-xl border border-slate-700 px-4 py-2 text-xs font-bold">انصراف</button></div>
+        <div className="rounded-3xl border border-amber-500/30 bg-amber-50/50 dark:bg-amber-500/5 p-5 shadow-sm">
+          <p className="text-sm font-black text-slate-900 dark:text-white">
+            {actionTarget.isBlocked ? "رفع مسدودی" : "مسدود کردن"} — {actionTarget.fullName}
+          </p>
+          <p className="mt-1 text-xs leading-6 text-slate-600 dark:text-slate-400">
+            در حالت مسدودسازی، همه Sessionهای فعال کاربر در همان Transaction لغو می‌شوند.
+          </p>
+          <textarea
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            rows={3}
+            placeholder="دلیل عملیات (حداقل ۵ کاراکتر)"
+            className="mt-3 w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 p-3 text-sm text-slate-900 dark:text-white outline-none focus:border-indigo-500"
+          />
+          <div className="mt-3 flex gap-2">
+            <button
+              disabled={reason.trim().length < 5 || statusMutation.isPending}
+              onClick={() => statusMutation.mutate({ user: actionTarget, reasonText: reason.trim() })}
+              className="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-bold text-white disabled:opacity-40"
+            >
+              {statusMutation.isPending ? "در حال ثبت…" : "تأیید عملیات"}
+            </button>
+            <button
+              onClick={() => {
+                setActionTarget(null);
+                setReason("");
+              }}
+              className="rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              انصراف
+            </button>
+          </div>
         </div>
       )}
     </section>

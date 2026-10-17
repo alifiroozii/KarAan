@@ -9,16 +9,21 @@ const globalState = globalThis as typeof globalThis & {
 export const redis =
   globalState.__karaanRedis ??
   new Redis(env.REDIS_URL, {
-    maxRetriesPerRequest: null,
+    maxRetriesPerRequest: 1,
     lazyConnect: true,
-    connectTimeout: 5_000,
+    connectTimeout: 2_000,
+    retryStrategy(times) {
+      if (times > 2) return null; // stop reconnecting if redis is not running
+      return Math.min(times * 100, 1000);
+    },
+    enableOfflineQueue: false,
   });
 
 globalState.__karaanRedis = redis;
 
 if (!globalState.__karaanRedisErrorListenerInstalled) {
-  redis.on("error", (error) => {
-    console.error("[Redis Connection Error]", error.message);
+  redis.on("error", () => {
+    // Suppress unhandled noisy errors in serverless/offline environments
   });
   globalState.__karaanRedisErrorListenerInstalled = true;
 }
@@ -27,12 +32,18 @@ export const REDIS_GEO_KEY = "karaan:workers:online_locations";
 export const REDIS_WORKER_STATUS_PREFIX = "karaan:worker:status:";
 export const REDIS_ASSIGNMENT_ETA_PREFIX = "karaan:assignment:eta:";
 
-export async function ensureRedisConnected(): Promise<void> {
-  if (redis.status === "ready") return;
-  if (redis.status === "wait" || redis.status === "end") {
-    await redis.connect();
+export async function ensureRedisConnected(): Promise<boolean> {
+  if (redis.status === "ready") return true;
+  if (redis.status === "connecting" || redis.status === "reconnecting") return false;
+  try {
+    if (redis.status === "wait" || redis.status === "end") {
+      await redis.connect();
+    }
+    await redis.ping();
+    return true;
+  } catch {
+    return false;
   }
-  await redis.ping();
 }
 
 export async function updateWorkerOnlineLocation(

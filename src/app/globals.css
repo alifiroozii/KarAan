@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --font-vazirmatn: 'Vazirmatn', -apple-system, BlinkMacSystemFont, sans-serif;

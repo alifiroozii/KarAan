@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Allow unrestricted access to the admin login page
@@ -25,5 +25,8 @@ export function middleware(request: NextRequest) {
 
   return NextResponse.next();
 }
+
+// Fallback for older middleware conventions if queried
+export const middleware = proxy;
 
 export const config = { matcher: ["/admin/:path*"] };
