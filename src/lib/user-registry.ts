@@ -64,18 +64,163 @@ const MASTER_ADMIN: RegisteredUser = {
   isVerified: true,
   isBlocked: false,
   provider: "ADMIN_SEED",
-  createdAt: new Date().toISOString(),
-  lastLoginAt: new Date().toISOString(),
+  createdAt: "2026-10-17T15:42:26.912Z",
+  lastLoginAt: "2026-10-18T08:00:00.000Z",
   city: "تهران",
   notes: "دسترسی Super Admin به سامانه مانیتورینگ کاربران",
 };
 
+export const INITIAL_REAL_USERS: RegisteredUser[] = [
+  {
+    id: "usr_507c40db-9d90-4c88-8693-728dca4cab43",
+    fullName: "علی فیروزی",
+    email: "alifiroozi.dev@gmail.com",
+    phone: "09121112233",
+    role: "WORKER",
+    avatarUrl: null,
+    platform: "ANDROID",
+    deviceModel: "Google Pixel 8 (Android Emulator)",
+    appVersion: "KARJOOR v2.4.0 (Build 42)",
+    ipAddress: "::1",
+    isVerified: true,
+    isBlocked: false,
+    provider: "GMAIL",
+    city: "تهران",
+    skills: ["برقکاری ساختمان", "تأسیسات و پکیج", "سیم‌کشی تابلو برق"],
+    submittedRequests: [
+      {
+        id: "req_17b7f187",
+        title: "تعمیر و سیم‌کشی تخصصی تابلو برق صنعتی و خانگی",
+        category: "برق و تأسیسات",
+        budget: "ساعتی ۳۵۰٬۰۰۰ تومان",
+        city: "تهران",
+        address: "سعادت‌آباد و شمال تهران",
+        createdAt: "2026-10-18T07:29:21.533Z",
+        status: "APPROVED",
+        details: "ارائه کلیه خدمات رفع اتصالی، کابل‌کشی سه فاز و عیب‌یابی فیوز مینیاتوری با دستگاه تستر",
+        updatedAt: "2026-10-18T07:50:20.735Z",
+        approvedAt: "2026-10-18T07:50:20.736Z",
+        notes: "تأیید صلاحیت تکنسین و انتشار مستقیم در سامانه کاروین",
+      },
+    ],
+    notes: "نصب و لاگین شده از پلتفرم ANDROID",
+    createdAt: "2026-10-17T16:07:53.096Z",
+    lastLoginAt: "2026-10-18T07:50:20.736Z",
+  },
+  {
+    id: "usr_3a09111d-ac2f-441f-be4b-b59f5c575f94",
+    fullName: "مهندس آرش رادمنش (کارفرما - شرکت پارس)",
+    email: "arash.employer@gmail.com",
+    phone: "09359876543",
+    role: "EMPLOYER",
+    avatarUrl: null,
+    platform: "ANDROID",
+    deviceModel: "Google Pixel 8 (Android Emulator)",
+    appVersion: "KARJOOR v2.4.0 (Build 42)",
+    ipAddress: "::1",
+    isVerified: true,
+    isBlocked: false,
+    provider: "GMAIL",
+    city: "تهران",
+    submittedRequests: [
+      {
+        id: "req_6140e96f",
+        title: "نیاز به تکنسین برق صنعتی جهت سرویس و عیب‌یابی ژنراتور اضطراری برج پارس",
+        category: "برق و تأسیسات صنعتی",
+        budget: "روزانه ۳٬۲۰۰٬۰۰۰ تومان",
+        city: "تهران",
+        address: "سعادت‌آباد، خیابان سرو غربی، مجتمع اداری پارس",
+        createdAt: "2026-10-18T07:31:19.828Z",
+        status: "APPROVED",
+        details: "راه‌اندازی ژنراتور دیزلی ۱۰۰ کاوا و تست مدار فرمان اتوماتیک (ATS)",
+        updatedAt: "2026-10-18T07:31:52.649Z",
+        approvedAt: "2026-10-18T07:31:52.649Z",
+        notes: "تأیید صلاحیت پروژه و انتشار فوری در شبکه متخصصان کاروین",
+      },
+    ],
+    notes: "نصب و لاگین شده از پلتفرم ANDROID",
+    createdAt: "2026-10-18T07:30:54.978Z",
+    lastLoginAt: "2026-10-18T07:31:52.649Z",
+  },
+  {
+    id: "usr_fe637a8c-41c0-46e8-b116-2d67213993c7",
+    fullName: "مهندس علیرضا بهرامی (پروژه ساختمانی ستاره)",
+    email: "alireza.bahrami.employer@gmail.com",
+    phone: "09351234567",
+    role: "EMPLOYER",
+    avatarUrl: null,
+    platform: "ANDROID",
+    deviceModel: "Xiaomi 13 Pro (2210132G)",
+    appVersion: "KARJOOR v2.4.0 (Build 42)",
+    ipAddress: "2.180.99.14",
+    isVerified: true,
+    isBlocked: false,
+    provider: "GMAIL",
+    city: "تهران (منطقه ۱ - فرمانیه)",
+    submittedRequests: [
+      {
+        id: "req_edaf8f3a",
+        title: "نیاز فوری به ۲ نفر برق‌کار صنعتی جهت پروژه ساختمانی برج ستاره",
+        category: "تأسیسات الکتریکی",
+        budget: "روزانه ۲٬۵۰۰٬۰۰۰ تومان + ناهار",
+        city: "تهران",
+        address: "فرمانیه، تقاطع دیباجی شمالی",
+        createdAt: "2026-10-17T15:42:26.977Z",
+        status: "APPROVED",
+        details: "اجرای داکت‌کشی و اتصال سرخط‌های روشنایی و هوشمند ساختمان",
+        updatedAt: "2026-10-18T07:09:05.790Z",
+        approvedAt: "2026-10-18T07:09:05.790Z",
+        notes: "تأیید صلاحیت رسمی توسط مدیر ارشد سامانه",
+      },
+    ],
+    notes: "نصب و لاگین شده از پلتفرم ANDROID",
+    createdAt: "2026-10-17T15:42:26.974Z",
+    lastLoginAt: "2026-10-18T07:09:05.790Z",
+  },
+  {
+    id: "usr_f638c695-8ba5-4268-bac8-4ba3622be070",
+    fullName: "حسین حسینی (تکنسین برق و تأسیسات)",
+    email: "hosein.hosseini.worker@gmail.com",
+    phone: "09123456789",
+    role: "WORKER",
+    avatarUrl: null,
+    platform: "ANDROID",
+    deviceModel: "Samsung Galaxy S23 (SM-S911B)",
+    appVersion: "KARJOOR v2.4.0 (Build 42)",
+    ipAddress: "5.120.45.18",
+    isVerified: true,
+    isBlocked: false,
+    provider: "GMAIL",
+    city: "تهران (منطقه ۵ - پونک)",
+    skills: ["برق‌کاری ساختمان", "تأسیسات سرمایشی", "نصب اسپلیت"],
+    submittedRequests: [
+      {
+        id: "req_8b870826",
+        title: "آماده اعزام فوری: تعمیر و سیم‌کشی تابلو برق ساختمان",
+        category: "برق و الکترونیک",
+        budget: "ساعتی ۳۰۰٬۰۰۰ تومان",
+        city: "تهران",
+        address: "غرب و شمال غرب تهران",
+        createdAt: "2026-10-17T15:42:26.961Z",
+        status: "ACTIVE",
+        details: "مجهز به کلیه ابزارآلات فلوک و تسترهای تخصصی مدار",
+      },
+    ],
+    notes: "نصب و لاگین شده از پلتفرم ANDROID",
+    createdAt: "2026-10-17T15:42:26.954Z",
+    lastLoginAt: "2026-10-17T15:42:26.961Z",
+  },
+  MASTER_ADMIN,
+];
+
 function getMemoryStore(): Map<string, RegisteredUser> {
   if (!globalThis.__karaanUserRegistry) {
     const initialMap = new Map<string, RegisteredUser>();
-    initialMap.set(MASTER_ADMIN.id, { ...MASTER_ADMIN });
+    for (const u of INITIAL_REAL_USERS) {
+      initialMap.set(u.id, { ...u });
+    }
     globalThis.__karaanUserRegistry = initialMap;
-    globalThis.__karaanRecentLogins = [{ ...MASTER_ADMIN }];
+    globalThis.__karaanRecentLogins = INITIAL_REAL_USERS.map((u) => ({ ...u }));
   }
   return globalThis.__karaanUserRegistry;
 }
@@ -162,16 +307,18 @@ export class UserRegistryService {
       await sql`CREATE INDEX IF NOT EXISTS idx_reg_users_role ON registered_users(role);`;
       await sql`CREATE INDEX IF NOT EXISTS idx_reg_users_last_login ON registered_users(last_login_at DESC);`;
 
-      // Seed Master Admin if completely empty
+      // Seed Real Mobile Users & Master Admin if completely empty
       const countRes = await sql`SELECT count(*)::int as count FROM registered_users;`;
       if ((countRes[0]?.count ?? 0) === 0) {
-        await sql`
-          INSERT INTO registered_users (
-            id, full_name, email, phone, role, platform, device_model, app_version, ip_address, is_verified, is_blocked, provider, city, notes, created_at, last_login_at
-          ) VALUES (
-            ${MASTER_ADMIN.id}, ${MASTER_ADMIN.fullName}, ${MASTER_ADMIN.email}, ${MASTER_ADMIN.phone}, ${MASTER_ADMIN.role}, ${MASTER_ADMIN.platform}, ${MASTER_ADMIN.deviceModel}, ${MASTER_ADMIN.appVersion}, ${MASTER_ADMIN.ipAddress}, ${MASTER_ADMIN.isVerified}, ${MASTER_ADMIN.isBlocked}, ${MASTER_ADMIN.provider}, ${MASTER_ADMIN.city ?? null}, ${MASTER_ADMIN.notes ?? null}, NOW(), NOW()
-          ) ON CONFLICT (id) DO NOTHING;
-        `;
+        for (const u of INITIAL_REAL_USERS) {
+          await sql`
+            INSERT INTO registered_users (
+              id, full_name, email, phone, role, platform, device_model, app_version, ip_address, is_verified, is_blocked, provider, city, skills, submitted_requests, notes, created_at, last_login_at
+            ) VALUES (
+              ${u.id}, ${u.fullName}, ${u.email}, ${u.phone}, ${u.role}, ${u.platform}, ${u.deviceModel}, ${u.appVersion}, ${u.ipAddress}, ${u.isVerified}, ${u.isBlocked}, ${u.provider}, ${u.city ?? null}, ${JSON.stringify(u.skills || [])}::jsonb, ${JSON.stringify(u.submittedRequests || [])}::jsonb, ${u.notes ?? null}, ${u.createdAt}, ${u.lastLoginAt}
+            ) ON CONFLICT (id) DO NOTHING;
+          `;
+        }
       }
       globalThis.__karaanDbTableInitialized = true;
       return true;

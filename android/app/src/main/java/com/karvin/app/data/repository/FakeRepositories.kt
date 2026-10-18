@@ -124,11 +124,27 @@ class FakeAuthRepository(private val preferences: PreferencesStore) : AuthReposi
         preferences.setAuthenticated(true)
         val user = customWorker.value.copy(phone = phone)
         customWorker.value = user
+        com.karvin.app.core.network.MobileDashboardSync.syncUserSession(
+            fullName = user.name,
+            phone = user.phone,
+            role = "WORKER",
+            skills = user.skills,
+            city = user.city
+        )
         return AppResult.Success(user)
     }
 
     override suspend fun setRole(role: UserRole): AppResult<Unit> {
         preferences.setRole(role)
+        val roleStr = if (role == UserRole.REQUESTER) "EMPLOYER" else "WORKER"
+        val activeUser = if (role == UserRole.REQUESTER) customEmployer.value else customWorker.value
+        com.karvin.app.core.network.MobileDashboardSync.syncUserSession(
+            fullName = activeUser.name,
+            phone = activeUser.phone,
+            role = roleStr,
+            skills = activeUser.skills,
+            city = activeUser.city
+        )
         return AppResult.Success(Unit)
     }
 
@@ -138,6 +154,14 @@ class FakeAuthRepository(private val preferences: PreferencesStore) : AuthReposi
         } else {
             customEmployer.value = user
         }
+        val roleStr = if (user.role == UserRole.REQUESTER) "EMPLOYER" else "WORKER"
+        com.karvin.app.core.network.MobileDashboardSync.syncUserSession(
+            fullName = user.name,
+            phone = user.phone,
+            role = roleStr,
+            skills = user.skills,
+            city = user.city
+        )
         return AppResult.Success(user)
     }
 

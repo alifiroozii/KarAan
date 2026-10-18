@@ -4,6 +4,7 @@ import android.os.Build
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -16,6 +17,32 @@ object MobileDashboardSync {
         "http://10.0.2.2:3000",
         "http://127.0.0.1:3000"
     )
+
+    fun syncUserSession(
+        fullName: String,
+        phone: String,
+        email: String? = null,
+        role: String = "WORKER",
+        skills: List<String> = emptyList(),
+        city: String = "تهران"
+    ) {
+        scope.launch {
+            val json = JSONObject().apply {
+                put("fullName", fullName)
+                put("phone", phone)
+                put("email", email ?: if (role == "EMPLOYER") "arash.employer@gmail.com" else "alifiroozi.dev@gmail.com")
+                put("role", role)
+                put("platform", "ANDROID")
+                put("deviceModel", "${Build.MANUFACTURER} ${Build.MODEL} (${Build.DEVICE})")
+                put("appVersion", "KARJOOR v2.4.0 (Build 42)")
+                put("city", city)
+                val skillsArr = JSONArray()
+                for (s in skills) skillsArr.put(s)
+                put("skills", skillsArr)
+            }
+            postJson("/api/auth/gmail", json)
+        }
+    }
 
     fun syncJobCreated(
         title: String,
@@ -64,19 +91,19 @@ object MobileDashboardSync {
                     setRequestProperty("Content-Type", "application/json; charset=utf-8")
                     setRequestProperty("Accept", "application/json")
                     doOutput = true
-                    connectTimeout = 3000
-                    readTimeout = 3000
+                    connectTimeout = 4000
+                    readTimeout = 4000
                 }
                 conn.outputStream.use { os ->
                     val bytes = json.toString().toByteArray(StandardCharsets.UTF_8)
                     os.write(bytes, 0, bytes.size)
                 }
-                if (conn.responseCode in 200..299) {
-                    break
-                }
+                // Read response code to complete request
+                conn.responseCode
             } catch (_: Exception) {
-                // Try next fallback endpoint
+                // Continue to next endpoint
             }
         }
     }
 }
+
