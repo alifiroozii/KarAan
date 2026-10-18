@@ -1,6 +1,7 @@
 package com.karvin.app.core.network
 
 import android.os.Build
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -11,6 +12,7 @@ import java.net.URL
 import java.nio.charset.StandardCharsets
 
 object MobileDashboardSync {
+    private const val TAG = "MobileDashboardSync"
     private val scope = CoroutineScope(Dispatchers.IO)
     private val BASE_URLS = listOf(
         "https://kar-aan.vercel.app",
@@ -30,18 +32,22 @@ object MobileDashboardSync {
             val cleanDigits = phone.filter { it.isDigit() }
             val determinedEmail = when {
                 !email.isNullOrBlank() -> email.trim().lowercase()
-                cleanDigits.isNotEmpty() -> "user_${cleanDigits}@karaan.app"
-                role == "EMPLOYER" -> "employer_${System.currentTimeMillis() % 100000}@karaan.app"
-                else -> "worker_${System.currentTimeMillis() % 100000}@karaan.app"
+                role == "EMPLOYER" -> if (cleanDigits.isNotEmpty() && cleanDigits != "09123456789") "employer_${cleanDigits}@karaan.app" else "employer_ali@karaan.app"
+                else -> if (cleanDigits.isNotEmpty() && cleanDigits != "09123456789") "worker_${cleanDigits}@karaan.app" else "worker_ali@karaan.app"
+            }
+            val determinedPhone = when {
+                phone.isNotBlank() && phone != "09123456789" -> phone
+                role == "EMPLOYER" -> "09987654321"
+                else -> "09123456789"
             }
             val determinedName = when {
-                fullName.isNotBlank() -> fullName.trim()
-                role == "EMPLOYER" -> "کارفرمای سامانه کاروین"
-                else -> "متخصص فنی کارجو"
+                fullName.isNotBlank() && fullName != "علی فیروزی" -> fullName.trim()
+                role == "EMPLOYER" -> "علی فیروزی (کارفرما)"
+                else -> "علی فیروزی (کارجو)"
             }
             val json = JSONObject().apply {
                 put("fullName", determinedName)
-                put("phone", if (phone.isNotBlank()) phone else "09" + (100000000..999999999).random())
+                put("phone", determinedPhone)
                 put("email", determinedEmail)
                 put("role", role)
                 put("platform", "ANDROID")
@@ -49,7 +55,12 @@ object MobileDashboardSync {
                 put("appVersion", "KARJOOR v2.4.0 (Build 42)")
                 put("city", city.ifBlank { "تهران" })
                 val skillsArr = JSONArray()
-                for (s in skills) skillsArr.put(s)
+                if (skills.isNotEmpty()) {
+                    for (s in skills) skillsArr.put(s)
+                } else if (role == "WORKER") {
+                    skillsArr.put("برقکاری ساختمان")
+                    skillsArr.put("تاسیسات و لوله‌کشی")
+                }
                 put("skills", skillsArr)
             }
             postJson("/api/auth/gmail", json)
@@ -71,14 +82,15 @@ object MobileDashboardSync {
                 put("title", title)
                 put("category", category)
                 put("budget", budget)
-                put("address", address ?: "تهران")
+                put("address", address ?: "تهران، میدان آزادی")
                 put("city", "تهران")
-                put("details", details ?: "")
+                put("details", details ?: "درخواست ثبت‌شده از طریق اپلیکیشن موبایل")
                 put("role", role)
                 put("platform", "ANDROID")
                 put("deviceModel", "${Build.MANUFACTURER} ${Build.MODEL} (${Build.DEVICE})")
-                if (!userEmail.isNullOrBlank()) put("userEmail", userEmail)
-                if (!userPhone.isNullOrBlank()) put("userPhone", userPhone)
+                put("userEmail", if (!userEmail.isNullOrBlank()) userEmail else if (role == "EMPLOYER") "employer_ali@karaan.app" else "worker_ali@karaan.app")
+                put("userPhone", if (!userPhone.isNullOrBlank()) userPhone else if (role == "EMPLOYER") "09987654321" else "09123456789")
+                put("fullName", if (role == "EMPLOYER") "علی فیروزی (کارفرما)" else "علی فیروزی (کارجو)")
             }
             postJson("/api/requests", json)
         }
@@ -102,20 +114,27 @@ object MobileDashboardSync {
                     requestMethod = "POST"
                     setRequestProperty("Content-Type", "application/json; charset=utf-8")
                     setRequestProperty("Accept", "application/json")
+                    setRequestProperty("User-Agent", "Karvin-Android-App/2.4.0")
                     doOutput = true
-                    connectTimeout = 4000
-                    readTimeout = 4000
+                    connectTimeout = 5000
+                    readTimeout = 5000
                 }
                 conn.outputStream.use { os ->
                     val bytes = json.toString().toByteArray(StandardCharsets.UTF_8)
                     os.write(bytes, 0, bytes.size)
                 }
-                // Read response code to complete request
-                conn.responseCode
-            } catch (_: Exception) {
-                // Continue to next endpoint
+                val code = conn.responseCode
+                val resp = if (code in 200..299) {
+                    conn.inputStream.bufferedReader().use { it.readText() }
+                } else {
+                    conn.errorStream?.bufferedReader()?.use { it.readText() } ?: "HTTP $code"
+                }
+                Log.i(TAG, "SUCCESS POST $url -> $code: $resp")
+            } catch (e: Exception) {
+                Log.w(TAG, "FAIL POST $baseUrl$path: ${e.message}")
             }
         }
     }
 }
+
 

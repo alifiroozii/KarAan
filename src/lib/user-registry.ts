@@ -78,17 +78,18 @@ export const INITIAL_REAL_USERS: RegisteredUser[] = [
   MASTER_ADMIN,
 ];
 
-async function syncFromCloudStore(): Promise<void> {
+async function syncFromCloudStore(force = false): Promise<void> {
   const now = Date.now();
-  // Throttle cloud fetches to at most once every 2.5 seconds per lambda instance
-  if (globalThis.__karaanLastCloudSync && now - globalThis.__karaanLastCloudSync < 2500) {
+  const store = getMemoryStore();
+  // Throttle cloud fetches to at most once every 1.5 seconds per lambda instance, unless forced or store is minimal
+  if (!force && store.size > 1 && globalThis.__karaanLastCloudSync && now - globalThis.__karaanLastCloudSync < 1500) {
     return;
   }
   globalThis.__karaanLastCloudSync = now;
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
+    const timeout = setTimeout(() => controller.abort(), 4000);
     const res = await fetch(CLOUD_SYNC_URL, {
       signal: controller.signal,
       cache: "no-store",
@@ -99,7 +100,6 @@ async function syncFromCloudStore(): Promise<void> {
     const body = await res.json();
     const users: RegisteredUser[] = body?.data?.users;
     if (Array.isArray(users) && users.length > 0) {
-      const store = getMemoryStore();
       for (const u of users) {
         if (u && u.id) {
           store.set(u.id, u);
@@ -119,7 +119,7 @@ async function pushToCloudStore(): Promise<void> {
     const store = getMemoryStore();
     const allUsers = Array.from(store.values());
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3500);
+    const timeout = setTimeout(() => controller.abort(), 4000);
     await fetch(CLOUD_SYNC_URL, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -334,7 +334,7 @@ export class UserRegistryService {
     const token = `sess_gmail_${crypto.randomBytes(32).toString("hex")}`;
 
     // Cloud persistent backup for multi-lambda Vercel synchronization
-    pushToCloudStore().catch(() => {});
+    await pushToCloudStore();
 
     // Persistent storage in PostgreSQL
     try {
@@ -425,7 +425,7 @@ export class UserRegistryService {
       // Resilient fallback
     }
 
-    pushToCloudStore().catch(() => {});
+    await pushToCloudStore();
     return newReq;
   }
 
@@ -433,6 +433,7 @@ export class UserRegistryService {
    * Find a user by ID, email, or phone.
    */
   async findUser(query: { id?: string; email?: string; phone?: string }): Promise<RegisteredUser | null> {
+    await syncFromCloudStore();
     const store = getMemoryStore();
     if (query.id && store.has(query.id)) {
       return store.get(query.id) || null;
@@ -532,7 +533,7 @@ export class UserRegistryService {
       // In-memory fallback
     }
 
-    pushToCloudStore().catch(() => {});
+    await pushToCloudStore();
     return targetReq;
   }
 
@@ -556,7 +557,7 @@ export class UserRegistryService {
     } catch {
       // In-memory fallback
     }
-    pushToCloudStore().catch(() => {});
+    await pushToCloudStore();
     return user || null;
   }
 
@@ -564,6 +565,7 @@ export class UserRegistryService {
    * Get single user by ID with deep telemetry.
    */
   async getUserById(id: string): Promise<RegisteredUser | null> {
+    await syncFromCloudStore();
     try {
       await this.ensureDbTable();
       const rows = await sql`SELECT * FROM registered_users WHERE id = ${id} LIMIT 1;`;
@@ -809,24 +811,23 @@ export class UserRegistryService {
     } catch {
       // Resilient fallback
     }
-    pushToCloudStore().catch(() => {});
+    await pushToCloudStore();
     return user || null;
   }
 
-  resetToMasterAdminOnly(): void {
+  async resetToMasterAdminOnly(): Promise<void> {
     const store = getMemoryStore();
     store.clear();
     store.set(MASTER_ADMIN.id, { ...MASTER_ADMIN });
     globalThis.__karaanRecentLogins = [{ ...MASTER_ADMIN }];
 
     try {
-      this.ensureDbTable().then(() => {
-        sql`DELETE FROM registered_users WHERE id != ${MASTER_ADMIN.id};`.catch(() => {});
-      });
+      await this.ensureDbTable();
+      await sql`DELETE FROM registered_users WHERE id != ${MASTER_ADMIN.id};`.catch(() => {});
     } catch {
       // Resilient fallback
     }
-    pushToCloudStore().catch(() => {});
+    await pushToCloudStore();
   }
 }
 

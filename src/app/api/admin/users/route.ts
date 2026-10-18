@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     await requirePermission(req, "admin.users.manage");
-    userRegistry.resetToMasterAdminOnly();
+    await userRegistry.resetToMasterAdminOnly();
     return createSuccessResponse({
       message: "تمامی کاربران فیک پاکسازی شدند و سامانه به وضعیت واقعی بازنشانی گردید.",
     });
