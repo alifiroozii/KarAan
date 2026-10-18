@@ -48,7 +48,11 @@ declare global {
   var __karaanRecentLogins: RegisteredUser[] | undefined;
   // eslint-disable-next-line no-var
   var __karaanDbTableInitialized: boolean | undefined;
+  // eslint-disable-next-line no-var
+  var __karaanLastCloudSync: number | undefined;
 }
+
+const CLOUD_SYNC_URL = "https://api.restful-api.dev/objects/ff808181a09d98f701a14e4b38080a08";
 
 const MASTER_ADMIN: RegisteredUser = {
   id: "usr_admin_master",
@@ -71,147 +75,68 @@ const MASTER_ADMIN: RegisteredUser = {
 };
 
 export const INITIAL_REAL_USERS: RegisteredUser[] = [
-  {
-    id: "usr_507c40db-9d90-4c88-8693-728dca4cab43",
-    fullName: "علی فیروزی",
-    email: "alifiroozi.dev@gmail.com",
-    phone: "09121112233",
-    role: "WORKER",
-    avatarUrl: null,
-    platform: "ANDROID",
-    deviceModel: "Google Pixel 8 (Android Emulator)",
-    appVersion: "KARJOOR v2.4.0 (Build 42)",
-    ipAddress: "::1",
-    isVerified: true,
-    isBlocked: false,
-    provider: "GMAIL",
-    city: "تهران",
-    skills: ["برقکاری ساختمان", "تأسیسات و پکیج", "سیم‌کشی تابلو برق"],
-    submittedRequests: [
-      {
-        id: "req_17b7f187",
-        title: "تعمیر و سیم‌کشی تخصصی تابلو برق صنعتی و خانگی",
-        category: "برق و تأسیسات",
-        budget: "ساعتی ۳۵۰٬۰۰۰ تومان",
-        city: "تهران",
-        address: "سعادت‌آباد و شمال تهران",
-        createdAt: "2026-10-18T07:29:21.533Z",
-        status: "APPROVED",
-        details: "ارائه کلیه خدمات رفع اتصالی، کابل‌کشی سه فاز و عیب‌یابی فیوز مینیاتوری با دستگاه تستر",
-        updatedAt: "2026-10-18T07:50:20.735Z",
-        approvedAt: "2026-10-18T07:50:20.736Z",
-        notes: "تأیید صلاحیت تکنسین و انتشار مستقیم در سامانه کاروین",
-      },
-    ],
-    notes: "نصب و لاگین شده از پلتفرم ANDROID",
-    createdAt: "2026-10-17T16:07:53.096Z",
-    lastLoginAt: "2026-10-18T07:50:20.736Z",
-  },
-  {
-    id: "usr_3a09111d-ac2f-441f-be4b-b59f5c575f94",
-    fullName: "مهندس آرش رادمنش (کارفرما - شرکت پارس)",
-    email: "arash.employer@gmail.com",
-    phone: "09359876543",
-    role: "EMPLOYER",
-    avatarUrl: null,
-    platform: "ANDROID",
-    deviceModel: "Google Pixel 8 (Android Emulator)",
-    appVersion: "KARJOOR v2.4.0 (Build 42)",
-    ipAddress: "::1",
-    isVerified: true,
-    isBlocked: false,
-    provider: "GMAIL",
-    city: "تهران",
-    submittedRequests: [
-      {
-        id: "req_6140e96f",
-        title: "نیاز به تکنسین برق صنعتی جهت سرویس و عیب‌یابی ژنراتور اضطراری برج پارس",
-        category: "برق و تأسیسات صنعتی",
-        budget: "روزانه ۳٬۲۰۰٬۰۰۰ تومان",
-        city: "تهران",
-        address: "سعادت‌آباد، خیابان سرو غربی، مجتمع اداری پارس",
-        createdAt: "2026-10-18T07:31:19.828Z",
-        status: "APPROVED",
-        details: "راه‌اندازی ژنراتور دیزلی ۱۰۰ کاوا و تست مدار فرمان اتوماتیک (ATS)",
-        updatedAt: "2026-10-18T07:31:52.649Z",
-        approvedAt: "2026-10-18T07:31:52.649Z",
-        notes: "تأیید صلاحیت پروژه و انتشار فوری در شبکه متخصصان کاروین",
-      },
-    ],
-    notes: "نصب و لاگین شده از پلتفرم ANDROID",
-    createdAt: "2026-10-18T07:30:54.978Z",
-    lastLoginAt: "2026-10-18T07:31:52.649Z",
-  },
-  {
-    id: "usr_fe637a8c-41c0-46e8-b116-2d67213993c7",
-    fullName: "مهندس علیرضا بهرامی (پروژه ساختمانی ستاره)",
-    email: "alireza.bahrami.employer@gmail.com",
-    phone: "09351234567",
-    role: "EMPLOYER",
-    avatarUrl: null,
-    platform: "ANDROID",
-    deviceModel: "Xiaomi 13 Pro (2210132G)",
-    appVersion: "KARJOOR v2.4.0 (Build 42)",
-    ipAddress: "2.180.99.14",
-    isVerified: true,
-    isBlocked: false,
-    provider: "GMAIL",
-    city: "تهران (منطقه ۱ - فرمانیه)",
-    submittedRequests: [
-      {
-        id: "req_edaf8f3a",
-        title: "نیاز فوری به ۲ نفر برق‌کار صنعتی جهت پروژه ساختمانی برج ستاره",
-        category: "تأسیسات الکتریکی",
-        budget: "روزانه ۲٬۵۰۰٬۰۰۰ تومان + ناهار",
-        city: "تهران",
-        address: "فرمانیه، تقاطع دیباجی شمالی",
-        createdAt: "2026-10-17T15:42:26.977Z",
-        status: "APPROVED",
-        details: "اجرای داکت‌کشی و اتصال سرخط‌های روشنایی و هوشمند ساختمان",
-        updatedAt: "2026-10-18T07:09:05.790Z",
-        approvedAt: "2026-10-18T07:09:05.790Z",
-        notes: "تأیید صلاحیت رسمی توسط مدیر ارشد سامانه",
-      },
-    ],
-    notes: "نصب و لاگین شده از پلتفرم ANDROID",
-    createdAt: "2026-10-17T15:42:26.974Z",
-    lastLoginAt: "2026-10-18T07:09:05.790Z",
-  },
-  {
-    id: "usr_f638c695-8ba5-4268-bac8-4ba3622be070",
-    fullName: "حسین حسینی (تکنسین برق و تأسیسات)",
-    email: "hosein.hosseini.worker@gmail.com",
-    phone: "09123456789",
-    role: "WORKER",
-    avatarUrl: null,
-    platform: "ANDROID",
-    deviceModel: "Samsung Galaxy S23 (SM-S911B)",
-    appVersion: "KARJOOR v2.4.0 (Build 42)",
-    ipAddress: "5.120.45.18",
-    isVerified: true,
-    isBlocked: false,
-    provider: "GMAIL",
-    city: "تهران (منطقه ۵ - پونک)",
-    skills: ["برق‌کاری ساختمان", "تأسیسات سرمایشی", "نصب اسپلیت"],
-    submittedRequests: [
-      {
-        id: "req_8b870826",
-        title: "آماده اعزام فوری: تعمیر و سیم‌کشی تابلو برق ساختمان",
-        category: "برق و الکترونیک",
-        budget: "ساعتی ۳۰۰٬۰۰۰ تومان",
-        city: "تهران",
-        address: "غرب و شمال غرب تهران",
-        createdAt: "2026-10-17T15:42:26.961Z",
-        status: "ACTIVE",
-        details: "مجهز به کلیه ابزارآلات فلوک و تسترهای تخصصی مدار",
-      },
-    ],
-    notes: "نصب و لاگین شده از پلتفرم ANDROID",
-    createdAt: "2026-10-17T15:42:26.954Z",
-    lastLoginAt: "2026-10-17T15:42:26.961Z",
-  },
   MASTER_ADMIN,
 ];
+
+async function syncFromCloudStore(): Promise<void> {
+  const now = Date.now();
+  // Throttle cloud fetches to at most once every 2.5 seconds per lambda instance
+  if (globalThis.__karaanLastCloudSync && now - globalThis.__karaanLastCloudSync < 2500) {
+    return;
+  }
+  globalThis.__karaanLastCloudSync = now;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch(CLOUD_SYNC_URL, {
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return;
+
+    const body = await res.json();
+    const users: RegisteredUser[] = body?.data?.users;
+    if (Array.isArray(users) && users.length > 0) {
+      const store = getMemoryStore();
+      for (const u of users) {
+        if (u && u.id) {
+          store.set(u.id, u);
+        }
+      }
+      globalThis.__karaanRecentLogins = Array.from(store.values())
+        .sort((a, b) => new Date(b.lastLoginAt).getTime() - new Date(a.lastLoginAt).getTime())
+        .slice(0, 50);
+    }
+  } catch {
+    // Non-blocking fallback
+  }
+}
+
+async function pushToCloudStore(): Promise<void> {
+  try {
+    const store = getMemoryStore();
+    const allUsers = Array.from(store.values());
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3500);
+    await fetch(CLOUD_SYNC_URL, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        name: "karaan_production_registry",
+        data: {
+          users: allUsers,
+          updatedAt: new Date().toISOString(),
+        },
+      }),
+    });
+    clearTimeout(timeout);
+  } catch {
+    // Non-blocking fallback
+  }
+}
 
 function getMemoryStore(): Map<string, RegisteredUser> {
   if (!globalThis.__karaanUserRegistry) {
@@ -343,6 +268,7 @@ export class UserRegistryService {
     skills?: string[];
     city?: string;
   }): Promise<{ user: RegisteredUser; token: string }> {
+    await syncFromCloudStore();
     const email = input.email.trim().toLowerCase();
     const fullName = input.fullName.trim() || email.split("@")[0];
     const role: UserRole = input.role || "WORKER";
@@ -407,6 +333,9 @@ export class UserRegistryService {
 
     const token = `sess_gmail_${crypto.randomBytes(32).toString("hex")}`;
 
+    // Cloud persistent backup for multi-lambda Vercel synchronization
+    pushToCloudStore().catch(() => {});
+
     // Persistent storage in PostgreSQL
     try {
       await this.ensureDbTable();
@@ -445,7 +374,7 @@ export class UserRegistryService {
           city = EXCLUDED.city;
       `;
     } catch {
-      // In-memory fallback
+      // In-memory & Cloud persistent fallback
     }
 
     return { user: userResult, token };
@@ -496,6 +425,7 @@ export class UserRegistryService {
       // Resilient fallback
     }
 
+    pushToCloudStore().catch(() => {});
     return newReq;
   }
 
@@ -602,6 +532,7 @@ export class UserRegistryService {
       // In-memory fallback
     }
 
+    pushToCloudStore().catch(() => {});
     return targetReq;
   }
 
@@ -625,6 +556,7 @@ export class UserRegistryService {
     } catch {
       // In-memory fallback
     }
+    pushToCloudStore().catch(() => {});
     return user || null;
   }
 
@@ -658,6 +590,7 @@ export class UserRegistryService {
     limit?: number;
     cursor?: string | null;
   }): Promise<{ items: RegisteredUser[]; total: number; nextCursor: string | null }> {
+    await syncFromCloudStore();
     // Try reading from Postgres first
     try {
       await this.ensureDbTable();
@@ -793,6 +726,7 @@ export class UserRegistryService {
     activeUsersToday: number;
     generatedAt: string;
   }> {
+    await syncFromCloudStore();
     // Try from database
     try {
       await this.ensureDbTable();
@@ -875,6 +809,7 @@ export class UserRegistryService {
     } catch {
       // Resilient fallback
     }
+    pushToCloudStore().catch(() => {});
     return user || null;
   }
 
@@ -891,6 +826,7 @@ export class UserRegistryService {
     } catch {
       // Resilient fallback
     }
+    pushToCloudStore().catch(() => {});
   }
 }
 

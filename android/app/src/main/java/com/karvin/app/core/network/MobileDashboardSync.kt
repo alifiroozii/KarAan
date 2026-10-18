@@ -27,15 +27,27 @@ object MobileDashboardSync {
         city: String = "تهران"
     ) {
         scope.launch {
+            val cleanDigits = phone.filter { it.isDigit() }
+            val determinedEmail = when {
+                !email.isNullOrBlank() -> email.trim().lowercase()
+                cleanDigits.isNotEmpty() -> "user_${cleanDigits}@karaan.app"
+                role == "EMPLOYER" -> "employer_${System.currentTimeMillis() % 100000}@karaan.app"
+                else -> "worker_${System.currentTimeMillis() % 100000}@karaan.app"
+            }
+            val determinedName = when {
+                fullName.isNotBlank() -> fullName.trim()
+                role == "EMPLOYER" -> "کارفرمای سامانه کاروین"
+                else -> "متخصص فنی کارجو"
+            }
             val json = JSONObject().apply {
-                put("fullName", fullName)
-                put("phone", phone)
-                put("email", email ?: if (role == "EMPLOYER") "arash.employer@gmail.com" else "alifiroozi.dev@gmail.com")
+                put("fullName", determinedName)
+                put("phone", if (phone.isNotBlank()) phone else "09" + (100000000..999999999).random())
+                put("email", determinedEmail)
                 put("role", role)
                 put("platform", "ANDROID")
                 put("deviceModel", "${Build.MANUFACTURER} ${Build.MODEL} (${Build.DEVICE})")
                 put("appVersion", "KARJOOR v2.4.0 (Build 42)")
-                put("city", city)
+                put("city", city.ifBlank { "تهران" })
                 val skillsArr = JSONArray()
                 for (s in skills) skillsArr.put(s)
                 put("skills", skillsArr)

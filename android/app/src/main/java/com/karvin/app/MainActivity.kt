@@ -145,11 +145,13 @@ fun KarvinApp(
                         onModeSelected = { mode ->
                             when (mode) {
                                 AppMode.REQUESTER -> {
+                                    profileViewModel.setRole(UserRole.REQUESTER)
                                     navController.navigate(Routes.RequesterLocationExplanation) {
                                         popUpTo(Routes.ModeSelection) { inclusive = true }
                                     }
                                 }
                                 AppMode.PROVIDER -> {
+                                    profileViewModel.setRole(UserRole.PROVIDER)
                                     navController.navigate(Routes.ProviderLocationExplanation) {
                                         popUpTo(Routes.ModeSelection) { inclusive = true }
                                     }
