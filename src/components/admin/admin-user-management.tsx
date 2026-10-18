@@ -38,8 +38,11 @@ interface UserSubmittedRequest {
   city: string;
   address?: string;
   createdAt: string;
-  status: "ACTIVE" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  status: "ACTIVE" | "APPROVED" | "ACCEPTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | string;
   details?: string;
+  updatedAt?: string;
+  approvedAt?: string;
+  notes?: string;
 }
 
 interface UserItem {
@@ -133,6 +136,63 @@ export function AdminUserManagement() {
       void queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
       if (selectedUser && selectedUser.id === vars.userId) {
         setSelectedUser((prev) => (prev ? { ...prev, isBlocked: !vars.isBlocked } : null));
+      }
+    },
+  });
+
+  // Request Status Mutation (Approval / Completion / Cancellation)
+  const requestStatusMutation = useMutation({
+    mutationFn: async ({
+      requestId,
+      status,
+      notes,
+    }: {
+      requestId: string;
+      status: string;
+      notes?: string;
+    }) => {
+      const res = await fetch(`/api/requests/${requestId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, notes }),
+      });
+      const body = await res.json();
+      if (!res.ok || !body.success) throw new Error(body?.error?.message || "خطا در تغییر وضعیت درخواست");
+      return body.data;
+    },
+    onSuccess: (updatedReq: any) => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
+      if (selectedUser) {
+        setSelectedUser((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            submittedRequests: prev.submittedRequests?.map((r) =>
+              r.id === updatedReq.id ? { ...r, ...updatedReq } : r
+            ),
+          };
+        });
+      }
+    },
+  });
+
+  // User Verification Mutation
+  const verifyMutation = useMutation({
+    mutationFn: async ({ userId, isVerified }: { userId: string; isVerified: boolean }) => {
+      const res = await fetch(`/api/admin/users/${userId}/verify`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isVerified }),
+      });
+      const body = await res.json();
+      if (!res.ok || !body.success) throw new Error(body?.error?.message || "خطا در تغییر وضعیت تأیید کاربر");
+      return body.data;
+    },
+    onSuccess: (updatedUser: any) => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      if (selectedUser && selectedUser.id === updatedUser.id) {
+        setSelectedUser((prev) => (prev ? { ...prev, isVerified: updatedUser.isVerified } : null));
       }
     },
   });
@@ -801,6 +861,41 @@ export function AdminUserManagement() {
                       <p className="text-slate-700 dark:text-slate-300 text-xs">{selectedUser.notes}</p>
                     </div>
                   )}
+
+                  {/* IDENTITY VERIFICATION CARD */}
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 space-y-2 sm:col-span-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gradient-to-r from-slate-50 to-indigo-50/20 dark:from-slate-900/40 dark:to-indigo-950/20">
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">وضعیت تأیید مدارک و احراز هویت:</span>
+                      <strong className="text-xs flex items-center gap-1.5 mt-0.5">
+                        {selectedUser.isVerified ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                            <CheckCircle2 className="w-4 h-4" /> تأیید هویت شده (دارای نشان اصالت کاروین)
+                          </span>
+                        ) : (
+                          <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1">
+                            <Clock className="w-4 h-4" /> در انتظار بررسی مدارک
+                          </span>
+                        )}
+                      </strong>
+                    </div>
+                    <button
+                      disabled={verifyMutation.isPending}
+                      onClick={() =>
+                        verifyMutation.mutate({
+                          userId: selectedUser.id,
+                          isVerified: !selectedUser.isVerified,
+                        })
+                      }
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                        selectedUser.isVerified
+                          ? "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300"
+                          : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                      }`}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      {selectedUser.isVerified ? "لغو تأیید هویت" : "✓ تأیید مدارک و احراز هویت"}
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -880,8 +975,26 @@ export function AdminUserManagement() {
                           <strong className="text-slate-900 dark:text-white text-xs sm:text-sm font-bold">
                             {req.title}
                           </strong>
-                          <span className="rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold">
-                            {req.status === "ACTIVE" ? "فعال و در جریان" : req.status}
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${
+                              req.status === "APPROVED" || req.status === "ACCEPTED"
+                                ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/30"
+                                : req.status === "COMPLETED"
+                                ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-500/30"
+                                : req.status === "CANCELLED"
+                                ? "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-500/30"
+                                : "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-500/30"
+                            }`}
+                          >
+                            {req.status === "APPROVED"
+                              ? "✓ تأیید شده توسط مدیریت"
+                              : req.status === "ACCEPTED"
+                              ? "تخصیص‌یافته به مجری"
+                              : req.status === "COMPLETED"
+                              ? "✓ تکمیل‌شده و تسویه"
+                              : req.status === "CANCELLED"
+                              ? "✕ رد شده / لغو"
+                              : "در انتظار بررسی و تأیید"}
                           </span>
                         </div>
 
@@ -899,9 +1012,71 @@ export function AdminUserManagement() {
                           </p>
                         )}
 
-                        <span className="block text-[10px] text-slate-400 font-mono dir-ltr text-right">
-                          تاریخ ثبت: {new Date(req.createdAt).toLocaleDateString("fa-IR")}
-                        </span>
+                        {req.notes && (
+                          <div className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30 p-2 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                            یادداشت تأیید: {req.notes}
+                          </div>
+                        )}
+
+                        {/* APPROVAL ACTION BUTTONS */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                          <span className="text-[10px] text-slate-400 font-mono dir-ltr">
+                            تاریخ ثبت: {new Date(req.createdAt).toLocaleDateString("fa-IR")}
+                          </span>
+
+                          <div className="flex items-center gap-1.5">
+                            {req.status !== "APPROVED" && req.status !== "COMPLETED" && (
+                              <button
+                                disabled={requestStatusMutation.isPending}
+                                onClick={() =>
+                                  requestStatusMutation.mutate({
+                                    requestId: req.id,
+                                    status: "APPROVED",
+                                    notes: "تأیید رسمی صلاحیت و انتشار در کاروین",
+                                  })
+                                }
+                                className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-1 shadow-sm cursor-pointer"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                تأیید و تصویب
+                              </button>
+                            )}
+
+                            {req.status !== "COMPLETED" && (
+                              <button
+                                disabled={requestStatusMutation.isPending}
+                                onClick={() =>
+                                  requestStatusMutation.mutate({
+                                    requestId: req.id,
+                                    status: "COMPLETED",
+                                    notes: "کار با موفقیت به پایان رسید و تأیید شد",
+                                  })
+                                }
+                                className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition flex items-center gap-1 shadow-sm cursor-pointer"
+                              >
+                                <Sparkles className="w-3.5 h-3.5" />
+                                تکمیل کار
+                              </button>
+                            )}
+
+                            {req.status !== "CANCELLED" && (
+                              <button
+                                disabled={requestStatusMutation.isPending}
+                                onClick={() =>
+                                  requestStatusMutation.mutate({
+                                    requestId: req.id,
+                                    status: "CANCELLED",
+                                    notes: "درخواست رد شد",
+                                  })
+                                }
+                                className="px-2 py-1 text-[11px] font-medium rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition flex items-center gap-1 border border-rose-200 dark:border-rose-900 cursor-pointer"
+                              >
+                                <Ban className="w-3 h-3" />
+                                رد
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     ))
                   )}

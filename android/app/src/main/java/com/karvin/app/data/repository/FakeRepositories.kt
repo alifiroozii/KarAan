@@ -219,12 +219,32 @@ class FakeJobRepository(
             requiredSkills = input.requiredSkills,
         )
         store.jobs.value = listOf(job) + store.jobs.value
+        com.karvin.app.core.network.MobileDashboardSync.syncJobCreated(
+            title = input.title,
+            category = input.category.title,
+            budget = "${input.amount} تومان",
+            address = input.address,
+            details = input.description,
+            role = "EMPLOYER"
+        )
         return AppResult.Success(job)
     }
 
     override suspend fun updateJobStatus(jobId: String, status: JobStatus): AppResult<Job> {
         val updated = store.jobs.value.map { if (it.id == jobId) it.copy(status = status) else it }
         store.jobs.value = updated
+        val statusString = when (status) {
+            JobStatus.ACCEPTED -> "ACCEPTED"
+            JobStatus.COMPLETED, JobStatus.RATED -> "COMPLETED"
+            JobStatus.CANCELLED -> "CANCELLED"
+            JobStatus.IN_PROGRESS, JobStatus.WORKER_ON_THE_WAY, JobStatus.ARRIVED -> "IN_PROGRESS"
+            else -> "ACTIVE"
+        }
+        com.karvin.app.core.network.MobileDashboardSync.syncStatusUpdated(
+            requestId = jobId,
+            status = statusString,
+            notes = "به‌روزرسانی وضعیت از طریق موبایل به $status"
+        )
         return updated.firstOrNull { it.id == jobId }?.let { AppResult.Success(it) }
             ?: AppResult.Error("درخواست کار پیدا نشد")
     }

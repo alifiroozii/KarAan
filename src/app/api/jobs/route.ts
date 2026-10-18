@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { jobRequests, users } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import crypto from "node:crypto";
+import { userRegistry } from "@/lib/user-registry";
 
 const createSchema = z.object({
   title: z.string().min(2),
@@ -72,10 +73,36 @@ export async function POST(request: NextRequest) {
     const requesterId = request.headers.get("x-user-id") || "guest_requester";
     const id = `job_${crypto.randomUUID()}`;
 
-    // Ensure requester exists or use system guest
-    const [inserted] = await db
-      .insert(jobRequests)
-      .values({
+    // Synchronize to userRegistry for live dashboard
+    await userRegistry.submitUserRequest(requesterId, {
+      title: parsed.data.title,
+      category: parsed.data.category,
+      budget: parsed.data.budget ? `${parsed.data.budget} تومان` : "توافقی",
+      address: parsed.data.address,
+      details: parsed.data.description,
+    });
+
+    let inserted: any = null;
+    try {
+      const [row] = await db
+        .insert(jobRequests)
+        .values({
+          id,
+          requesterId,
+          title: parsed.data.title,
+          category: parsed.data.category,
+          description: parsed.data.description,
+          latitude: parsed.data.latitude,
+          longitude: parsed.data.longitude,
+          address: parsed.data.address,
+          budget: parsed.data.budget,
+          isUrgent: parsed.data.isUrgent ?? false,
+          status: "OPEN",
+        })
+        .returning();
+      inserted = row;
+    } catch {
+      inserted = {
         id,
         requesterId,
         title: parsed.data.title,
@@ -87,8 +114,9 @@ export async function POST(request: NextRequest) {
         budget: parsed.data.budget,
         isUrgent: parsed.data.isUrgent ?? false,
         status: "OPEN",
-      })
-      .returning();
+        createdAt: new Date().toISOString(),
+      };
+    }
 
     return NextResponse.json(
       { ...inserted, budget: inserted.budget?.toString() ?? null },

@@ -12,8 +12,11 @@ export interface UserSubmittedRequest {
   city: string;
   address?: string;
   createdAt: string;
-  status: "ACTIVE" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  status: "ACTIVE" | "APPROVED" | "ACCEPTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
   details?: string;
+  updatedAt?: string;
+  approvedAt?: string;
+  notes?: string;
 }
 
 export interface RegisteredUser {
@@ -347,6 +350,135 @@ export class UserRegistryService {
     }
 
     return newReq;
+  }
+
+  /**
+   * Find a user by ID, email, or phone.
+   */
+  async findUser(query: { id?: string; email?: string; phone?: string }): Promise<RegisteredUser | null> {
+    const store = getMemoryStore();
+    if (query.id && store.has(query.id)) {
+      return store.get(query.id) || null;
+    }
+    const cleanEmail = query.email?.trim().toLowerCase();
+    const cleanPhone = query.phone?.trim();
+
+    for (const u of store.values()) {
+      if (cleanEmail && u.email?.toLowerCase() === cleanEmail) return u;
+      if (cleanPhone && u.phone === cleanPhone) return u;
+    }
+
+    try {
+      await this.ensureDbTable();
+      if (query.id) {
+        const rows = await sql`SELECT * FROM registered_users WHERE id = ${query.id} LIMIT 1;`;
+        if (rows.length > 0) return mapDbRowToRegisteredUser(rows[0]);
+      }
+      if (cleanEmail) {
+        const rows = await sql`SELECT * FROM registered_users WHERE email = ${cleanEmail} LIMIT 1;`;
+        if (rows.length > 0) return mapDbRowToRegisteredUser(rows[0]);
+      }
+      if (cleanPhone) {
+        const rows = await sql`SELECT * FROM registered_users WHERE phone = ${cleanPhone} LIMIT 1;`;
+        if (rows.length > 0) return mapDbRowToRegisteredUser(rows[0]);
+      }
+    } catch {
+      // In-memory fallback
+    }
+
+    return null;
+  }
+
+  /**
+   * Update the status and approval state of a submitted request.
+   */
+  async updateRequestStatus(
+    requestId: string,
+    status: "ACTIVE" | "APPROVED" | "ACCEPTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED",
+    notes?: string
+  ): Promise<UserSubmittedRequest | null> {
+    const store = getMemoryStore();
+    let targetUser: RegisteredUser | null = null;
+    let targetReq: UserSubmittedRequest | null = null;
+
+    for (const user of store.values()) {
+      const found = user.submittedRequests?.find((r) => r.id === requestId);
+      if (found) {
+        targetUser = user;
+        targetReq = found;
+        break;
+      }
+    }
+
+    if (!targetUser || !targetReq) {
+      // Try searching DB
+      try {
+        await this.ensureDbTable();
+        const rows = await sql`
+          SELECT * FROM registered_users
+          WHERE submitted_requests @> ${JSON.stringify([{ id: requestId }])}::jsonb
+          LIMIT 1;
+        `;
+        if (rows.length > 0) {
+          targetUser = mapDbRowToRegisteredUser(rows[0]);
+          store.set(targetUser.id, targetUser);
+          targetReq = targetUser.submittedRequests?.find((r) => r.id === requestId) || null;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    if (!targetUser || !targetReq) return null;
+
+    targetReq.status = status;
+    targetReq.updatedAt = new Date().toISOString();
+    if (status === "APPROVED" || status === "ACCEPTED") {
+      targetReq.approvedAt = new Date().toISOString();
+    }
+    if (notes) {
+      targetReq.notes = notes;
+    }
+
+    targetUser.lastLoginAt = new Date().toISOString();
+    store.set(targetUser.id, targetUser);
+
+    try {
+      await this.ensureDbTable();
+      await sql`
+        UPDATE registered_users
+        SET submitted_requests = ${JSON.stringify(targetUser.submittedRequests)}::jsonb,
+            last_login_at = ${targetUser.lastLoginAt}
+        WHERE id = ${targetUser.id};
+      `;
+    } catch {
+      // In-memory fallback
+    }
+
+    return targetReq;
+  }
+
+  /**
+   * Set user identity verification status.
+   */
+  async setUserVerification(userId: string, isVerified: boolean): Promise<RegisteredUser | null> {
+    const store = getMemoryStore();
+    const user = store.get(userId);
+    if (user) {
+      user.isVerified = isVerified;
+      store.set(userId, user);
+    }
+    try {
+      await this.ensureDbTable();
+      await sql`
+        UPDATE registered_users
+        SET is_verified = ${isVerified}
+        WHERE id = ${userId};
+      `;
+    } catch {
+      // In-memory fallback
+    }
+    return user || null;
   }
 
   /**
