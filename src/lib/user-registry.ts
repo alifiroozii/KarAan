@@ -1,7 +1,7 @@
 import crypto from "crypto";
-import { db } from "@/db";
-import { users, sessions, devices, workerProfiles, employerProfiles } from "@/db/schema";
-import { eq, or, ilike, desc, count, and } from "drizzle-orm";
+import { db, sql } from "@/db";
+import { registeredUsers } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 import type { UserRole } from "@/modules/auth/auth.service";
 
 export interface UserSubmittedRequest {
@@ -43,41 +43,140 @@ declare global {
   var __karaanUserRegistry: Map<string, RegisteredUser> | undefined;
   // eslint-disable-next-line no-var
   var __karaanRecentLogins: RegisteredUser[] | undefined;
+  // eslint-disable-next-line no-var
+  var __karaanDbTableInitialized: boolean | undefined;
 }
+
+const MASTER_ADMIN: RegisteredUser = {
+  id: "usr_admin_master",
+  fullName: "مدیر ارشد کاروین (مدیریت سامانه)",
+  email: "admin@karaan.ir",
+  phone: "09120000000",
+  role: "ADMIN",
+  avatarUrl: null,
+  platform: "WEB",
+  deviceModel: "macOS / Chrome Admin Console",
+  appVersion: "Admin Console v2.4.0",
+  ipAddress: "127.0.0.1",
+  isVerified: true,
+  isBlocked: false,
+  provider: "ADMIN_SEED",
+  createdAt: new Date().toISOString(),
+  lastLoginAt: new Date().toISOString(),
+  city: "تهران",
+  notes: "دسترسی Super Admin به سامانه مانیتورینگ کاربران",
+};
 
 function getMemoryStore(): Map<string, RegisteredUser> {
   if (!globalThis.__karaanUserRegistry) {
     const initialMap = new Map<string, RegisteredUser>();
-
-    // ONLY the Master Admin account is initialized. Zero fake users. All workers and employers come real from app logins!
-    const masterAdmin: RegisteredUser = {
-      id: "usr_admin_master",
-      fullName: "مدیر ارشد کاروین (مدیریت سامانه)",
-      email: "admin@karaan.ir",
-      phone: "09120000000",
-      role: "ADMIN",
-      avatarUrl: null,
-      platform: "WEB",
-      deviceModel: "macOS / Chrome Admin Console",
-      appVersion: "Admin Console v2.4.0",
-      ipAddress: "127.0.0.1",
-      isVerified: true,
-      isBlocked: false,
-      provider: "ADMIN_SEED",
-      createdAt: new Date().toISOString(),
-      lastLoginAt: new Date().toISOString(),
-      city: "تهران",
-      notes: "دسترسی Super Admin به سامانه مانیتورینگ کاربران",
-    };
-
-    initialMap.set(masterAdmin.id, masterAdmin);
+    initialMap.set(MASTER_ADMIN.id, { ...MASTER_ADMIN });
     globalThis.__karaanUserRegistry = initialMap;
-    globalThis.__karaanRecentLogins = [masterAdmin];
+    globalThis.__karaanRecentLogins = [{ ...MASTER_ADMIN }];
   }
   return globalThis.__karaanUserRegistry;
 }
 
+function mapDbRowToRegisteredUser(row: any): RegisteredUser {
+  let parsedSkills: string[] = [];
+  if (Array.isArray(row.skills)) {
+    parsedSkills = row.skills;
+  } else if (typeof row.skills === "string") {
+    try {
+      parsedSkills = JSON.parse(row.skills);
+    } catch {
+      parsedSkills = [];
+    }
+  }
+
+  let parsedRequests: UserSubmittedRequest[] = [];
+  const reqData = row.submitted_requests ?? row.submittedRequests;
+  if (Array.isArray(reqData)) {
+    parsedRequests = reqData;
+  } else if (typeof reqData === "string") {
+    try {
+      parsedRequests = JSON.parse(reqData);
+    } catch {
+      parsedRequests = [];
+    }
+  }
+
+  return {
+    id: String(row.id),
+    fullName: String(row.full_name ?? row.fullName ?? ""),
+    email: row.email ? String(row.email) : null,
+    phone: String(row.phone ?? ""),
+    role: (row.role as UserRole) || "WORKER",
+    avatarUrl: row.avatar_url ?? row.avatarUrl ?? null,
+    platform: (row.platform as "ANDROID" | "WEB" | "IOS") || "WEB",
+    deviceModel: String(row.device_model ?? row.deviceModel ?? "Web Browser"),
+    appVersion: String(row.app_version ?? row.appVersion ?? "KARJOOR v2.4.0"),
+    ipAddress: String(row.ip_address ?? row.ipAddress ?? "127.0.0.1"),
+    isVerified: Boolean(row.is_verified ?? row.isVerified ?? true),
+    isBlocked: Boolean(row.is_blocked ?? row.isBlocked ?? false),
+    provider: (row.provider as "GMAIL" | "PHONE_OTP" | "ADMIN_SEED") || "GMAIL",
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+    lastLoginAt: row.last_login_at ? new Date(row.last_login_at).toISOString() : new Date().toISOString(),
+    city: row.city ? String(row.city) : "تهران",
+    skills: parsedSkills,
+    submittedRequests: parsedRequests,
+    notes: row.notes ? String(row.notes) : undefined,
+  };
+}
+
 export class UserRegistryService {
+  /**
+   * Ensure the persistent database table exists in PostgreSQL.
+   */
+  async ensureDbTable(): Promise<boolean> {
+    if (globalThis.__karaanDbTableInitialized) return true;
+    try {
+      await sql`
+        CREATE TABLE IF NOT EXISTS registered_users (
+          id TEXT PRIMARY KEY,
+          full_name TEXT NOT NULL,
+          email TEXT UNIQUE,
+          phone TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'WORKER',
+          avatar_url TEXT,
+          platform TEXT NOT NULL DEFAULT 'WEB',
+          device_model TEXT NOT NULL DEFAULT 'Web Browser',
+          app_version TEXT NOT NULL DEFAULT 'KARJOOR v2.4.0',
+          ip_address TEXT NOT NULL DEFAULT '127.0.0.1',
+          is_verified BOOLEAN NOT NULL DEFAULT true,
+          is_blocked BOOLEAN NOT NULL DEFAULT false,
+          provider TEXT NOT NULL DEFAULT 'GMAIL',
+          city TEXT DEFAULT 'تهران',
+          skills JSONB DEFAULT '[]'::jsonb,
+          submitted_requests JSONB DEFAULT '[]'::jsonb,
+          notes TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          last_login_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS idx_reg_users_email ON registered_users(email);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_reg_users_phone ON registered_users(phone);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_reg_users_role ON registered_users(role);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_reg_users_last_login ON registered_users(last_login_at DESC);`;
+
+      // Seed Master Admin if completely empty
+      const countRes = await sql`SELECT count(*)::int as count FROM registered_users;`;
+      if ((countRes[0]?.count ?? 0) === 0) {
+        await sql`
+          INSERT INTO registered_users (
+            id, full_name, email, phone, role, platform, device_model, app_version, ip_address, is_verified, is_blocked, provider, city, notes, created_at, last_login_at
+          ) VALUES (
+            ${MASTER_ADMIN.id}, ${MASTER_ADMIN.fullName}, ${MASTER_ADMIN.email}, ${MASTER_ADMIN.phone}, ${MASTER_ADMIN.role}, ${MASTER_ADMIN.platform}, ${MASTER_ADMIN.deviceModel}, ${MASTER_ADMIN.appVersion}, ${MASTER_ADMIN.ipAddress}, ${MASTER_ADMIN.isVerified}, ${MASTER_ADMIN.isBlocked}, ${MASTER_ADMIN.provider}, ${MASTER_ADMIN.city ?? null}, ${MASTER_ADMIN.notes ?? null}, NOW(), NOW()
+          ) ON CONFLICT (id) DO NOTHING;
+        `;
+      }
+      globalThis.__karaanDbTableInitialized = true;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   /**
    * Register or log in a user with Gmail credentials & full client telemetry.
    */
@@ -157,26 +256,46 @@ export class UserRegistryService {
     ].slice(0, 50);
 
     const token = `sess_gmail_${crypto.randomBytes(32).toString("hex")}`;
+
+    // Persistent storage in PostgreSQL
     try {
-      const dbUsers = await db.select().from(users).where(eq(users.email, email)).limit(1);
-      if (dbUsers.length > 0) {
-        await db
-          .update(users)
-          .set({ updatedAt: new Date(), avatarUrl: input.avatarUrl || dbUsers[0].avatarUrl })
-          .where(eq(users.id, dbUsers[0].id));
-      } else {
-        await db.insert(users).values({
-          id: userResult.id,
-          email,
-          phone: userResult.phone,
-          fullName: userResult.fullName,
-          role: userResult.role,
-          avatarUrl: userResult.avatarUrl,
-          isVerified: true,
-        });
-      }
+      await this.ensureDbTable();
+      await sql`
+        INSERT INTO registered_users (
+          id, full_name, email, phone, role, avatar_url, platform, device_model, app_version, ip_address, is_verified, is_blocked, provider, city, skills, submitted_requests, notes, created_at, last_login_at
+        ) VALUES (
+          ${userResult.id},
+          ${userResult.fullName},
+          ${userResult.email},
+          ${userResult.phone},
+          ${userResult.role},
+          ${userResult.avatarUrl ?? null},
+          ${userResult.platform},
+          ${userResult.deviceModel},
+          ${userResult.appVersion},
+          ${userResult.ipAddress},
+          ${userResult.isVerified},
+          ${userResult.isBlocked},
+          ${userResult.provider},
+          ${userResult.city ?? null},
+          ${JSON.stringify(userResult.skills || [])}::jsonb,
+          ${JSON.stringify(userResult.submittedRequests || [])}::jsonb,
+          ${userResult.notes ?? null},
+          ${userResult.createdAt},
+          ${userResult.lastLoginAt}
+        )
+        ON CONFLICT (email) DO UPDATE SET
+          last_login_at = EXCLUDED.last_login_at,
+          role = EXCLUDED.role,
+          platform = EXCLUDED.platform,
+          device_model = EXCLUDED.device_model,
+          app_version = EXCLUDED.app_version,
+          ip_address = EXCLUDED.ip_address,
+          skills = EXCLUDED.skills,
+          city = EXCLUDED.city;
+      `;
     } catch {
-      // Resilient fallback
+      // In-memory fallback
     }
 
     return { user: userResult, token };
@@ -214,6 +333,19 @@ export class UserRegistryService {
     user.lastLoginAt = new Date().toISOString();
     store.set(userId, user);
 
+    // Update DB
+    try {
+      await this.ensureDbTable();
+      await sql`
+        UPDATE registered_users
+        SET submitted_requests = ${JSON.stringify(user.submittedRequests)}::jsonb,
+            last_login_at = ${user.lastLoginAt}
+        WHERE id = ${userId};
+      `;
+    } catch {
+      // Resilient fallback
+    }
+
     return newReq;
   }
 
@@ -221,6 +353,15 @@ export class UserRegistryService {
    * Get single user by ID with deep telemetry.
    */
   async getUserById(id: string): Promise<RegisteredUser | null> {
+    try {
+      await this.ensureDbTable();
+      const rows = await sql`SELECT * FROM registered_users WHERE id = ${id} LIMIT 1;`;
+      if (rows.length > 0) {
+        return mapDbRowToRegisteredUser(rows[0]);
+      }
+    } catch {
+      // Fallback to memory
+    }
     const store = getMemoryStore();
     return store.get(id) || null;
   }
@@ -238,6 +379,74 @@ export class UserRegistryService {
     limit?: number;
     cursor?: string | null;
   }): Promise<{ items: RegisteredUser[]; total: number; nextCursor: string | null }> {
+    // Try reading from Postgres first
+    try {
+      await this.ensureDbTable();
+      const rows = await sql`
+        SELECT * FROM registered_users
+        ORDER BY last_login_at DESC;
+      `;
+      if (rows && rows.length > 0) {
+        let items = rows.map(mapDbRowToRegisteredUser);
+
+        // Also sync memory store with DB items
+        const store = getMemoryStore();
+        for (const item of items) {
+          store.set(item.id, item);
+        }
+
+        if (filter.q?.trim()) {
+          const query = filter.q.trim().toLowerCase();
+          items = items.filter(
+            (u) =>
+              u.fullName.toLowerCase().includes(query) ||
+              u.phone.includes(query) ||
+              u.email?.toLowerCase().includes(query) ||
+              u.city?.toLowerCase().includes(query) ||
+              u.deviceModel?.toLowerCase().includes(query) ||
+              u.skills?.some((s) => s.toLowerCase().includes(query)) ||
+              u.submittedRequests?.some((r) => r.title.toLowerCase().includes(query))
+          );
+        }
+
+        if (filter.role) {
+          items = items.filter((u) => u.role === filter.role);
+        }
+
+        if (filter.platform) {
+          items = items.filter((u) => u.platform === filter.platform);
+        }
+
+        if (filter.provider) {
+          items = items.filter((u) => u.provider === filter.provider);
+        }
+
+        if (typeof filter.hasRequests === "boolean") {
+          items = items.filter((u) =>
+            filter.hasRequests
+              ? u.submittedRequests && u.submittedRequests.length > 0
+              : !u.submittedRequests || u.submittedRequests.length === 0
+          );
+        }
+
+        if (typeof filter.blocked === "boolean") {
+          items = items.filter((u) => u.isBlocked === filter.blocked);
+        }
+
+        const limit = filter.limit || 50;
+        const pageItems = items.slice(0, limit);
+
+        return {
+          items: pageItems,
+          total: items.length,
+          nextCursor: pageItems.length >= limit ? pageItems[pageItems.length - 1].id : null,
+        };
+      }
+    } catch {
+      // Resilient fallback to memory
+    }
+
+    // Memory store fallback
     const store = getMemoryStore();
     let all = Array.from(store.values());
 
@@ -269,7 +478,9 @@ export class UserRegistryService {
 
     if (typeof filter.hasRequests === "boolean") {
       all = all.filter((u) =>
-        filter.hasRequests ? (u.submittedRequests && u.submittedRequests.length > 0) : (!u.submittedRequests || u.submittedRequests.length === 0)
+        filter.hasRequests
+          ? u.submittedRequests && u.submittedRequests.length > 0
+          : !u.submittedRequests || u.submittedRequests.length === 0
       );
     }
 
@@ -303,6 +514,38 @@ export class UserRegistryService {
     activeUsersToday: number;
     generatedAt: string;
   }> {
+    // Try from database
+    try {
+      await this.ensureDbTable();
+      const rows = await sql`SELECT * FROM registered_users;`;
+      if (rows && rows.length > 0) {
+        const all = rows.map(mapDbRowToRegisteredUser);
+        const totalUsers = all.length;
+        const workers = all.filter((u) => u.role === "WORKER").length;
+        const employers = all.filter((u) => u.role === "EMPLOYER").length;
+        const mobileUsers = all.filter((u) => u.platform === "ANDROID").length;
+        const gmailUsers = all.filter((u) => u.provider === "GMAIL" || (u.email && u.email.includes("@"))).length;
+        const blockedUsers = all.filter((u) => u.isBlocked).length;
+        const totalRequestsCount = all.reduce((acc, u) => acc + (u.submittedRequests?.length || 0), 0);
+        const oneDayAgo = Date.now() - 24 * 3600 * 1000;
+        const activeUsersToday = all.filter((u) => new Date(u.lastLoginAt).getTime() > oneDayAgo).length;
+
+        return {
+          totalUsers,
+          workers,
+          employers,
+          mobileUsers,
+          gmailUsers,
+          blockedUsers,
+          totalRequestsCount,
+          activeUsersToday,
+          generatedAt: new Date().toISOString(),
+        };
+      }
+    } catch {
+      // Memory fallback
+    }
+
     const store = getMemoryStore();
     const all = Array.from(store.values());
 
@@ -343,33 +586,32 @@ export class UserRegistryService {
       user.isBlocked = blocked;
       store.set(userId, user);
     }
+    try {
+      await this.ensureDbTable();
+      await sql`
+        UPDATE registered_users
+        SET is_blocked = ${blocked}
+        WHERE id = ${userId};
+      `;
+    } catch {
+      // Resilient fallback
+    }
     return user || null;
   }
 
   resetToMasterAdminOnly(): void {
     const store = getMemoryStore();
     store.clear();
-    const masterAdmin: RegisteredUser = {
-      id: "usr_admin_master",
-      fullName: "مدیر ارشد کاروین (مدیریت سامانه)",
-      email: "admin@karaan.ir",
-      phone: "09120000000",
-      role: "ADMIN",
-      avatarUrl: null,
-      platform: "WEB",
-      deviceModel: "macOS / Chrome Admin Console",
-      appVersion: "Admin Console v2.4.0",
-      ipAddress: "127.0.0.1",
-      isVerified: true,
-      isBlocked: false,
-      provider: "ADMIN_SEED",
-      createdAt: new Date().toISOString(),
-      lastLoginAt: new Date().toISOString(),
-      city: "تهران",
-      notes: "دسترسی Super Admin به سامانه مانیتورینگ کاربران",
-    };
-    store.set(masterAdmin.id, masterAdmin);
-    globalThis.__karaanRecentLogins = [masterAdmin];
+    store.set(MASTER_ADMIN.id, { ...MASTER_ADMIN });
+    globalThis.__karaanRecentLogins = [{ ...MASTER_ADMIN }];
+
+    try {
+      this.ensureDbTable().then(() => {
+        sql`DELETE FROM registered_users WHERE id != ${MASTER_ADMIN.id};`.catch(() => {});
+      });
+    } catch {
+      // Resilient fallback
+    }
   }
 }
 

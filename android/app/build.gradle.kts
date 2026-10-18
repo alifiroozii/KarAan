@@ -34,7 +34,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
         val apiBaseUrl = providers.gradleProperty("API_BASE_URL")
-            .orElse(localProperties.getProperty("API_BASE_URL", "https://api.karvin.app/"))
+            .orElse(localProperties.getProperty("API_BASE_URL", "https://kar-aan.vercel.app/"))
             .get()
         manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
         buildConfigField("String", "MAPS_API_KEY", "\"$mapsApiKey\"")

@@ -115,13 +115,13 @@ export class AdminOperationsService {
       const registryStats = await userRegistry.getOverviewStats();
 
       return {
-        totalUsers: (totalUsers[0]?.value ?? 0) + registryStats.totalUsers,
-        workers: (workers[0]?.value ?? 0) + registryStats.workers,
-        employers: (employers[0]?.value ?? 0) + registryStats.employers,
-        blockedUsers: (blockedUsers[0]?.value ?? 0) + registryStats.blockedUsers,
-        activeShifts: activeShifts[0]?.value ?? 12,
+        totalUsers: registryStats.totalUsers,
+        workers: registryStats.workers,
+        employers: registryStats.employers,
+        blockedUsers: registryStats.blockedUsers,
+        activeShifts: activeShifts[0]?.value ?? 0,
         openDisputes: openDisputes[0]?.value ?? 0,
-        auditEvents24h: auditEvents24h[0]?.value ?? 38,
+        auditEvents24h: auditEvents24h[0]?.value ?? 0,
         gmailUsers: registryStats.gmailUsers,
         mobileUsers: registryStats.mobileUsers,
         totalRequestsCount: registryStats.totalRequestsCount,

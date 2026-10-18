@@ -57,10 +57,13 @@ class PhoneAuthViewModel @Inject constructor(private val repository: PhoneAuthRe
                 put("role", roleString)
                 put("phone", fallbackPhone)
                 put("platform", "ANDROID")
+                put("deviceModel", "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} (${android.os.Build.DEVICE})")
+                put("appVersion", "KARJOOR v2.4.0 (Build 42)")
             }
 
-            // Sync with local Next.js server (10.0.2.2 is localhost on Android emulator)
+            // Sync with live Vercel production server first, with local fallbacks
             val urls = listOf(
+                "https://kar-aan.vercel.app/api/auth/gmail",
                 "http://10.0.2.2:3000/api/auth/gmail",
                 "http://127.0.0.1:3000/api/auth/gmail"
             )
