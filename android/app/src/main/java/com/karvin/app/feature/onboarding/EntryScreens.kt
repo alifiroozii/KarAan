@@ -73,7 +73,6 @@ fun ModeSelectionScreen(
                 com.karvin.app.core.designsystem.KarjoorRole.PERFORMER -> onModeSelected(AppMode.PROVIDER)
             }
         },
-        onLoginWithGmailClick = onLoginClick,
     )
 }
 

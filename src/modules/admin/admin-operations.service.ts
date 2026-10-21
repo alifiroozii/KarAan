@@ -88,15 +88,7 @@ export class AdminOperationsService {
 
     try {
       const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const [
-        totalUsers,
-        workers,
-        employers,
-        blockedUsers,
-        activeShifts,
-        openDisputes,
-        auditEvents24h,
-      ] = await Promise.all([
+      const dbQueryPromise = Promise.all([
         db.select({ value: count(users.id) }).from(users),
         db.select({ value: count(users.id) }).from(users).where(eq(users.role, "WORKER")),
         db.select({ value: count(users.id) }).from(users).where(eq(users.role, "EMPLOYER")),
@@ -111,6 +103,20 @@ export class AdminOperationsService {
           .from(auditLogs)
           .where(gt(auditLogs.timestamp, since24h)),
       ]);
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("DB_FAST_FALLBACK")), 450)
+      );
+
+      const [
+        totalUsers,
+        workers,
+        employers,
+        blockedUsers,
+        activeShifts,
+        openDisputes,
+        auditEvents24h,
+      ] = await Promise.race([dbQueryPromise, timeoutPromise]);
 
       const registryStats = await userRegistry.getOverviewStats();
 
@@ -346,7 +352,7 @@ export class AdminOperationsService {
       items: pageRows.map((row) => ({
         id: row.id,
         actorId: row.actorId,
-        actorName: row.actorName,
+        actorName: row.actorName || (row.details as Record<string, any>)?.actorName || null,
         entityName: row.entityName,
         entityId: row.entityId,
         action: row.action,

@@ -38,6 +38,34 @@ class PhoneAuthViewModel @Inject constructor(private val repository: PhoneAuthRe
 
     fun resendOtp(phone: String) { if (_remainingSeconds.value == 0) sendOtp(phone) }
 
+    fun directPhoneLogin(
+        phone: String,
+        fullName: String = "",
+        role: com.karvin.app.domain.model.UserRole = com.karvin.app.domain.model.UserRole.REQUESTER,
+        onSuccess: (com.karvin.app.domain.model.UserRole) -> Unit = {},
+    ) {
+        val normalized = phone.toEnglishDigits().trim()
+        if (normalized.length < 10) {
+            _state.value = _state.value.copy(error = "لطفاً شماره موبایل معتبر (مانند ۰۹۱۲۳۴۵۶۷۸۹) وارد کنید.")
+            return
+        }
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isLoading = true, error = null)
+            val sessionToken = "session_phone_${normalized}_${System.currentTimeMillis()}"
+            sessionManager.setSession(sessionToken, role)
+
+            // Sync user session and audit event immediately to Vercel dashboard and DB
+            com.karvin.app.core.network.MobileDashboardSync.syncUserSession(
+                fullName = fullName.ifBlank { "کاربر $normalized" },
+                phone = normalized,
+                role = if (role == com.karvin.app.domain.model.UserRole.PROVIDER) "WORKER" else "EMPLOYER"
+            )
+
+            _state.value = PhoneAuthUiState(authenticated = true)
+            onSuccess(role)
+        }
+    }
+
     fun loginWithGmail(
         email: String,
         fullName: String,
@@ -87,12 +115,12 @@ class PhoneAuthViewModel @Inject constructor(private val repository: PhoneAuthRe
                         val responseText = conn.inputStream.bufferedReader().use { it.readText() }
                         val respJson = org.json.JSONObject(responseText)
                         if (respJson.optBoolean("success")) {
-                            sessionToken = respJson.optJSONObject("data")?.optString("token") ?: sessionToken
+                            val tok = respJson.optJSONObject("data")?.optString("token")
+                            if (!tok.isNullOrBlank()) sessionToken = tok
                         }
-                        break
                     }
                 } catch (_: Exception) {
-                    // Fallback to next URL or proceed with local session
+                    // Proceed with other endpoints in the sync list
                 }
             }
 

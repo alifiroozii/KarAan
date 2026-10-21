@@ -138,8 +138,7 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
 
                 if (user.role == UserRole.PROVIDER) item { EarningsCard(user.completedJobs) }
                 item { ProfileAction("ویرایش اطلاعات و مهارت‌ها", "تکمیل نام، تخصص‌ها، شهر و بیوگرافی") { navController.navigate(Routes.EditProfile) } }
-                item { ProfileAction("کیف پول و تراکنش‌ها", "مشاهده موجودی و مدیریت پرداخت‌ها") { navController.navigate(Routes.Wallet) } }
-                item { ProfileAction("تغییر نقش کاربری", if (user.role == UserRole.PROVIDER) "انجام‌دهنده" else "درخواست‌دهنده") { showRoleDialog = true } }
+                item { ProfileAction("کیف پول و تراکنش‌ها", "مشاهده موجودی و مدیریت پرداخت‌ها (کاملاً رایگان)") { navController.navigate(Routes.Wallet) } }
                 item { ProfileAction("تنظیمات و حریم خصوصی", "اعلان‌ها، ظاهر و دسترسی‌ها") { navController.navigate(Routes.Settings) } }
                 item { ProfileAction("اعلان‌ها", "مرکز اعلان‌ها") { navController.navigate(Routes.Notifications) } }
                 if (user.role == UserRole.PROVIDER) {
@@ -148,7 +147,27 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
                 } else {
                     item { ProfileAction("درخواست‌های من", "پیگیری کارهای ثبت‌شده") { navController.navigate(Routes.RequesterJobs) } }
                 }
-                item { Spacer(Modifier.height(20.dp)); OutlinedButton(onClick = viewModel::signOut, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) { Icon(Icons.AutoMirrored.Filled.Logout, null); Text("خروج از حساب", Modifier.padding(start = 7.dp)) } }
+                item {
+                    Spacer(Modifier.height(20.dp))
+                    OutlinedButton(
+                        onClick = {
+                            com.karvin.app.core.network.MobileDashboardSync.syncUserLogout(user.phone, user.role.name)
+                            viewModel.signOut()
+                            navController.navigate(Routes.ModeSelection) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Logout, null)
+                        Text("خروج از حساب کاربری (جهت جابجایی یا تغییر نقش)", Modifier.padding(start = 7.dp))
+                    }
+                }
             }
         }
     }

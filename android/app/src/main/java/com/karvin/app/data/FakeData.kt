@@ -84,101 +84,83 @@ object FakeData {
         "تهران، ستارخان", "تهران، امیرآباد", "تهران، تهرانپارس", "تهران، پاسداران", "تهران، شهرک غرب",
     )
 
-    val workers: List<User> = firstNames.mapIndexed { index, name ->
-        val category = categories[index % categories.size]
-        User(
-            id = "worker-${index + 1}",
-            name = "$name ${lastNames[index % lastNames.size]}",
-            role = UserRole.PROVIDER,
-            city = if (index % 3 == 0) "تهران" else "کرج",
-            phone = "۰۹۱۲۱۲۳۴${(10 + index).toString().takeLast(2)}",
-            rating = 4.2 + (index % 8) * 0.1,
-            completedJobs = 8 + index * 3,
-            isVerified = index % 5 != 0,
-            isAvailable = index % 4 != 0,
-            point = pointFor(index, 0.008),
-            skills = listOf(category.title, if (index % 2 == 0) "منظم" else "سریع", "مورد اعتماد"),
-            services = listOf(services[index % services.size], services[(index + 2) % services.size]).distinct(),
-            bio = "متخصص ${category.title} با سابقه کار پروژه‌ای و روزانه.",
-            reviewCount = 12 + index,
-        )
-    }
-
-    val employers: List<User> = (0 until 30).map { index ->
-        val baseName = employerNames[index % employerNames.size]
-        val displayName = if (index < employerNames.size) baseName else "$baseName، شعبه ${(index / employerNames.size + 1).toString().toPersianDigits()}"
-        User(
-            id = "employer-${index + 1}",
-            name = displayName,
-            role = UserRole.REQUESTER,
-            city = "تهران",
-            phone = "۰۲۱۴۴۴۴${(10 + index).toString().takeLast(2)}",
-            rating = 4.4 + (index % 5) * 0.1,
-            completedJobs = 4 + index * 2,
-            point = pointFor(index + 3, 0.012),
-            bio = "درخواست‌دهنده تایید شده در پلتفرم کارجور.",
-            reviewCount = 8 + index,
-        )
-    }
-
-    val jobs: List<Job> = (0 until 50).map { index ->
-        val category = categories[(index + 1) % categories.size]
-        val employer = employers[index % employers.size]
-        val urgent = index % 6 == 0
-        Job(
-            id = "job-${index + 1}",
-            title = jobTitles[index % jobTitles.size],
-            category = category,
-            description = descriptions[index % descriptions.size],
-            employer = employer,
-            requiredWorkers = if (index % 7 == 0) 2 else 1,
-            genderRequirement = GenderRequirement.ANY,
-            date = LocalDate.now().plusDays((index % 4).toLong()),
-            startTime = LocalTime.of(9 + index % 9, if (index % 2 == 0) 0 else 30),
-            durationHours = listOf(2.0, 4.0, 6.0, 8.0)[index % 4],
-            amount = 450_000L + (index % 10) * 125_000L,
-            paymentType = PaymentType.values()[index % PaymentType.values().size],
-            address = addresses[index % addresses.size],
-            point = pointFor(index, 0.01),
-            isUrgent = urgent,
-            requiredSkills = listOf(category.title, if (index % 2 == 0) "تجربه مرتبط" else "توان بدنی"),
-            status = listOf(
-                JobStatus.OPEN,
-                JobStatus.APPLIED,
-                JobStatus.ACCEPTED,
-                JobStatus.WORKER_ON_THE_WAY,
-                JobStatus.ARRIVED,
-                JobStatus.IN_PROGRESS,
-                JobStatus.COMPLETED,
-                JobStatus.RATED,
-            )[index % 8],
-            applicantCount = index % 5,
-        )
-    }
-
-    val applications: List<Application> = (0 until 12).map { index ->
-        Application(
-            id = "application-${index + 1}",
-            jobId = jobs[index].id,
-            worker = workers[(index * 2) % workers.size],
-            status = listOf(ApplicationStatus.PENDING, ApplicationStatus.ACCEPTED, ApplicationStatus.REJECTED)[index % 3],
-            createdAt = LocalDateTime.now().minusHours((index + 1).toLong()),
-            message = if (index % 2 == 0) "سلام، آماده شروع کار در زمان اعلام شده هستم." else "سابقه مشابه این پروژه را دارم.",
-        )
-    }
-
-    val reviews: Map<String, List<Review>> = workers.associate { worker ->
-        worker.id to listOf(
-            Review("review-${worker.id}-1", "مریم رضایی", 5, "کار تمیز و برخورد حرفه‌ای.", LocalDate.now().minusDays(3)),
-            Review("review-${worker.id}-2", "شرکت نوآوران", 4, "سر وقت و مسئولیت‌پذیر.", LocalDate.now().minusDays(11)),
-        )
-    }
-
-    val messages: List<ChatMessage> = listOf(
-        ChatMessage("message-1", "conversation-1", employers.first().id, "سلام، برای جزئیات کار در خدمتم.", LocalDateTime.now().minusMinutes(24), true),
-        ChatMessage("message-2", "conversation-1", workers.first().id, "ممنون، ساعت شروع برای من مناسب است.", LocalDateTime.now().minusMinutes(18), true),
-        ChatMessage("message-3", "conversation-2", employers[1].id, "لطفاً نمونه کارهای قبلی را ارسال کنید.", LocalDateTime.now().minusHours(3), false),
+    val defaultWorker = User(
+        id = "worker-me",
+        name = "کاربر انجام‌دهنده",
+        role = UserRole.PROVIDER,
+        city = "تهران",
+        phone = "09120000000",
+        rating = 5.0,
+        completedJobs = 0,
+        isVerified = true,
+        isAvailable = true,
+        point = center,
+        skills = listOf("آماده به کار"),
+        services = emptyList(),
+        bio = "حساب کاربری متخصص در پلتفرم کارجور",
+        reviewCount = 0,
     )
+
+    val defaultEmployer = User(
+        id = "employer-me",
+        name = "کاربر کارفرما",
+        role = UserRole.REQUESTER,
+        city = "تهران",
+        phone = "09120000000",
+        rating = 5.0,
+        completedJobs = 0,
+        point = center,
+        bio = "حساب کاربری کارفرما در پلتفرم کارجور",
+        reviewCount = 0,
+    )
+
+    val workers: List<User> = listOf(defaultWorker)
+    val employers: List<User> = listOf(defaultEmployer)
+    val jobs: List<Job> = listOf(
+        Job(
+            id = "req_ae8ecb2f",
+            title = "سرویس کولر آبی و برقکاری",
+            category = categories.first { it.id == "repair" },
+            description = "درخواست واقعی ثبت شده از اپلیکیشن اندروید (Pixel 7a)",
+            employer = defaultEmployer,
+            requiredWorkers = 1,
+            genderRequirement = GenderRequirement.ANY,
+            date = LocalDate.now(),
+            startTime = LocalTime.of(10, 0),
+            durationHours = 3.0,
+            amount = 350000L,
+            paymentType = PaymentType.WALLET,
+            address = "تهران، میدان انقلاب",
+            point = center,
+            isUrgent = true,
+            requiredSkills = listOf("برقکاری", "تعمیر کولر"),
+            status = JobStatus.ACCEPTED,
+            applicantCount = 1,
+        ),
+        Job(
+            id = "req_9719f236",
+            title = "درخواست خدمت نقاش ساختمان",
+            category = categories.first { it.id == "painter" },
+            description = "توضیحات تکمیلی پس از هماهنگی اعلام می‌شود.",
+            employer = defaultEmployer,
+            requiredWorkers = 1,
+            genderRequirement = GenderRequirement.ANY,
+            date = LocalDate.now(),
+            startTime = LocalTime.of(9, 0),
+            durationHours = 5.0,
+            amount = 300000L,
+            paymentType = PaymentType.WALLET,
+            address = "تهران، بلوار کشاورز",
+            point = center,
+            isUrgent = false,
+            requiredSkills = listOf("نقاشی"),
+            status = JobStatus.OPEN,
+            applicantCount = 0,
+        )
+    )
+    val applications: List<Application> = emptyList()
+    val reviews: Map<String, List<Review>> = emptyMap()
+    val messages: List<ChatMessage> = emptyList()
 
     val notifications: List<AppNotification> = listOf(
         AppNotification("notification-1", NotificationType.JOB_NEARBY, "درخواست نزدیک شما", "یک کار جدید در فاصله ۲٫۳ کیلومتری منتشر شد.", LocalDateTime.now().minusMinutes(12), false),

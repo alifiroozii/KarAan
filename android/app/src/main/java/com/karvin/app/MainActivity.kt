@@ -96,8 +96,18 @@ fun KarvinApp(
                 // ─── Splash & Onboarding ───
                 composable(Routes.Splash) {
                     SplashScreen {
-                        navController.navigate(Routes.Onboarding) {
-                            popUpTo(Routes.Splash) { inclusive = true }
+                        val user = profileState.user
+                        if (user != null) {
+                            com.karvin.app.core.network.MobileDashboardSync.syncAppLaunch(user.phone, user.role.name)
+                            val dest = if (user.role == UserRole.PROVIDER) Routes.ProviderHome else Routes.RequesterHome
+                            navController.navigate(dest) {
+                                popUpTo(Routes.Splash) { inclusive = true }
+                            }
+                        } else {
+                            com.karvin.app.core.network.MobileDashboardSync.syncAppLaunch("", "GUEST")
+                            navController.navigate(Routes.ModeSelection) {
+                                popUpTo(Routes.Splash) { inclusive = true }
+                            }
                         }
                     }
                 }
@@ -117,9 +127,10 @@ fun KarvinApp(
                             navController.navigate(Routes.otp(phone))
                         },
                         onAuthenticated = { role ->
+                            profileViewModel.setRole(role)
                             val dest = if (role == UserRole.PROVIDER) Routes.ProviderHome else Routes.RequesterHome
                             navController.navigate(dest) {
-                                popUpTo(Routes.Login) { inclusive = true }
+                                popUpTo(Routes.ModeSelection) { inclusive = true }
                             }
                         },
                     )
@@ -132,8 +143,10 @@ fun KarvinApp(
                     OtpScreen(
                         phone = entry.arguments?.getString("phone").orEmpty(),
                         onAuthenticated = {
-                            navController.navigate(Routes.ModeSelection) {
-                                popUpTo(Routes.Login) { inclusive = true }
+                            val user = profileState.user
+                            val dest = if (user?.role == UserRole.PROVIDER) Routes.ProviderHome else Routes.RequesterHome
+                            navController.navigate(dest) {
+                                popUpTo(Routes.ModeSelection) { inclusive = true }
                             }
                         },
                     )
@@ -146,15 +159,11 @@ fun KarvinApp(
                             when (mode) {
                                 AppMode.REQUESTER -> {
                                     profileViewModel.setRole(UserRole.REQUESTER)
-                                    navController.navigate(Routes.RequesterLocationExplanation) {
-                                        popUpTo(Routes.ModeSelection) { inclusive = true }
-                                    }
+                                    navController.navigate(Routes.Login)
                                 }
                                 AppMode.PROVIDER -> {
                                     profileViewModel.setRole(UserRole.PROVIDER)
-                                    navController.navigate(Routes.ProviderLocationExplanation) {
-                                        popUpTo(Routes.ModeSelection) { inclusive = true }
-                                    }
+                                    navController.navigate(Routes.Login)
                                 }
                             }
                         },

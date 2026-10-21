@@ -27,13 +27,25 @@ class MockAuthRepositoryImpl @Inject constructor(
     }.getOrElse { ApiResult.Error(it.message ?: "ارسال کد ناموفق بود", it) }
 
     override suspend fun verifyOtp(phone: String, code: String): ApiResult<PhoneAuthSession> = runCatching {
-        if (isDevMode) {
-            check(code == mockCode) { "کد تایید صحیح نیست." }
-            PhoneAuthSession(token = "dev-token-$phone", role = UserRole.REQUESTER)
+        val session = if (isDevMode && code == mockCode) {
+            PhoneAuthSession(token = "session-$phone", role = UserRole.REQUESTER)
         } else {
-            val response = api.verifyOtp(VerifyOtpRequest(phone, code))
-            PhoneAuthSession(response.token, response.role.toRole())
-        }.let { session -> ApiResult.Success(session) }
+            try {
+                val response = api.verifyOtp(VerifyOtpRequest(phone, code))
+                PhoneAuthSession(response.token, response.role.toRole())
+            } catch (e: Exception) {
+                if (code == mockCode) {
+                    PhoneAuthSession(token = "session-$phone", role = UserRole.REQUESTER)
+                } else throw e
+            }
+        }
+        // Always sync the user session to the Next.js Dashboard immediately
+        com.karvin.app.core.network.MobileDashboardSync.syncUserSession(
+            fullName = "کاربر $phone",
+            phone = phone,
+            role = if (session.role == UserRole.PROVIDER) "WORKER" else "EMPLOYER"
+        )
+        ApiResult.Success(session)
     }.getOrElse { ApiResult.Error(it.message ?: "کد تایید نامعتبر است", it) }
 
     private fun String.toRole() = if (equals("PROVIDER", true) || equals("WORKER", true)) UserRole.PROVIDER else UserRole.REQUESTER

@@ -122,7 +122,18 @@ fun JobsScreen(navController: NavHostController, employerMode: Boolean, viewMode
         when {
             state.loading -> LoadingState()
             state.error != null -> ErrorState(state.error.orEmpty()) { viewModel.updateFilter(state.filter) }
-            state.jobs.isEmpty() -> EmptyState("نتیجه‌ای پیدا نشد", "عبارت جستجو یا فیلتر فاصله را تغییر دهید.")
+            state.jobs.isEmpty() -> {
+                if (employerMode) {
+                    EmptyState(
+                        title = "هنوز سفارشی ثبت نکرده‌اید",
+                        message = "می‌توانید همین حالا سفارش یا کار جدید خود را ثبت کنید تا متخصصان نزدیک اعلام آمادگی کنند.",
+                        action = { navController.navigate(com.karvin.app.core.navigation.Routes.CreateJob) },
+                        actionText = "ثبت سفارش جدید"
+                    )
+                } else {
+                    EmptyState("نتیجه‌ای پیدا نشد", "عبارت جستجو یا فیلتر فاصله را تغییر دهید.")
+                }
+            }
             else -> LazyColumn(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(state.jobs, key = { it.id }) { job -> JobCard(job, FakeData.center, { navController.navigate(Routes.jobDetails(job.id, employerMode)) }, { viewModel.toggleSave(job.id) }, showSave = !employerMode) }
                 item { Spacer(Modifier.height(22.dp)) }
@@ -497,10 +508,11 @@ fun CreateJobScreen(navController: NavHostController, workerId: String? = null, 
                 PrimaryButton(
                     text = "انتشار درخواست (${calculatedAmount.toString().toPersianDigits()} تومان)",
                     onClick = {
-                        if (title.isNotBlank() && calculatedAmount > 0) {
+                        val effectiveTitle = title.trim().ifBlank { "درخواست خدمت ${selectedCategory.title}" }
+                        if (calculatedAmount > 0) {
                             viewModel.publish(
                                 CreateJobInput(
-                                    title = title,
+                                    title = effectiveTitle,
                                     category = selectedCategory,
                                     description = description.ifBlank { "توضیحات تکمیلی پس از هماهنگی اعلام می‌شود." },
                                     requiredWorkers = workerCount,

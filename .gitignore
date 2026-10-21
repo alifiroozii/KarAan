@@ -45,3 +45,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# temp & secrets
+*cookies.txt
+
+*.apk
+android/.kotlin/

@@ -219,39 +219,86 @@ fun InteractiveStreetMapView(
                                 currentLat = newLat
                                 currentLng = newLng
                                 onCameraMove?.invoke(GeoPoint(newLat, newLng))
+                                com.karvin.app.core.network.MobileDashboardSync.syncLocationMovement(newLat, newLng, "USER")
                             }
                         }
                     }
             ) {
-                // Layer 1: Elegant Vector Fallback Underlay (ensures zero blank screens while tiles load)
+                // Layer 1: Snapp-Style Vector Fallback Underlay (ensures zero blank screens while tiles load)
                 Canvas(modifier = Modifier.fillMaxSize()) {
+                    // Snapp Land Base
                     drawRect(color = Color(0xFFF3F4F6))
 
-                    val gridSpacing = 80f * scaleInTile
+                    // Snapp Park Green Patch Underlays
+                    drawCircle(
+                        color = Color(0xFFE8F5E9),
+                        radius = 280f * scaleInTile,
+                        center = Offset(widthPx * 0.25f, heightPx * 0.35f)
+                    )
+                    drawCircle(
+                        color = Color(0xFFE8F5E9),
+                        radius = 340f * scaleInTile,
+                        center = Offset(widthPx * 0.78f, heightPx * 0.70f)
+                    )
+
+                    // Snapp Water / River stream
+                    val riverPath = Path().apply {
+                        moveTo(0f, heightPx * 0.55f)
+                        cubicTo(
+                            widthPx * 0.35f, heightPx * 0.52f,
+                            widthPx * 0.65f, heightPx * 0.62f,
+                            widthPx, heightPx * 0.58f
+                        )
+                    }
+                    drawPath(
+                        path = riverPath,
+                        color = Color(0xFFE0F2FE),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 38f * scaleInTile)
+                    )
+
+                    // Snapp Crisp White Road Network with subtle gray borders
+                    val gridSpacing = 84f * scaleInTile
                     var gx = (widthPx / 2.0f - (cx % 256.0).toFloat() * scaleInTile) % gridSpacing
                     while (gx < widthPx) {
+                        // Road casing
                         drawLine(
                             color = Color(0xFFE5E7EB),
                             start = Offset(gx, 0f),
                             end = Offset(gx, heightPx),
-                            strokeWidth = 2.5f * scaleInTile,
+                            strokeWidth = 10f * scaleInTile,
+                        )
+                        // Road surface (pure white like Snapp)
+                        drawLine(
+                            color = Color.White,
+                            start = Offset(gx, 0f),
+                            end = Offset(gx, heightPx),
+                            strokeWidth = 7f * scaleInTile,
                         )
                         gx += gridSpacing
                     }
                     var gy = (heightPx / 2.0f - (cy % 256.0).toFloat() * scaleInTile) % gridSpacing
                     while (gy < heightPx) {
+                        // Road casing
                         drawLine(
                             color = Color(0xFFE5E7EB),
                             start = Offset(0f, gy),
                             end = Offset(widthPx, gy),
-                            strokeWidth = 2.5f * scaleInTile,
+                            strokeWidth = 10f * scaleInTile,
+                        )
+                        // Road surface (pure white like Snapp)
+                        drawLine(
+                            color = Color.White,
+                            start = Offset(0f, gy),
+                            end = Offset(widthPx, gy),
+                            strokeWidth = 7f * scaleInTile,
                         )
                         gy += gridSpacing
                     }
                 }
 
-                // Layer 2: High-Resolution Persian Street Raster Tiles from ArcGIS World Street Map
-                // Zero watermark, zero 403, ultra-fast global CDN, full Tehran street names in Persian & English
+                // Layer 2: Authentic Snapp-Style CartoDB Positron High-Resolution Street Tiles
+                // Clean, light-gray vector look identical to Snapp & Uber, zero watermark, ultra-fast CDN
+                val tileCdnHosts = listOf("a", "b", "c")
                 for (tx in minTileX..maxTileX) {
                     for (ty in minTileY..maxTileY) {
                         if (tx in 0 until maxTiles && ty in 0 until maxTiles) {
@@ -259,8 +306,9 @@ fun InteractiveStreetMapView(
                             val tileTopPx = ((ty * 256.0 - cy) * scaleInTile + heightPx / 2.0).toFloat()
                             val tileSizePx = (256.0 * scaleInTile).toFloat()
 
-                            // ArcGIS path: /tile/{z}/{row-y}/{col-x}
-                            val tileUrl = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/$z/$ty/$tx"
+                            val cdn = tileCdnHosts[Math.abs(tx + ty) % tileCdnHosts.size]
+                            // Snapp CartoDB Positron path:
+                            val tileUrl = "https://$cdn.basemaps.cartocdn.com/light_all/$z/$tx/$ty.png"
 
                             key(tx, ty, z) {
                                 AsyncImage(

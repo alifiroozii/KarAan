@@ -87,16 +87,17 @@ fun KarjoorSplashScreen(onFinished: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(KarjoorDimensions.spacing20),
         ) {
-            KarjoorSplashMark(size = 108.dp, modifier = Modifier.scale(scale))
+            KarjoorSplashMark(size = 112.dp, modifier = Modifier.scale(scale))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = "کارجور",
                     style = MaterialTheme.typography.displaySmall,
                     color = KarjoorColors.TextPrimary,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                 )
                 Spacer(Modifier.height(KarjoorDimensions.spacing4))
                 Text(
-                    text = "KARJOOR",
+                    text = "سامانه هوشمند اشتغال و خدمات آنلاین",
                     style = MaterialTheme.typography.labelMedium,
                     color = KarjoorColors.TextSecondary,
                 )
@@ -273,7 +274,6 @@ private fun kotlinx.coroutines.CoroutineScope.launchWhenResumedOrLaunch(
 @Composable
 fun KarjoorRoleSelectionScreen(
     onRoleSelected: (KarjoorRole) -> Unit,
-    onLoginWithGmailClick: (() -> Unit)? = null,
 ) {
     Column(
         Modifier
@@ -294,12 +294,34 @@ fun KarjoorRoleSelectionScreen(
         )
         Spacer(Modifier.height(KarjoorDimensions.spacing8))
         Text(
-            text = "هر وقت خواستی می‌تونی از حساب کاربری‌ات نقش رو عوض کنی.",
+            text = "هر نقشی رو انتخاب کنی، تا زمان لاگ‌اوت در اون باقی می‌مونی.",
             style = MaterialTheme.typography.bodyMedium,
             color = KarjoorColors.TextSecondary,
         )
 
-        Spacer(Modifier.height(KarjoorDimensions.spacing24))
+        Spacer(Modifier.height(20.dp))
+
+        // 100% Free Service Badge
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = KarjoorColors.Primary.copy(alpha = 0.08f),
+            border = androidx.compose.foundation.BorderStroke(1.dp, KarjoorColors.Primary.copy(alpha = 0.2f)),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "سرویس کارجور فعلاً کاملاً رایگان است (بدون کارمزد)",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = KarjoorColors.Primary,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
 
         KarjoorRoleCard(
             title = "می‌خواهم کار پیدا کنم",
@@ -318,21 +340,6 @@ fun KarjoorRoleSelectionScreen(
             accent = KarjoorColors.Primary,
             onClick = { onRoleSelected(KarjoorRole.REQUESTER) },
         )
-
-        if (onLoginWithGmailClick != null) {
-            Spacer(Modifier.height(KarjoorDimensions.spacing16))
-            androidx.compose.material3.OutlinedButton(
-                onClick = onLoginWithGmailClick,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(KarjoorDimensions.cornerLarge),
-                border = androidx.compose.foundation.BorderStroke(1.dp, androidx.compose.ui.graphics.Color(0xFFEA4335).copy(alpha = 0.5f)),
-                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                    contentColor = androidx.compose.ui.graphics.Color(0xFFEA4335),
-                ),
-            ) {
-                Text("ورود با حساب گوگل (Gmail)", style = MaterialTheme.typography.labelLarge)
-            }
-        }
 
         Spacer(Modifier.weight(1f))
         Spacer(Modifier.height(KarjoorDimensions.spacing24))

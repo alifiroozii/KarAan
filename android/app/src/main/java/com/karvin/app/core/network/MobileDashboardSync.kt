@@ -11,14 +11,106 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
 
+import java.time.LocalDate
+import java.time.LocalTime
+import com.karvin.app.domain.model.Job
+import com.karvin.app.domain.model.JobStatus
+import com.karvin.app.domain.model.PaymentType
+import com.karvin.app.domain.model.GenderRequirement
+import com.karvin.app.domain.model.User
+import com.karvin.app.domain.model.UserRole
+import com.karvin.app.data.FakeData
+
 object MobileDashboardSync {
     private const val TAG = "MobileDashboardSync"
     private val scope = CoroutineScope(Dispatchers.IO)
     private val BASE_URLS = listOf(
-        "https://kar-aan.vercel.app",
         "http://10.0.2.2:3000",
+        "https://kar-aan.vercel.app",
         "http://127.0.0.1:3000"
     )
+
+    private var lastLocationSyncTime: Long = 0L
+
+    fun syncTelemetryEvent(
+        action: String,
+        phone: String = "",
+        fullName: String = "",
+        role: String = "USER",
+        lat: Double? = null,
+        lng: Double? = null,
+        speed: Float? = null,
+        details: Map<String, Any?> = emptyMap()
+    ) {
+        scope.launch {
+            try {
+                val json = JSONObject().apply {
+                    put("action", action)
+                    put("entityName", "android_mobile")
+                    put("entityId", phone.ifBlank { "device_${Build.MODEL}" })
+                    put("phone", phone)
+                    put("actorName", fullName.ifBlank { if (phone.isNotBlank()) "کاربر $phone" else "کاربر اندروید" })
+                    put("role", role)
+                    put("platform", "ANDROID")
+                    put("deviceModel", "${Build.MANUFACTURER} ${Build.MODEL}")
+                    put("appVersion", "KARJOOR v2.5")
+                    if (lat != null) put("lat", lat)
+                    if (lng != null) put("lng", lng)
+                    if (speed != null) put("speed", speed)
+                    val dObj = JSONObject()
+                    for ((k, v) in details) {
+                        dObj.put(k, v ?: JSONObject.NULL)
+                    }
+                    put("details", dObj)
+                }
+                postJson("/api/telemetry", json)
+            } catch (e: Exception) {
+                Log.w(TAG, "Error syncTelemetryEvent: ${e.message}")
+            }
+        }
+    }
+
+    fun syncAppLaunch(phone: String = "", role: String = "USER") {
+        syncTelemetryEvent(
+            action = "APP_LAUNCH",
+            phone = phone,
+            role = role,
+            details = mapOf(
+                "event" to "ورود و شروع به کار اپلیکیشن کارجور",
+                "time" to System.currentTimeMillis()
+            )
+        )
+    }
+
+    fun syncLocationMovement(lat: Double, lng: Double, role: String = "USER", phone: String = "", speed: Float = 0f) {
+        val now = System.currentTimeMillis()
+        // Throttle location updates to every 4 seconds to conserve battery and server bandwidth
+        if (now - lastLocationSyncTime < 4000L) return
+        lastLocationSyncTime = now
+
+        syncTelemetryEvent(
+            action = "LOCATION_UPDATE",
+            phone = phone,
+            role = role,
+            lat = lat,
+            lng = lng,
+            speed = speed,
+            details = mapOf(
+                "coordinates" to "${String.format("%.4f", lat)}, ${String.format("%.4f", lng)}",
+                "speedKmh" to (speed * 3.6f),
+                "event" to "تغییر و پایش موقعیت مکانی کاربر روی نقشه اسنپی"
+            )
+        )
+    }
+
+    fun syncUserLogout(phone: String = "", role: String = "USER") {
+        syncTelemetryEvent(
+            action = "USER_LOGOUT",
+            phone = phone,
+            role = role,
+            details = mapOf("event" to "خروج از حساب کاربری برای تغییر نقش یا جابجایی")
+        )
+    }
 
     fun syncUserSession(
         fullName: String,
@@ -32,18 +124,12 @@ object MobileDashboardSync {
             val cleanDigits = phone.filter { it.isDigit() }
             val determinedEmail = when {
                 !email.isNullOrBlank() -> email.trim().lowercase()
-                role == "EMPLOYER" -> if (cleanDigits.isNotEmpty() && cleanDigits != "09123456789") "employer_${cleanDigits}@karaan.app" else "employer_ali@karaan.app"
-                else -> if (cleanDigits.isNotEmpty() && cleanDigits != "09123456789") "worker_${cleanDigits}@karaan.app" else "worker_ali@karaan.app"
+                cleanDigits.isNotEmpty() -> "user_${cleanDigits}@karaan.ir"
+                else -> "user_${System.currentTimeMillis()}@karaan.ir"
             }
-            val determinedPhone = when {
-                phone.isNotBlank() && phone != "09123456789" -> phone
-                role == "EMPLOYER" -> "09987654321"
-                else -> "09123456789"
-            }
-            val determinedName = when {
-                fullName.isNotBlank() && fullName != "علی فیروزی" -> fullName.trim()
-                role == "EMPLOYER" -> "علی فیروزی (کارفرما)"
-                else -> "علی فیروزی (کارجو)"
+            val determinedPhone = phone.trim()
+            val determinedName = fullName.trim().ifBlank {
+                if (determinedPhone.isNotBlank()) "کاربر $determinedPhone" else "کاربر کارجور"
             }
             val json = JSONObject().apply {
                 put("fullName", determinedName)
@@ -52,18 +138,28 @@ object MobileDashboardSync {
                 put("role", role)
                 put("platform", "ANDROID")
                 put("deviceModel", "${Build.MANUFACTURER} ${Build.MODEL} (${Build.DEVICE})")
-                put("appVersion", "KARJOOR v2.4.0 (Build 42)")
+                put("appVersion", "KARJOOR v2.5.0")
                 put("city", city.ifBlank { "تهران" })
                 val skillsArr = JSONArray()
                 if (skills.isNotEmpty()) {
                     for (s in skills) skillsArr.put(s)
-                } else if (role == "WORKER") {
-                    skillsArr.put("برقکاری ساختمان")
-                    skillsArr.put("تاسیسات و لوله‌کشی")
                 }
                 put("skills", skillsArr)
             }
             postJson("/api/auth/gmail", json)
+
+            // Also record in central audit telemetry
+            syncTelemetryEvent(
+                action = "USER_LOGIN_PHONE",
+                phone = determinedPhone,
+                fullName = determinedName,
+                role = role,
+                details = mapOf(
+                    "role" to role,
+                    "city" to city,
+                    "event" to "احراز هویت و لاگین مستقیم با شماره موبایل (بدون معطلی پیامک)"
+                )
+            )
         }
     }
 
@@ -75,24 +171,49 @@ object MobileDashboardSync {
         details: String? = null,
         userEmail: String? = null,
         userPhone: String? = null,
-        role: String = "EMPLOYER"
+        role: String = "EMPLOYER",
+        fullName: String? = null,
     ) {
         scope.launch {
+            val cleanDigits = (userPhone ?: "").filter { it.isDigit() }
+            val determinedEmail = when {
+                !userEmail.isNullOrBlank() -> userEmail.trim().lowercase()
+                cleanDigits.isNotEmpty() -> "user_${cleanDigits}@karaan.ir"
+                else -> "requester@karaan.ir"
+            }
+            val determinedPhone = userPhone?.trim().orEmpty()
+            val determinedName = fullName?.trim()?.ifBlank { "کارفرمای کارجور" } ?: "کارفرمای کارجور"
+
             val json = JSONObject().apply {
                 put("title", title)
                 put("category", category)
                 put("budget", budget)
-                put("address", address ?: "تهران، میدان آزادی")
+                put("address", address ?: "تهران")
                 put("city", "تهران")
                 put("details", details ?: "درخواست ثبت‌شده از طریق اپلیکیشن موبایل")
                 put("role", role)
                 put("platform", "ANDROID")
                 put("deviceModel", "${Build.MANUFACTURER} ${Build.MODEL} (${Build.DEVICE})")
-                put("userEmail", if (!userEmail.isNullOrBlank()) userEmail else if (role == "EMPLOYER") "employer_ali@karaan.app" else "worker_ali@karaan.app")
-                put("userPhone", if (!userPhone.isNullOrBlank()) userPhone else if (role == "EMPLOYER") "09987654321" else "09123456789")
-                put("fullName", if (role == "EMPLOYER") "علی فیروزی (کارفرما)" else "علی فیروزی (کارجو)")
+                put("userEmail", determinedEmail)
+                put("userPhone", determinedPhone)
+                put("fullName", determinedName)
             }
             postJson("/api/requests", json)
+
+            // Also record in central telemetry
+            syncTelemetryEvent(
+                action = "ORDER_SUBMITTED",
+                phone = determinedPhone,
+                fullName = determinedName,
+                role = role,
+                details = mapOf(
+                    "title" to title,
+                    "category" to category,
+                    "budget" to budget,
+                    "address" to address,
+                    "event" to "ثبت موفقیت‌آمیز سفارش کار در سرورهای ابری"
+                )
+            )
         }
     }
 
@@ -103,6 +224,16 @@ object MobileDashboardSync {
                 put("notes", notes ?: "به‌روزرسانی و تأیید از طریق اپلیکیشن موبایل")
             }
             postJson("/api/requests/$requestId/status", json)
+
+            syncTelemetryEvent(
+                action = "ORDER_STATUS_CHANGED",
+                details = mapOf(
+                    "requestId" to requestId,
+                    "status" to status,
+                    "notes" to notes,
+                    "event" to "تغییر وضعیت مرحله کاری سفارش"
+                )
+            )
         }
     }
 
@@ -114,10 +245,10 @@ object MobileDashboardSync {
                     requestMethod = "POST"
                     setRequestProperty("Content-Type", "application/json; charset=utf-8")
                     setRequestProperty("Accept", "application/json")
-                    setRequestProperty("User-Agent", "Karvin-Android-App/2.4.0")
+                    setRequestProperty("User-Agent", "Karjoor-Android-App/2.5.0")
                     doOutput = true
-                    connectTimeout = 5000
-                    readTimeout = 5000
+                    connectTimeout = 4000
+                    readTimeout = 4000
                 }
                 conn.outputStream.use { os ->
                     val bytes = json.toString().toByteArray(StandardCharsets.UTF_8)
@@ -135,6 +266,103 @@ object MobileDashboardSync {
             }
         }
     }
+
+    suspend fun fetchRemoteJobs(): List<Job> {
+        return kotlinx.coroutines.withContext(Dispatchers.IO) {
+            for (baseUrl in BASE_URLS) {
+                try {
+                    val url = URL("$baseUrl/api/requests")
+                    val conn = (url.openConnection() as HttpURLConnection).apply {
+                        requestMethod = "GET"
+                        setRequestProperty("Accept", "application/json")
+                        setRequestProperty("User-Agent", "Karjoor-Android-App/2.5.0")
+                        connectTimeout = 4000
+                        readTimeout = 4000
+                    }
+                    if (conn.responseCode in 200..299) {
+                        val body = conn.inputStream.bufferedReader().use { it.readText() }
+                        val json = JSONObject(body)
+                        val dataObj = json.optJSONObject("data") ?: continue
+                        val itemsArr = dataObj.optJSONArray("items") ?: continue
+                        val result = mutableListOf<Job>()
+                        for (i in 0 until itemsArr.length()) {
+                            val item = itemsArr.getJSONObject(i)
+                            val id = item.optString("requestId", "job_$i")
+                            val title = item.optString("title", "درخواست کار")
+                            val catTitle = item.optString("category", "خدمات")
+                            val category = FakeData.categories.firstOrNull { 
+                                it.title.contains(catTitle) || catTitle.contains(it.title) 
+                            } ?: FakeData.categories.first { it.id == "services" }
+                            val budgetStr = item.optString("budget", "350000 تومان")
+                            val cleanBudgetDigits = budgetStr.filter { it.isDigit() }
+                            val amount = cleanBudgetDigits.toLongOrNull() ?: 350000L
+                            val address = item.optString("address", "تهران")
+                            val details = item.optString("details", "درخواست ثبت‌شده از سامانه")
+                            val statusStr = item.optString("status", "ACTIVE")
+                            val status = when (statusStr.uppercase()) {
+                                "APPROVED", "ACCEPTED" -> JobStatus.ACCEPTED
+                                "COMPLETED" -> JobStatus.COMPLETED
+                                "CANCELLED" -> JobStatus.CANCELLED
+                                else -> JobStatus.OPEN
+                            }
+                            val userObj = item.optJSONObject("user")
+                            val userName = userObj?.optString("fullName")?.ifBlank { "کارفرمای کارجور" } ?: "کارفرمای کارجور"
+                            val userPhone = userObj?.optString("phone")?.ifBlank { "09120000000" } ?: "09120000000"
+                            val userEmail = userObj?.optString("email") ?: "requester@karaan.ir"
+                            val employer = User(
+                                id = userObj?.optString("id") ?: "employer_$i",
+                                name = userName,
+                                role = UserRole.REQUESTER,
+                                city = "تهران",
+                                phone = userPhone,
+                                rating = 5.0,
+                                completedJobs = 1,
+                                point = FakeData.center,
+                                bio = "کاربر ثبت شده در سامانه کارجور",
+                                reviewCount = 0
+                            )
+                            result.add(
+                                Job(
+                                    id = id,
+                                    title = title,
+                                    category = category,
+                                    description = details,
+                                    employer = employer,
+                                    requiredWorkers = 1,
+                                    genderRequirement = GenderRequirement.ANY,
+                                    date = LocalDate.now(),
+                                    startTime = LocalTime.of(9, 0),
+                                    durationHours = 4.0,
+                                    amount = amount,
+                                    paymentType = PaymentType.WALLET,
+                                    address = address,
+                                    point = FakeData.center,
+                                    isUrgent = false,
+                                    requiredSkills = listOf(category.title),
+                                    status = status,
+                                    applicantCount = 0
+                                )
+                            )
+                        }
+                        if (result.isNotEmpty()) {
+                            Log.i(TAG, "SUCCESS fetched ${result.size} remote jobs from $baseUrl")
+                            return@withContext result
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Fail fetchRemoteJobs from $baseUrl: ${e.message}")
+                }
+            }
+            emptyList()
+        }
+    }
+
+    fun refreshRemoteJobsAsync(onFetched: (List<Job>) -> Unit) {
+        scope.launch {
+            val jobs = fetchRemoteJobs()
+            if (jobs.isNotEmpty()) {
+                onFetched(jobs)
+            }
+        }
+    }
 }
-
-

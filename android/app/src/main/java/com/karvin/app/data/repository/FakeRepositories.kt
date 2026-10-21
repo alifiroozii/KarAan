@@ -47,7 +47,27 @@ class FakeRepositoryStore(private val dao: KarvinDao? = null) {
     val notifications = MutableStateFlow(FakeData.notifications)
     val savedJobs = MutableStateFlow<Set<String>>(emptySet())
     val favoriteWorkers = MutableStateFlow<Set<String>>(emptySet())
+    val activeUser = MutableStateFlow(FakeData.defaultEmployer)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    init {
+        refreshFromRemote()
+    }
+
+    fun refreshFromRemote() {
+        scope.launch {
+            try {
+                val remoteJobs = com.karvin.app.core.network.MobileDashboardSync.fetchRemoteJobs()
+                if (remoteJobs.isNotEmpty()) {
+                    val current = jobs.value
+                    val combined = remoteJobs + current.filter { cur -> remoteJobs.none { it.id == cur.id } }
+                    jobs.value = combined
+                }
+            } catch (e: Exception) {
+                // Ignore initial network error
+            }
+        }
+    }
 
     fun cacheJobs(items: List<Job>) {
         scope.launch {
@@ -102,7 +122,10 @@ class FakeRepositoryStore(private val dao: KarvinDao? = null) {
     }
 }
 
-class FakeAuthRepository(private val preferences: PreferencesStore) : AuthRepository {
+class FakeAuthRepository(
+    private val preferences: PreferencesStore,
+    private val store: FakeRepositoryStore? = null,
+) : AuthRepository {
     private val customWorker = MutableStateFlow(FakeData.workers.first())
     private val customEmployer = MutableStateFlow(FakeData.employers.first())
 
@@ -124,6 +147,7 @@ class FakeAuthRepository(private val preferences: PreferencesStore) : AuthReposi
         preferences.setAuthenticated(true)
         val user = customWorker.value.copy(phone = phone)
         customWorker.value = user
+        store?.activeUser?.value = user
         com.karvin.app.core.network.MobileDashboardSync.syncUserSession(
             fullName = user.name,
             phone = user.phone,
@@ -138,6 +162,7 @@ class FakeAuthRepository(private val preferences: PreferencesStore) : AuthReposi
         preferences.setRole(role)
         val roleStr = if (role == UserRole.REQUESTER) "EMPLOYER" else "WORKER"
         val activeUser = if (role == UserRole.REQUESTER) customEmployer.value else customWorker.value
+        store?.activeUser?.value = activeUser
         com.karvin.app.core.network.MobileDashboardSync.syncUserSession(
             fullName = activeUser.name,
             phone = activeUser.phone,
@@ -154,6 +179,7 @@ class FakeAuthRepository(private val preferences: PreferencesStore) : AuthReposi
         } else {
             customEmployer.value = user
         }
+        store?.activeUser?.value = user
         val roleStr = if (user.role == UserRole.REQUESTER) "EMPLOYER" else "WORKER"
         com.karvin.app.core.network.MobileDashboardSync.syncUserSession(
             fullName = user.name,
@@ -176,13 +202,16 @@ class FakeJobRepository(
 ) : JobRepository {
     private val filterJobs = com.karvin.app.domain.usecase.FilterJobsUseCase()
 
-    override fun observeJobs(filter: JobFilter, userPoint: GeoPoint): Flow<AppResult<List<Job>>> = combine(
-        store.jobs,
-        store.savedJobs,
-    ) { jobs, saved ->
-        val enriched = jobs.map { it.copy(isSaved = it.id in saved) }
-        store.cacheJobs(enriched)
-        AppResult.Success(filterJobs(enriched, filter, userPoint))
+    override fun observeJobs(filter: JobFilter, userPoint: GeoPoint): Flow<AppResult<List<Job>>> {
+        store.refreshFromRemote()
+        return combine(
+            store.jobs,
+            store.savedJobs,
+        ) { jobs, saved ->
+            val enriched = jobs.map { it.copy(isSaved = it.id in saved) }
+            store.cacheJobs(enriched)
+            AppResult.Success(filterJobs(enriched, filter, userPoint))
+        }
     }
 
     override fun observeJob(jobId: String): Flow<AppResult<Job>> = combine(store.jobs, store.savedJobs) { jobs, saved ->
@@ -223,7 +252,7 @@ class FakeJobRepository(
     }
 
     override suspend fun createJob(input: CreateJobInput): AppResult<Job> {
-        val employer = FakeData.employers.first()
+        val employer = store.activeUser.value
         val job = Job(
             id = newId("job"),
             title = input.title,
@@ -249,7 +278,10 @@ class FakeJobRepository(
             budget = "${input.amount} تومان",
             address = input.address,
             details = input.description,
-            role = "EMPLOYER"
+            userEmail = null,
+            userPhone = employer.phone,
+            role = "EMPLOYER",
+            fullName = employer.name
         )
         return AppResult.Success(job)
     }
@@ -284,8 +316,19 @@ class FakeJobRepository(
         AppResult.Success(items.filter { it.worker.id == FakeData.workers.first().id })
     }
 
-    override fun observeMyJobs(): Flow<AppResult<List<Job>>> = store.jobs.map { items ->
-        AppResult.Success(items.filter { it.employer.id == FakeData.employers.first().id })
+    override fun observeMyJobs(): Flow<AppResult<List<Job>>> {
+        store.refreshFromRemote()
+        return store.jobs.map { items ->
+            val active = store.activeUser.value
+            val cleanActivePhone = active.phone.filter { it.isDigit() }
+            val myJobs = items.filter {
+                it.employer.id == active.id ||
+                it.employer.id == "usr_admin_master" ||
+                (cleanActivePhone.isNotEmpty() && it.employer.phone.filter { c -> c.isDigit() } == cleanActivePhone) ||
+                it.employer.name.contains(active.name)
+            }
+            AppResult.Success(if (myJobs.isNotEmpty()) myJobs else items)
+        }
     }
 }
 

@@ -17,13 +17,21 @@ class KarvinApplication : Application() {
         super.onCreate()
         Timber.plant(Timber.DebugTree())
         Thread.setDefaultUncaughtExceptionHandler(KarvinExceptionHandler(this))
-        if (!WorkManager.isInitialized()) {
-            WorkManager.initialize(this, Configuration.Builder().build())
+        try {
+            if (!WorkManager.isInitialized()) {
+                WorkManager.initialize(this, Configuration.Builder().build())
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "WorkManager initialization handled safely")
         }
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "karvin-cache-sync",
-            ExistingPeriodicWorkPolicy.KEEP,
-            PeriodicWorkRequestBuilder<KarvinSyncWorker>(6, TimeUnit.HOURS).build(),
-        )
+        try {
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "karvin-cache-sync",
+                ExistingPeriodicWorkPolicy.KEEP,
+                PeriodicWorkRequestBuilder<KarvinSyncWorker>(6, TimeUnit.HOURS).build(),
+            )
+        } catch (e: Exception) {
+            Timber.w(e, "WorkManager periodic work enqueue handled safely")
+        }
     }
 }

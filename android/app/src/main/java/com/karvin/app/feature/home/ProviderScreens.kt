@@ -132,7 +132,10 @@ import com.karvin.app.domain.model.ProviderMapFilter
 import com.karvin.app.domain.model.toPersianDigits
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -1250,26 +1253,43 @@ data class ActiveServiceOrder(
 )
 
 data class RequesterHomeUiState(
-    val activeJobs: Int = 2,
-    val completedJobs: Int = 7,
-    val locationName: String = "تهران، سعادت‌آباد",
-    val activeService: ActiveServiceOrder? = ActiveServiceOrder(
-        id = "srv-101",
-        title = "تعمیر پکیج و سیستم گرمایشی",
-        category = "تاسیسات و لوله‌کشی",
-        providerName = "علیرضا مرادی",
-        providerRating = 4.9,
-        statusText = "متخصص در مسیر محل شما است",
-        etaMinutes = 12,
-        costToman = 350000L,
-    ),
-    val topProviders: List<com.karvin.app.domain.model.User> = FakeData.workers.take(4),
+    val activeJobs: Int = 0,
+    val completedJobs: Int = 0,
+    val locationName: String = "تهران",
+    val activeService: ActiveServiceOrder? = null,
+    val topProviders: List<com.karvin.app.domain.model.User> = emptyList(),
 )
 
 @HiltViewModel
-class RequesterHomeViewModel @Inject constructor() : ViewModel() {
-    private val _state = MutableStateFlow(RequesterHomeUiState())
-    val state: StateFlow<RequesterHomeUiState> = _state.asStateFlow()
+class RequesterHomeViewModel @Inject constructor(
+    private val store: com.karvin.app.data.repository.FakeRepositoryStore,
+) : ViewModel() {
+    val state: StateFlow<RequesterHomeUiState> = store.jobs.map { jobs ->
+        val latest = jobs.firstOrNull()
+        val activeService = if (latest != null) {
+            ActiveServiceOrder(
+                id = latest.id,
+                title = latest.title,
+                category = latest.category.title,
+                providerName = "در انتظار اعزام متخصص",
+                providerRating = 5.0,
+                statusText = "درخواست شما ثبت شده و در انتظار پذیرش است",
+                etaMinutes = 15,
+                costToman = latest.amount.toLong(),
+            )
+        } else null
+        RequesterHomeUiState(
+            activeJobs = jobs.size,
+            completedJobs = 0,
+            locationName = latest?.address ?: "تهران، میدان انقلاب",
+            activeService = activeService,
+            topProviders = emptyList(),
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = RequesterHomeUiState()
+    )
 }
 
 @Composable
@@ -1282,9 +1302,6 @@ fun RequesterHomeScreen(
     KarvinHomeScaffold(
         navController = navController,
         providerMode = false,
-        floatingActionButton = {
-            KarvinFab("ثبت خدمت جدید") { navController.navigate(Routes.CreateJob) }
-        },
     ) { padding ->
         LazyColumn(
             Modifier
@@ -1582,45 +1599,72 @@ fun RequesterHomeScreen(
                 }
             }
 
-            items(state.topProviders, key = { it.id }) { provider ->
-                Card(
-                    onClick = { navController.navigate(Routes.providerProfile(provider.id)) },
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+            if (state.topProviders.isEmpty()) {
+                item {
+                    Card(
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                     ) {
-                        Avatar(provider, size = 54.dp)
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(provider.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                if (provider.isVerified) {
-                                    Spacer(Modifier.width(4.dp))
-                                    Icon(Icons.Default.CheckCircle, contentDescription = "تایید هویت", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text("📍", fontSize = 28.sp)
+                            Text(
+                                "نیروهای مجرب به محض ثبت سفارش به محل اعزام می‌شوند",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(state.topProviders, key = { it.id }) { provider ->
+                    Card(
+                        onClick = { navController.navigate(Routes.providerProfile(provider.id)) },
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Avatar(provider, size = 54.dp)
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(provider.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    if (provider.isVerified) {
+                                        Spacer(Modifier.width(4.dp))
+                                        Icon(Icons.Default.CheckCircle, contentDescription = "تایید هویت", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                                Text(provider.skills.firstOrNull() ?: "متخصص خدمات", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    RatingLine(provider.rating, provider.reviewCount)
+                                    Text("·", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("${provider.completedJobs.toString().toPersianDigits()} کار موفق", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
-                            Text(provider.skills.firstOrNull() ?: "متخصص خدمات", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                RatingLine(provider.rating, provider.reviewCount)
-                                Text("·", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("${provider.completedJobs.toString().toPersianDigits()} کار موفق", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Button(
+                                    onClick = { navController.navigate(Routes.createJob(provider.id)) },
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    modifier = Modifier.height(34.dp),
+                                ) {
+                                    Text("درخواست", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                }
+                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                             }
-                        }
-                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Button(
-                                onClick = { navController.navigate(Routes.createJob(provider.id)) },
-                                shape = RoundedCornerShape(10.dp),
-                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                modifier = Modifier.height(34.dp),
-                            ) {
-                                Text("درخواست", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                            }
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                         }
                     }
                 }

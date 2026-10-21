@@ -120,34 +120,20 @@ function AdminDashboardInner({ children }: { children: ReactNode }) {
         {/* Sidebar Header / Branding */}
         <div className="flex h-16 items-center justify-between border-b border-slate-200/80 px-5">
           <div className="flex items-center gap-3">
-            {/* Google Stitch 4-Color Gradient Logo */}
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-500 text-white shadow-md shadow-blue-500/20">
-              <svg className="h-6 w-6" viewBox="0 0 48 48" fill="none">
-                <path
-                  d="M10 18C14 10 34 10 38 18C40 22 36 28 30 30C24 32 18 28 14 24"
-                  stroke="#FFFFFF"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M38 30C34 38 14 38 10 30C8 26 12 20 18 18C24 16 30 20 34 24"
-                  stroke="#34D399"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <circle cx="24" cy="24" r="3.5" fill="#FBBF24" />
-              </svg>
-            </div>
+            {/* Karjoor Infinity Synergy Logo (Designed with Gemini - No Latin 'K') */}
+            <img
+              src="/karjoor-logo.png"
+              alt="لوگوی کارجور"
+              className="h-10 w-10 rounded-xl object-cover shadow-sm border border-slate-100"
+            />
             <div>
               <div className="flex items-center gap-1.5">
                 <h1 className="text-sm font-black text-slate-900 tracking-tight">کارجور</h1>
                 <span className="rounded-md bg-blue-100/70 border border-blue-200 px-1.5 py-0.5 text-[9px] font-black text-blue-700">
-                  Stitch v2.5
+                  Google Stitch
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400 font-medium">سامانه مدیریت و تله‌متری ورسل</p>
+              <p className="text-[10px] text-slate-400 font-medium">سامانه مدیریت، عملیات و تله‌متری</p>
             </div>
           </div>
 

@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  KARJOOR primary logo — 48x48 grid.
-
-  Concept: two independent strokes converge into a single unified mark.
-    · The left stroke is the Requester path (Primary #2563EB).
-    · The right stroke is the Performer path (Secondary #14B8A6).
-  The negative space between them traces a "K". Rounded caps, no clutter,
-  no cliché icons. Designed to stay legible at 24dp.
+  KARJOOR / کارجور Brand Icon — 48x48 viewport.
+  Dynamic Interlocking Infinity Synergy Monogram:
+    - Primary Electric Blue (#1A73E8 / #2563EB): Requester, Job Creation & Tech Platform.
+    - Vibrant Emerald Mint (#10B981 / #059669): Specialist, Skill Fulfillment & Trust.
+    - Central Radiant Spark (#F59E0B): Golden Synergy & Instant Matching Node.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="48dp"
@@ -14,24 +12,24 @@
     android:viewportWidth="48"
     android:viewportHeight="48">
 
-    <!-- Shared spine of the K (Navy) — the single unified backbone both paths meet on. -->
-    <path
-        android:strokeColor="#11244A"
-        android:strokeWidth="5"
-        android:strokeLineCap="round"
-        android:pathData="M14,8 L14,40" />
-
-    <!-- Requester arm — upper branch, converges onto the spine. -->
+    <!-- Blue Synergy Wing (Requester & Platform) -->
     <path
         android:strokeColor="#2563EB"
-        android:strokeWidth="5"
+        android:strokeWidth="5.2"
         android:strokeLineCap="round"
-        android:pathData="M14,21 C22,19 30,15 36,10" />
+        android:strokeLineJoin="round"
+        android:pathData="M12,18 C12,11 22,8 28,11 C34,14 36,20 33,26 C30,32 20,38 14,38" />
 
-    <!-- Performer arm — lower branch, converges onto the spine. -->
+    <!-- Emerald Synergy Wing (Specialist & Fulfillment) -->
     <path
-        android:strokeColor="#14B8A6"
-        android:strokeWidth="5"
+        android:strokeColor="#10B981"
+        android:strokeWidth="5.2"
         android:strokeLineCap="round"
-        android:pathData="M14,26 C22,28 30,33 36,38" />
+        android:strokeLineJoin="round"
+        android:pathData="M36,30 C36,37 26,40 20,37 C14,34 12,28 15,22 C18,16 28,10 34,10" />
+
+    <!-- Center Radiant Matching Spark (Golden Amber) -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M24,19 L25.5,22.5 L29,24 L25.5,25.5 L24,29 L22.5,25.5 L19,24 L22.5,22.5 Z" />
 </vector>

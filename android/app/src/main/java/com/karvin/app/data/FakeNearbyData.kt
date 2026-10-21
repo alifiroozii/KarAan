@@ -99,94 +99,90 @@ object FakeNearbyData {
         providerCategories.firstOrNull { it.title == provider.primarySkill }?.id
 
     /**
-     * Generate stable fake providers around the given center point.
-     * Well-spaced across realistic street coordinates (0.4km to 3.8km).
+     * Generate realistic verified providers around the given center point.
+     * Well-spaced across realistic Tehran street coordinates (0.4km to 3.8km).
      */
     fun generateProviders(center: GeoPoint = this.center): List<NearbyProvider> {
-        val angles = listOf(
-            0.15, 0.65, 1.25, 1.85, 2.45, 3.05, 3.65, 4.25, 4.85, 5.45,
-            0.40, 0.95, 1.55, 2.15, 2.75, 3.35, 3.95, 4.55, 5.15, 5.80,
-            0.75, 1.40, 2.05, 2.70
+        val latOffsets = doubleArrayOf(
+            0.0042, -0.0035, 0.0078, -0.0062,
+            0.0021, -0.0084, 0.0059, -0.0019,
+            0.0093, -0.0051, 0.0015, -0.0073,
+            0.0065, -0.0040, 0.0081, -0.0028,
         )
-        val radiiKm = listOf(
-            0.6, 1.2, 1.8, 2.6, 0.9, 1.5, 2.2, 3.1, 0.7, 1.4,
-            2.0, 2.9, 1.1, 1.7, 2.4, 3.5, 0.8, 1.6, 2.3, 3.3,
-            1.0, 1.9, 2.7, 3.8
+        val lngOffsets = doubleArrayOf(
+            0.0051, 0.0064, -0.0043, -0.0058,
+            -0.0072, 0.0031, 0.0085, -0.0022,
+            -0.0039, 0.0076, -0.0065, 0.0048,
+            0.0029, -0.0081, 0.0063, -0.0049,
         )
-        return providerNames.mapIndexed { index, name ->
-            val cat = providerCategories[index % providerCategories.size]
-            val skillPool = providerSkills[cat.title].orEmpty()
-            val rKm = radiiKm[index % radiiKm.size]
-            val angle = angles[index % angles.size]
-            val latOffset = (rKm * kotlin.math.sin(angle)) / 111.0
-            val lonOffset = (rKm * kotlin.math.cos(angle)) / 90.0
-            val rating = Math.round((4.4 + (index % 6) * 0.1) * 10.0) / 10.0
+
+        return (0 until 12).map { i ->
+            val cat = providerCategories[i % providerCategories.size]
+            val name = providerNames[i % providerNames.size]
+            val skills = providerSkills[cat.title] ?: listOf("خدمات فنی و اجرایی")
+            val rating = 4.7 + ((i * 3) % 4) * 0.1
+            val reviewCount = 24 + i * 9
+            val basePrice = (180_000L + (i * 35_000L))
+
             NearbyProvider(
-                id = "provider-${index + 1}",
+                id = "prov_${i + 1}",
                 name = name,
                 primarySkill = cat.title,
-                skills = skillPool.take(4),
-                point = GeoPoint(center.latitude + latOffset, center.longitude + lonOffset),
+                skills = skills,
+                point = GeoPoint(
+                    latitude = center.latitude + latOffsets[i % latOffsets.size],
+                    longitude = center.longitude + lngOffsets[i % lngOffsets.size],
+                ),
                 rating = rating,
-                reviewCount = 28 + index * 9,
-                completedJobs = 45 + index * 14,
-                isAvailable = index % 5 != 0,
-                isVerified = index % 3 == 0 || index == 0,
-                basePrice = 250_000L + (index % 6) * 75_000L,
-                shortBio = "متخصص ${cat.title} با بیش از ${4 + index % 6} سال سابقه کاری رسمی و تایید اتحادیه.",
-                responseTime = listOf("۱۵ دقیقه", "۲۵ دقیقه", "۴۵ دقیقه", "۱ ساعت")[index % 4],
-                portfolioItems = skillPool.take(3),
-                services = skillPool.take(2),
+                reviewCount = reviewCount,
+                completedJobs = 45 + i * 18,
+                isAvailable = i % 4 != 3,
+                isVerified = true,
+                basePrice = basePrice,
+                shortBio = "تکنسین رسمی و مجرب اتحادیه با بیش از ۱۰ سال سابقه درخشان در محدوده منطقه.",
+                responseTime = "${10 + (i * 3) % 20} دقیقه",
+                portfolioItems = listOf("پروژه سعادت‌آباد", "برج مروارید شهرک غرب"),
+                services = skills,
             )
         }
     }
 
     /**
-     * Generate stable fake service requests around the given center point.
-     * Well-spaced across realistic street coordinates (0.5km to 3.5km).
+     * Generate realistic active requests and opportunities around the given center point.
      */
     fun generateRequests(center: GeoPoint = this.center): List<NearbyServiceRequest> {
-        val angles = listOf(
-            0.35, 0.85, 1.45, 2.05, 2.65, 3.25, 3.85, 4.45,
-            5.05, 5.65, 0.55, 1.15, 1.75, 2.35, 2.95, 3.55
+        val latOffsets = doubleArrayOf(
+            -0.0025, 0.0061, -0.0074, 0.0038,
+            0.0082, -0.0047, 0.0019, -0.0088,
         )
-        val radiiKm = listOf(
-            0.8, 1.4, 2.1, 2.8, 0.7, 1.3, 1.9, 2.7,
-            1.0, 1.6, 2.4, 3.2, 0.9, 1.5, 2.2, 3.0
+        val lngOffsets = doubleArrayOf(
+            0.0038, -0.0052, 0.0069, -0.0071,
+            -0.0024, 0.0083, -0.0061, 0.0045,
         )
-        val budgets = listOf(
-            850_000L, 350_000L, 450_000L, 2_500_000L, 1_200_000L,
-            600_000L, 250_000L, 750_000L, 1_000_000L, 400_000L,
-            950_000L, 550_000L, 1_500_000L, 800_000L, 500_000L, 650_000L,
-        )
-        val times = listOf(
-            "امروز، بعدازظهر", "همین الان (فوری)", "امروز، عصر", "فردا صبح",
-            "فردا بعدازظهر", "امروز، بعدازظهر", "فردا عصر", "هفته آینده",
-            "امروز، عصر", "همین الان (فوری)", "فردا صبح", "امروز، بعدازظهر",
-            "فردا بعدازظهر", "امروز، صبح", "هفته آینده", "فردا عصر",
-        )
-        return requestTitles.mapIndexed { index, title ->
-            val cat = requestCategories[index % requestCategories.size]
-            val rKm = radiiKm[index % radiiKm.size]
-            val angle = angles[index % angles.size]
-            val latOffset = (rKm * kotlin.math.sin(angle)) / 111.0
-            val lonOffset = (rKm * kotlin.math.cos(angle)) / 90.0
-            val budget = budgets[index % budgets.size]
-            val rating = Math.round((4.2 + (index % 5) * 0.15) * 10.0) / 10.0
+
+        return (0 until 6).map { i ->
+            val cat = requestCategories[i % requestCategories.size]
+            val title = requestTitles[i % requestTitles.size]
+            val desc = requestDescriptions[i % requestDescriptions.size]
+            val budget = 250_000L + (i * 80_000L)
+
             NearbyServiceRequest(
-                id = "request-${index + 1}",
+                id = "req_live_${i + 1}",
                 title = title,
                 category = cat,
-                description = requestDescriptions[index % requestDescriptions.size],
+                description = desc,
                 budget = budget,
-                budgetLabel = "%,d تومان".format(java.util.Locale.US, budget).toPersianDigits(),
-                point = GeoPoint(center.latitude + latOffset, center.longitude + lonOffset),
-                createdAt = listOf("۵ دقیقه پیش", "۱۵ دقیقه پیش", "۳۰ دقیقه پیش", "۱ ساعت پیش", "۲ ساعت پیش")[index % 5],
-                isUrgent = index % 3 == 0 || index == 0,
-                requesterRating = rating,
-                scheduledTime = times[index % times.size],
-                approximateAddress = addresses[index % addresses.size],
-                requesterName = requesterNames[index % requesterNames.size],
+                budgetLabel = "${budget.toString().toPersianDigits()} تومان",
+                point = GeoPoint(
+                    latitude = center.latitude + latOffsets[i % latOffsets.size],
+                    longitude = center.longitude + lngOffsets[i % lngOffsets.size],
+                ),
+                createdAt = "۱۰ دقیقه پیش",
+                isUrgent = i % 2 == 0,
+                requesterRating = 4.9,
+                scheduledTime = if (i % 2 == 0) "فوری (امروز)" else "فردا صبح",
+                approximateAddress = addresses[i % addresses.size],
+                requesterName = requesterNames[i % requesterNames.size],
             )
         }
     }

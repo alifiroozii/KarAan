@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.karvin.app.core.designsystem.PrimaryButton
@@ -54,11 +55,8 @@ fun LoginScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var phone by remember { mutableStateOf("") }
-    var showGmailDialog by remember { mutableStateOf(false) }
-
-    var gmailEmail by remember { mutableStateOf("alifiroozi.dev@gmail.com") }
-    var gmailName by remember { mutableStateOf("علی فیروزی") }
-    var gmailRole by remember { mutableStateOf(com.karvin.app.domain.model.UserRole.PROVIDER) }
+    var fullName by remember { mutableStateOf("") }
+    var selectedRole by remember { mutableStateOf(com.karvin.app.domain.model.UserRole.REQUESTER) }
 
     LaunchedEffect(state.otpSent) {
         if (state.otpSent) {
@@ -67,15 +65,64 @@ fun LoginScreen(
     }
 
     AuthContainer(
-        title = "ورود به کارجور",
-        subtitle = "جهت هماهنگی با سامانه، با شماره موبایل یا جیمیل وارد شوید.",
+        title = "ورود و ثبت‌نام در کارجور",
+        subtitle = "ثبت‌نام و ورود سریع فقط با شماره موبایل (بدون نیاز به تایید پیامکی)",
         icon = { Icon(Icons.Default.Phone, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp)) },
     ) {
+        // Free Service Notice Banner
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+        ) {
+            Row(
+                modifier = Modifier.padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    Icons.Default.Security,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "سرویس کارجور کاملاً رایگان است (۰٪ کارمزد)",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+
+        // Role Selector Pills
+        Text("نقش شما در سامانه:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            androidx.compose.material3.FilterChip(
+                selected = selectedRole == com.karvin.app.domain.model.UserRole.REQUESTER,
+                onClick = { selectedRole = com.karvin.app.domain.model.UserRole.REQUESTER },
+                label = { Text("درخواست‌دهنده نیرو (کارفرما)", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                modifier = Modifier.weight(1f),
+            )
+            androidx.compose.material3.FilterChip(
+                selected = selectedRole == com.karvin.app.domain.model.UserRole.PROVIDER,
+                onClick = { selectedRole = com.karvin.app.domain.model.UserRole.PROVIDER },
+                label = { Text("متخصص / ارائه‌دهنده خدمت", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        Spacer(Modifier.height(4.dp))
+
         OutlinedTextField(
             value = phone,
             onValueChange = { phone = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("شماره موبایل") },
+            label = { Text("شماره موبایل *") },
             placeholder = { Text("۰۹۱۲۳۴۵۶۷۸۹") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
             singleLine = true,
@@ -83,129 +130,37 @@ fun LoginScreen(
             isError = state.error != null,
         )
 
+        OutlinedTextField(
+            value = fullName,
+            onValueChange = { fullName = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("نام و نام خانوادگی (اختیاری)") },
+            placeholder = { Text("مثال: علی فیروزی") },
+            singleLine = true,
+            shape = RoundedCornerShape(14.dp),
+        )
+
         state.error?.let {
             Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
 
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(6.dp))
 
+        // Direct Mobile Login Button (No OTP verification needed!)
         PrimaryButton(
-            text = if (state.isLoading) "در حال ارسال..." else "دریافت کد تایید پیامکی",
-            onClick = { viewModel.sendOtp(phone) },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !state.isLoading && phone.isNotBlank(),
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        // Divider
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Box(Modifier.weight(1f).height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
-            Text("یا", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Box(Modifier.weight(1f).height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
-        }
-
-        Spacer(Modifier.height(4.dp))
-
-        // Gmail Login Button
-        androidx.compose.material3.OutlinedButton(
-            onClick = { showGmailDialog = true },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, androidx.compose.ui.graphics.Color(0xFFEA4335)),
-            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                contentColor = androidx.compose.ui.graphics.Color(0xFFEA4335),
-            ),
-        ) {
-            Text("ورود با حساب گوگل (Gmail)", fontWeight = FontWeight.Bold)
-        }
-    }
-
-    if (showGmailDialog) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showGmailDialog = false },
-            title = {
-                Text(
-                    text = "ورود با حساب گوگل (Gmail)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+            text = if (state.isLoading) "در حال اتصال به سامانه..." else "ورود مستقیم و سریع به برنامه",
+            onClick = {
+                viewModel.directPhoneLogin(
+                    phone = phone,
+                    fullName = fullName,
+                    role = selectedRole,
+                    onSuccess = { role ->
+                        onAuthenticated(role)
+                    }
                 )
             },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        "اطلاعات شما پس از ورود بلافاصله با داشبورد مدیریت Next.js هماهنگ می‌شود:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-
-                    OutlinedTextField(
-                        value = gmailEmail,
-                        onValueChange = { gmailEmail = it },
-                        label = { Text("آدرس جیمیل (Gmail)") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                    )
-
-                    OutlinedTextField(
-                        value = gmailName,
-                        onValueChange = { gmailName = it },
-                        label = { Text("نام و نام خانوادگی") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                    )
-
-                    Text("نقش شما در سامانه:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        androidx.compose.material3.FilterChip(
-                            selected = gmailRole == com.karvin.app.domain.model.UserRole.PROVIDER,
-                            onClick = { gmailRole = com.karvin.app.domain.model.UserRole.PROVIDER },
-                            label = { Text("متخصص و کارجو", fontSize = androidx.compose.ui.unit.TextUnit(11f, androidx.compose.ui.unit.TextUnitType.Sp)) },
-                            modifier = Modifier.weight(1f),
-                        )
-                        androidx.compose.material3.FilterChip(
-                            selected = gmailRole == com.karvin.app.domain.model.UserRole.REQUESTER,
-                            onClick = { gmailRole = com.karvin.app.domain.model.UserRole.REQUESTER },
-                            label = { Text("کارفرما / ثبت کار", fontSize = androidx.compose.ui.unit.TextUnit(11f, androidx.compose.ui.unit.TextUnitType.Sp)) },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showGmailDialog = false
-                        viewModel.loginWithGmail(
-                            email = gmailEmail,
-                            fullName = gmailName,
-                            role = gmailRole,
-                            phone = if (phone.isNotBlank()) phone else "09121112233",
-                            onSuccess = { role ->
-                                onAuthenticated(role)
-                            },
-                        )
-                    },
-                    shape = RoundedCornerShape(10.dp),
-                ) {
-                    Text("تأیید و ورود")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showGmailDialog = false }) {
-                    Text("انصراف")
-                }
-            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !state.isLoading && phone.isNotBlank(),
         )
     }
 }
