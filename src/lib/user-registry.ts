@@ -1,4 +1,6 @@
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 import { db, sql } from "@/db";
 import { registeredUsers } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -52,7 +54,7 @@ declare global {
   var __karaanLastCloudSync: number | undefined;
 }
 
-const CLOUD_SYNC_URL = "https://api.restful-api.dev/objects/ff808181a09d98f701a14e4b38080a08";
+const CLOUD_SYNC_URL = "https://api.restful-api.dev/objects/ff808181a09d98f701a15b07dfaa33b8";
 
 const MASTER_ADMIN: RegisteredUser = {
   id: "usr_admin_master",
@@ -78,18 +80,52 @@ export const INITIAL_REAL_USERS: RegisteredUser[] = [
   MASTER_ADMIN,
 ];
 
+const LOCAL_DATA_PATH = path.join(process.cwd(), "data", "users-registry.json");
+const TMP_DATA_PATH = "/tmp/karaan-users-registry.json";
+
+function loadFromLocalDisk(): Map<string, RegisteredUser> | null {
+  for (const fp of [LOCAL_DATA_PATH, TMP_DATA_PATH]) {
+    try {
+      if (fs.existsSync(fp)) {
+        const raw = fs.readFileSync(fp, "utf-8");
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const map = new Map<string, RegisteredUser>();
+          for (const u of parsed) {
+            if (u && u.id) map.set(u.id, u);
+          }
+          return map;
+        }
+      }
+    } catch {}
+  }
+  return null;
+}
+
+function saveToLocalDisk(users: RegisteredUser[]): void {
+  try {
+    const dir = path.join(process.cwd(), "data");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(LOCAL_DATA_PATH, JSON.stringify(users, null, 2), "utf-8");
+  } catch {}
+
+  try {
+    fs.writeFileSync(TMP_DATA_PATH, JSON.stringify(users, null, 2), "utf-8");
+  } catch {}
+}
+
 async function syncFromCloudStore(force = false): Promise<void> {
   const now = Date.now();
   const store = getMemoryStore();
-  // Throttle cloud fetches to at most once every 1.5 seconds per lambda instance, unless forced or store is minimal
-  if (!force && store.size > 1 && globalThis.__karaanLastCloudSync && now - globalThis.__karaanLastCloudSync < 1500) {
+  // Throttle cloud fetches to at most once every 60 seconds per instance, unless forced
+  if (!force && globalThis.__karaanLastCloudSync && now - globalThis.__karaanLastCloudSync < 60000) {
     return;
   }
   globalThis.__karaanLastCloudSync = now;
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000);
+    const timeout = setTimeout(() => controller.abort(), 800);
     const res = await fetch(CLOUD_SYNC_URL, {
       signal: controller.signal,
       cache: "no-store",
@@ -98,19 +134,55 @@ async function syncFromCloudStore(force = false): Promise<void> {
     if (!res.ok) return;
 
     const body = await res.json();
-    const users: RegisteredUser[] = body?.data?.users;
-    if (Array.isArray(users) && users.length > 0) {
-      for (const u of users) {
-        if (u && u.id) {
-          store.set(u.id, u);
+    let cloudUsers: RegisteredUser[] = [];
+    if (body?.data?.payload && typeof body.data.payload === "string") {
+      try {
+        const decoded = Buffer.from(body.data.payload, "base64").toString("utf-8");
+        const parsed = JSON.parse(decoded);
+        if (Array.isArray(parsed)) cloudUsers = parsed;
+      } catch {}
+    } else if (Array.isArray(body?.data?.users)) {
+      cloudUsers = body.data.users;
+    }
+
+    if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+      for (const cloudU of cloudUsers) {
+        if (!cloudU || !cloudU.id) continue;
+        const localU = store.get(cloudU.id);
+        if (!localU) {
+          store.set(cloudU.id, cloudU);
+        } else {
+          // Robust merge: Never wipe out requests! Merge unique by id
+          const reqMap = new Map<string, UserSubmittedRequest>();
+          for (const r of cloudU.submittedRequests || []) {
+            if (r && r.id) reqMap.set(r.id, r);
+          }
+          for (const r of localU.submittedRequests || []) {
+            if (r && r.id) reqMap.set(r.id, r);
+          }
+          const mergedRequests = Array.from(reqMap.values()).sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+
+          const localTime = new Date(localU.lastLoginAt || 0).getTime();
+          const cloudTime = new Date(cloudU.lastLoginAt || 0).getTime();
+          const fresher = localTime >= cloudTime ? localU : cloudU;
+
+          store.set(cloudU.id, {
+            ...cloudU,
+            ...fresher,
+            submittedRequests: mergedRequests,
+          });
         }
       }
       globalThis.__karaanRecentLogins = Array.from(store.values())
         .sort((a, b) => new Date(b.lastLoginAt).getTime() - new Date(a.lastLoginAt).getTime())
         .slice(0, 50);
+      saveToLocalDisk(Array.from(store.values()));
     }
   } catch {
-    // Non-blocking fallback
+    // If cloud is unreachable, back off for 30 seconds to keep dashboard ultra-fast
+    globalThis.__karaanLastCloudSync = Date.now() + 30000;
   }
 }
 
@@ -118,8 +190,11 @@ async function pushToCloudStore(): Promise<void> {
   try {
     const store = getMemoryStore();
     const allUsers = Array.from(store.values());
+    saveToLocalDisk(allUsers);
+
+    const base64Payload = Buffer.from(JSON.stringify(allUsers), "utf-8").toString("base64");
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000);
+    const timeout = setTimeout(() => controller.abort(), 1500);
     await fetch(CLOUD_SYNC_URL, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -127,7 +202,7 @@ async function pushToCloudStore(): Promise<void> {
       body: JSON.stringify({
         name: "karaan_production_registry",
         data: {
-          users: allUsers,
+          payload: base64Payload,
           updatedAt: new Date().toISOString(),
         },
       }),
@@ -140,12 +215,21 @@ async function pushToCloudStore(): Promise<void> {
 
 function getMemoryStore(): Map<string, RegisteredUser> {
   if (!globalThis.__karaanUserRegistry) {
-    const initialMap = new Map<string, RegisteredUser>();
-    for (const u of INITIAL_REAL_USERS) {
-      initialMap.set(u.id, { ...u });
+    const fromDisk = loadFromLocalDisk();
+    if (fromDisk && fromDisk.size > 0) {
+      globalThis.__karaanUserRegistry = fromDisk;
+      globalThis.__karaanRecentLogins = Array.from(fromDisk.values())
+        .sort((a, b) => new Date(b.lastLoginAt).getTime() - new Date(a.lastLoginAt).getTime())
+        .slice(0, 50);
+    } else {
+      const initialMap = new Map<string, RegisteredUser>();
+      for (const u of INITIAL_REAL_USERS) {
+        initialMap.set(u.id, { ...u });
+      }
+      globalThis.__karaanUserRegistry = initialMap;
+      globalThis.__karaanRecentLogins = INITIAL_REAL_USERS.map((u) => ({ ...u }));
+      saveToLocalDisk(INITIAL_REAL_USERS);
     }
-    globalThis.__karaanUserRegistry = initialMap;
-    globalThis.__karaanRecentLogins = INITIAL_REAL_USERS.map((u) => ({ ...u }));
   }
   return globalThis.__karaanUserRegistry;
 }

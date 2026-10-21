@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAdmin } from "./admin-context";
 import {
   Users,
   Smartphone,
@@ -96,10 +97,13 @@ async function fetchUsersList(): Promise<UserItem[]> {
 
 export function AdminUserManagement() {
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState("");
+  const { searchQuery: globalSearch, setTotalUsersCount } = useAdmin();
+  const [localSearchQuery, setLocalSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<
     "ALL" | "ANDROID" | "WORKER" | "EMPLOYER" | "GMAIL" | "WITH_REQUESTS" | "BLOCKED"
   >("ALL");
+
+  const effectiveSearch = globalSearch || localSearchQuery;
 
   // Selected user for Deep Inspector Modal
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
@@ -118,6 +122,12 @@ export function AdminUserManagement() {
     queryFn: fetchUsersList,
     refetchInterval: 8_000,
   });
+
+  useEffect(() => {
+    if (overviewQuery.data?.totalUsers !== undefined) {
+      setTotalUsersCount(overviewQuery.data.totalUsers);
+    }
+  }, [overviewQuery.data?.totalUsers, setTotalUsersCount]);
 
   // Block/Unblock Mutation
   const statusMutation = useMutation({
@@ -202,8 +212,8 @@ export function AdminUserManagement() {
     const list = usersQuery.data || [];
     return list.filter((user) => {
       // Search matching
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
+      if (effectiveSearch.trim()) {
+        const q = effectiveSearch.toLowerCase().trim();
         const matchesSearch =
           user.fullName?.toLowerCase().includes(q) ||
           user.phone?.includes(q) ||
@@ -225,7 +235,7 @@ export function AdminUserManagement() {
 
       return true;
     });
-  }, [usersQuery.data, searchQuery, activeFilter]);
+  }, [usersQuery.data, effectiveSearch, activeFilter]);
 
   const overview = overviewQuery.data || {
     totalUsers: usersQuery.data?.length || 0,
@@ -398,15 +408,15 @@ export function AdminUserManagement() {
           <Search className="pointer-events-none absolute right-4 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={effectiveSearch}
+            onChange={(e) => setLocalSearchQuery(e.target.value)}
             placeholder="جست‌وجو در نام، شماره موبایل، آدرس جیمیل، شهر، مدل دستگاه یا مهارت‌ها..."
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pr-11 pl-4 text-xs sm:text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/15"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pr-11 pl-4 text-xs sm:text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/15"
           />
-          {searchQuery && (
+          {effectiveSearch && (
             <button
-              onClick={() => setSearchQuery("")}
-              className="absolute left-3.5 p-1 text-slate-400 hover:text-slate-600"
+              onClick={() => setLocalSearchQuery("")}
+              className="absolute left-3.5 p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>
@@ -1086,7 +1096,7 @@ export function AdminUserManagement() {
               {/* TAB 4: RAW JSON DATA */}
               {inspectorTab === "JSON" && (
                 <div className="relative">
-                  <pre className="rounded-2xl bg-slate-950 p-4 text-[11px] font-mono text-emerald-400 overflow-x-auto dir-ltr text-left border border-slate-800 max-h-[300px]">
+                  <pre className="rounded-2xl bg-slate-50 p-4 text-[11px] font-mono text-slate-800 overflow-x-auto dir-ltr text-left border border-slate-200 max-h-[300px]">
                     {JSON.stringify(selectedUser, null, 2)}
                   </pre>
                   <button
@@ -1095,9 +1105,9 @@ export function AdminUserManagement() {
                       setCopiedId(true);
                       setTimeout(() => setCopiedId(false), 2000);
                     }}
-                    className="absolute top-3 right-3 flex items-center gap-1 rounded-lg bg-slate-800 px-2 py-1 text-[10px] text-slate-300 hover:text-white"
+                    className="absolute top-3 right-3 flex items-center gap-1 rounded-lg bg-white border border-slate-200 px-2 py-1 text-[10px] text-slate-600 hover:text-slate-900 shadow-xs cursor-pointer"
                   >
-                    {copiedId ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                    {copiedId ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
                     <span>کپی JSON</span>
                   </button>
                 </div>

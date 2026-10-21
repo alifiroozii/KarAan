@@ -23,8 +23,10 @@ const sql = postgres(process.env.DATABASE_URL || "postgresql://postgres:postgres
 });
 const realtimeSubscriber = new Redis(redisUrl, {
   lazyConnect: true,
-  maxRetriesPerRequest: null,
-  connectTimeout: 5_000,
+  maxRetriesPerRequest: 1,
+  connectTimeout: 3_000,
+  retryStrategy: () => (dev ? null : 3_000),
+  enableOfflineQueue: false,
 });
 
 function readCookie(cookieHeader, key) {

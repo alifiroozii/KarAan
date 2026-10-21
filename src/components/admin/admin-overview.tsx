@@ -140,15 +140,15 @@ export function AdminOverview() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-black text-slate-900">
-              داشبورد جامع مدیریت کاروین
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+              دیده‌بان کلان تله‌متری کارجور (Google Stitch Overview)
             </h2>
-            <span className="rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 text-[11px] font-bold">
-              نسخه ۲.۴
+            <span className="rounded-full bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 text-[11px] font-bold">
+              نسخه ۲.۵
             </span>
           </div>
           <p className="mt-1 text-xs text-slate-500">
-            مانیتورینگ لحظه‌ای کاربران لاگین‌کرده (کارجو، کارفرما و جیمیل) با قابلیت تطبیق مستقیم با اپ موبایل.
+            مانیتورینگ لحظه‌ای کاربران لاگین‌کرده (کارجو، کارفرما و جیمیل) با قابلیت تطبیق مستقیم با اپلیکیشن اندروید و سرورهای ورسل.
           </p>
         </div>
 
@@ -157,17 +157,9 @@ export function AdminOverview() {
             onClick={() => query.refetch()}
             className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 shadow-xs cursor-pointer"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${query.isFetching ? "animate-spin text-indigo-500" : ""}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${query.isFetching ? "animate-spin text-blue-600" : ""}`} />
             <span>بروزرسانی داده‌ها</span>
           </button>
-
-          <Link
-            href="/admin/users"
-            className="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3.5 py-2 text-xs font-bold text-white shadow-md shadow-indigo-600/25 transition cursor-pointer"
-          >
-            <span>مدیریت کامل کاربران</span>
-            <ArrowLeft className="h-3.5 w-3.5" />
-          </Link>
         </div>
       </div>
 
