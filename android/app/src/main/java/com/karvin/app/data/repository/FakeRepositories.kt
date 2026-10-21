@@ -40,8 +40,8 @@ import kotlinx.coroutines.SupervisorJob
 import java.time.LocalDateTime
 
 class FakeRepositoryStore(private val dao: KarvinDao? = null) {
-    val jobs = MutableStateFlow(FakeData.jobs)
-    val workers = MutableStateFlow(FakeData.workers)
+    val jobs = MutableStateFlow<List<Job>>(emptyList())
+    val workers = MutableStateFlow<List<User>>(emptyList())
     val applications = MutableStateFlow(FakeData.applications)
     val messages = MutableStateFlow(FakeData.messages)
     val notifications = MutableStateFlow(FakeData.notifications)
@@ -58,11 +58,7 @@ class FakeRepositoryStore(private val dao: KarvinDao? = null) {
         scope.launch {
             try {
                 val remoteJobs = com.karvin.app.core.network.MobileDashboardSync.fetchRemoteJobs()
-                if (remoteJobs.isNotEmpty()) {
-                    val current = jobs.value
-                    val combined = remoteJobs + current.filter { cur -> remoteJobs.none { it.id == cur.id } }
-                    jobs.value = combined
-                }
+                jobs.value = remoteJobs
             } catch (e: Exception) {
                 // Ignore initial network error
             }

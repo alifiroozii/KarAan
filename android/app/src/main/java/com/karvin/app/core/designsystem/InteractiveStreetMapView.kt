@@ -296,9 +296,7 @@ fun InteractiveStreetMapView(
                     }
                 }
 
-                // Layer 2: Authentic Snapp-Style CartoDB Positron High-Resolution Street Tiles
-                // Clean, light-gray vector look identical to Snapp & Uber, zero watermark, ultra-fast CDN
-                val tileCdnHosts = listOf("a", "b", "c")
+                // Layer 2: High-Resolution Street Raster Tiles from ArcGIS World Street Map (Zero API Key required)
                 for (tx in minTileX..maxTileX) {
                     for (ty in minTileY..maxTileY) {
                         if (tx in 0 until maxTiles && ty in 0 until maxTiles) {
@@ -306,9 +304,8 @@ fun InteractiveStreetMapView(
                             val tileTopPx = ((ty * 256.0 - cy) * scaleInTile + heightPx / 2.0).toFloat()
                             val tileSizePx = (256.0 * scaleInTile).toFloat()
 
-                            val cdn = tileCdnHosts[Math.abs(tx + ty) % tileCdnHosts.size]
-                            // Snapp CartoDB Positron path:
-                            val tileUrl = "https://$cdn.basemaps.cartocdn.com/light_all/$z/$tx/$ty.png"
+                            // ArcGIS path: /tile/{z}/{row-y}/{col-x}
+                            val tileUrl = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/$z/$ty/$tx"
 
                             key(tx, ty, z) {
                                 AsyncImage(

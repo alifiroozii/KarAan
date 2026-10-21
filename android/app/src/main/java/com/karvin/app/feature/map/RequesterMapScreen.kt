@@ -165,16 +165,38 @@ class RequesterMapViewModel @Inject constructor(
     }
 
     private fun loadData() {
-        val providers = FakeNearbyData.generateProviders(_state.value.userPoint)
-        val requests = FakeNearbyData.generateRequests(_state.value.userPoint)
-        _state.update {
-            it.copy(
-                providers = providers,
-                filteredProviders = filterProviders(providers, it.userPoint, it.filter),
-                requests = requests,
-                filteredRequests = filterRequests(requests, it.userPoint, it.filter),
-                loading = false,
-            )
+        viewModelScope.launch {
+            try {
+                val remoteJobs = com.karvin.app.core.network.MobileDashboardSync.fetchRemoteJobs()
+                val realRequests = remoteJobs.map { job ->
+                    NearbyServiceRequest(
+                        id = job.id,
+                        title = job.title,
+                        category = job.category,
+                        description = job.description,
+                        budget = job.amount,
+                        budgetLabel = "${job.amount} تومان",
+                        point = job.point,
+                        createdAt = job.date.toString(),
+                        isUrgent = job.isUrgent,
+                        requesterRating = 5.0,
+                        scheduledTime = "${job.date} ${job.startTime}",
+                        approximateAddress = job.address,
+                        requesterName = job.employer.name,
+                    )
+                }
+                _state.update { state ->
+                    state.copy(
+                        providers = emptyList(),
+                        filteredProviders = emptyList(),
+                        requests = realRequests,
+                        filteredRequests = filterRequests(realRequests, state.userPoint, state.filter),
+                        loading = false,
+                    )
+                }
+            } catch (e: Exception) {
+                _state.update { it.copy(loading = false) }
+            }
         }
     }
 
@@ -184,21 +206,39 @@ class RequesterMapViewModel @Inject constructor(
             when (result) {
                 is LocationResult.Available -> {
                     val point = result.point
-                    val providers = FakeNearbyData.generateProviders(point)
-                    val requests = FakeNearbyData.generateRequests(point)
-                    _state.update { state ->
-                        state.copy(
-                            userPoint = point,
-                            providers = providers,
-                            filteredProviders = filterProviders(providers, point, state.filter),
-                            requests = requests,
-                            filteredRequests = filterRequests(requests, point, state.filter),
-                            isLocating = false,
-                            gpsActive = true,
-                            loading = false,
-                        )
+                    viewModelScope.launch {
+                        val remoteJobs = com.karvin.app.core.network.MobileDashboardSync.fetchRemoteJobs()
+                        val realRequests = remoteJobs.map { job ->
+                            NearbyServiceRequest(
+                                id = job.id,
+                                title = job.title,
+                                category = job.category,
+                                description = job.description,
+                                budget = job.amount,
+                                budgetLabel = "${job.amount} تومان",
+                                point = job.point,
+                                createdAt = job.date.toString(),
+                                isUrgent = job.isUrgent,
+                                requesterRating = 5.0,
+                                scheduledTime = "${job.date} ${job.startTime}",
+                                approximateAddress = job.address,
+                                requesterName = job.employer.name,
+                            )
+                        }
+                        _state.update { state ->
+                            state.copy(
+                                userPoint = point,
+                                providers = emptyList(),
+                                filteredProviders = emptyList(),
+                                requests = realRequests,
+                                filteredRequests = filterRequests(realRequests, point, state.filter),
+                                isLocating = false,
+                                gpsActive = true,
+                                loading = false,
+                            )
+                        }
+                        onMoved?.invoke(point)
                     }
-                    onMoved?.invoke(point)
                 }
                 is LocationResult.Failed -> {
                     _state.update { it.copy(isLocating = false) }
@@ -272,16 +312,38 @@ class RequesterMapViewModel @Inject constructor(
     }
 
     fun searchAround(center: GeoPoint) {
-        val providers = FakeNearbyData.generateProviders(center)
-        val requests = FakeNearbyData.generateRequests(center)
-        _state.update {
-            it.copy(
-                userPoint = center,
-                providers = providers,
-                filteredProviders = filterProviders(providers, center, it.filter),
-                requests = requests,
-                filteredRequests = filterRequests(requests, center, it.filter),
-            )
+        viewModelScope.launch {
+            try {
+                val remoteJobs = com.karvin.app.core.network.MobileDashboardSync.fetchRemoteJobs()
+                val realRequests = remoteJobs.map { job ->
+                    NearbyServiceRequest(
+                        id = job.id,
+                        title = job.title,
+                        category = job.category,
+                        description = job.description,
+                        budget = job.amount,
+                        budgetLabel = "${job.amount} تومان",
+                        point = job.point,
+                        createdAt = job.date.toString(),
+                        isUrgent = job.isUrgent,
+                        requesterRating = 5.0,
+                        scheduledTime = "${job.date} ${job.startTime}",
+                        approximateAddress = job.address,
+                        requesterName = job.employer.name,
+                    )
+                }
+                _state.update {
+                    it.copy(
+                        userPoint = center,
+                        providers = emptyList(),
+                        filteredProviders = emptyList(),
+                        requests = realRequests,
+                        filteredRequests = filterRequests(realRequests, center, it.filter),
+                    )
+                }
+            } catch (e: Exception) {
+                _state.update { it.copy(userPoint = center) }
+            }
         }
     }
 }
