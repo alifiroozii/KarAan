@@ -130,7 +130,8 @@ object WebMercator {
 
 enum class MapStyleType(val title: String) {
     SNAPP_LIGHT("اسنپ مینیمال"),
-    ARCGIS_STREET("خیابان‌های تفصیلی")
+    ARCGIS_STREET("خیابان‌های تفصیلی"),
+    SATELLITE("تصاویر ماهواره‌ای")
 }
 
 @Composable
@@ -192,7 +193,7 @@ fun InteractiveStreetMapView(
                 ColorFilter.colorMatrix(
                     ColorMatrix().apply {
                         // Soft pastel desaturation matching Snapp minimal light aesthetic
-                        setToSaturation(0.40f)
+                        setToSaturation(0.65f)
                     }
                 )
             }
@@ -322,11 +323,13 @@ fun InteractiveStreetMapView(
 
                             val tileUrl = when (currentMapStyle) {
                                 MapStyleType.SNAPP_LIGHT -> {
-                                    val cdnSub = listOf("a", "b", "c")[(Math.abs(tx) + Math.abs(ty)) % 3]
-                                    "https://$cdnSub.tile.openstreetmap.org/$z/$tx/$ty.png"
+                                    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/$z/$ty/$tx"
                                 }
                                 MapStyleType.ARCGIS_STREET -> {
-                                    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/$z/$ty/$tx"
+                                    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/$z/$ty/$tx"
+                                }
+                                MapStyleType.SATELLITE -> {
+                                    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/$z/$ty/$tx"
                                 }
                             }
 
@@ -506,10 +509,10 @@ fun InteractiveStreetMapView(
                             .size(44.dp)
                             .clip(CircleShape)
                             .clickable {
-                                currentMapStyle = if (currentMapStyle == MapStyleType.SNAPP_LIGHT) {
-                                    MapStyleType.ARCGIS_STREET
-                                } else {
-                                    MapStyleType.SNAPP_LIGHT
+                                currentMapStyle = when (currentMapStyle) {
+                                    MapStyleType.SNAPP_LIGHT -> MapStyleType.ARCGIS_STREET
+                                    MapStyleType.ARCGIS_STREET -> MapStyleType.SATELLITE
+                                    MapStyleType.SATELLITE -> MapStyleType.SNAPP_LIGHT
                                 }
                             },
                     ) {
@@ -517,7 +520,11 @@ fun InteractiveStreetMapView(
                             Icon(
                                 Icons.Default.Layers,
                                 contentDescription = "تغییر لایه نقشه: ${currentMapStyle.title}",
-                                tint = if (currentMapStyle == MapStyleType.SNAPP_LIGHT) Color(0xFF05CD85) else MaterialTheme.colorScheme.primary,
+                                tint = when (currentMapStyle) {
+                                    MapStyleType.SNAPP_LIGHT -> Color(0xFF05CD85)
+                                    MapStyleType.ARCGIS_STREET -> Color(0xFF2563EB)
+                                    MapStyleType.SATELLITE -> Color(0xFFF59E0B)
+                                },
                                 modifier = Modifier.size(22.dp),
                             )
                         }
