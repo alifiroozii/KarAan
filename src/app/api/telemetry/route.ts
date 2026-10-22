@@ -1,12 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { z } from "zod";
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema/system";
 import { userRegistry } from "@/lib/user-registry";
 
+const telemetrySchema = z.object({
+  action: z.string().max(100).default("MOBILE_ACTIVITY"),
+  entityName: z.string().max(100).optional(),
+  entityId: z.string().max(200).optional(),
+  actorName: z.string().max(200).optional(),
+  fullName: z.string().max(200).optional(),
+  phone: z.string().max(30).optional(),
+  role: z.string().max(50).optional(),
+  userId: z.string().max(100).optional().nullable(),
+  platform: z.string().max(50).optional(),
+  deviceModel: z.string().max(200).optional(),
+  appVersion: z.string().max(50).optional(),
+  city: z.string().max(100).optional(),
+  lat: z.number().min(-90).max(90).optional().nullable(),
+  lng: z.number().min(-180).max(180).optional().nullable(),
+  speed: z.number().nonnegative().optional().nullable(),
+  details: z.record(z.any()).optional().nullable(),
+});
+
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const rawBody = await req.json().catch(() => null);
+    if (!rawBody || typeof rawBody !== "object") {
+      return NextResponse.json({ success: false, error: "ورودی نامعتبر است." }, { status: 400 });
+    }
+
+    const parseResult = telemetrySchema.safeParse(rawBody);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { success: false, error: "اعتبارسنجی داده‌ها ناموفق بود.", details: parseResult.error.format() },
+        { status: 400 }
+      );
+    }
+
+    const body = parseResult.data;
     const action = body.action || "MOBILE_ACTIVITY";
     const entityName = body.entityName || "mobile_app";
     const entityId = body.entityId || body.phone || body.userId || "anonymous_device";

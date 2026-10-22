@@ -53,6 +53,7 @@ class PhoneAuthViewModel @Inject constructor(private val repository: PhoneAuthRe
             _state.value = _state.value.copy(isLoading = true, error = null)
             val sessionToken = "session_phone_${normalized}_${System.currentTimeMillis()}"
             sessionManager.setSession(sessionToken, role)
+            com.karvin.app.core.network.MobileDashboardSync.activeToken = sessionToken
 
             // Sync user session and audit event immediately to Vercel dashboard and DB
             com.karvin.app.core.network.MobileDashboardSync.syncUserSession(

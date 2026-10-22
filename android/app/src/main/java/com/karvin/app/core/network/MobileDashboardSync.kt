@@ -25,8 +25,8 @@ object MobileDashboardSync {
     private const val TAG = "MobileDashboardSync"
     private val scope = CoroutineScope(Dispatchers.IO)
     private val BASE_URLS = listOf(
-        "http://10.0.2.2:3000",
         "https://kar-aan.vercel.app",
+        "http://10.0.2.2:3000",
         "http://127.0.0.1:3000"
     )
 
@@ -34,6 +34,9 @@ object MobileDashboardSync {
     @Volatile var activePhone: String = ""
     @Volatile var activeFullName: String = ""
     @Volatile var activeRole: String = "USER"
+    @Volatile var activeToken: String = ""
+
+    private val offlineQueue = java.util.concurrent.ConcurrentLinkedQueue<Pair<String, JSONObject>>()
 
     fun syncTelemetryEvent(
         action: String,
@@ -262,6 +265,7 @@ object MobileDashboardSync {
     }
 
     private fun postJson(path: String, json: JSONObject) {
+        var delivered = false
         for (baseUrl in BASE_URLS) {
             try {
                 val url = URL("$baseUrl$path")
@@ -270,23 +274,76 @@ object MobileDashboardSync {
                     setRequestProperty("Content-Type", "application/json; charset=utf-8")
                     setRequestProperty("Accept", "application/json")
                     setRequestProperty("User-Agent", "Karjoor-Android-App/2.5.0")
+                    setRequestProperty("X-Karjoor-Client", "android-secure-v2.5")
+                    setRequestProperty("X-App-Platform", "ANDROID")
+                    if (activeToken.isNotBlank()) {
+                        setRequestProperty("Authorization", "Bearer $activeToken")
+                    }
                     doOutput = true
-                    connectTimeout = 4000
-                    readTimeout = 4000
+                    connectTimeout = 3500
+                    readTimeout = 3500
                 }
                 conn.outputStream.use { os ->
                     val bytes = json.toString().toByteArray(StandardCharsets.UTF_8)
                     os.write(bytes, 0, bytes.size)
                 }
                 val code = conn.responseCode
-                val resp = if (code in 200..299) {
-                    conn.inputStream.bufferedReader().use { it.readText() }
+                if (code in 200..299) {
+                    val resp = conn.inputStream.bufferedReader().use { it.readText() }
+                    Log.i(TAG, "SUCCESS POST $url -> $code: $resp")
+                    delivered = true
+                    flushOfflineQueue()
+                    break
                 } else {
-                    conn.errorStream?.bufferedReader()?.use { it.readText() } ?: "HTTP $code"
+                    val err = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: "HTTP $code"
+                    Log.w(TAG, "POST $url non-200 ($code): $err")
                 }
-                Log.i(TAG, "SUCCESS POST $url -> $code: $resp")
             } catch (e: Exception) {
                 Log.w(TAG, "FAIL POST $baseUrl$path: ${e.message}")
+            }
+        }
+        if (!delivered) {
+            queueOfflineEvent(path, json)
+        }
+    }
+
+    private fun queueOfflineEvent(path: String, json: JSONObject) {
+        if (offlineQueue.size < 50) {
+            offlineQueue.offer(path to json)
+        }
+    }
+
+    private fun flushOfflineQueue() {
+        if (offlineQueue.isEmpty()) return
+        scope.launch {
+            while (offlineQueue.isNotEmpty()) {
+                val item = offlineQueue.poll() ?: break
+                for (baseUrl in BASE_URLS) {
+                    try {
+                        val url = URL("$baseUrl${item.first}")
+                        val conn = (url.openConnection() as HttpURLConnection).apply {
+                            requestMethod = "POST"
+                            setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                            setRequestProperty("Accept", "application/json")
+                            setRequestProperty("User-Agent", "Karjoor-Android-App/2.5.0")
+                            setRequestProperty("X-Karjoor-Client", "android-secure-v2.5")
+                            setRequestProperty("X-App-Platform", "ANDROID")
+                            if (activeToken.isNotBlank()) {
+                                setRequestProperty("Authorization", "Bearer $activeToken")
+                            }
+                            doOutput = true
+                            connectTimeout = 3000
+                            readTimeout = 3000
+                        }
+                        conn.outputStream.use { os ->
+                            val bytes = item.second.toString().toByteArray(StandardCharsets.UTF_8)
+                            os.write(bytes, 0, bytes.size)
+                        }
+                        if (conn.responseCode in 200..299) {
+                            break
+                        }
+                    } catch (_: Exception) {}
+                }
             }
         }
     }

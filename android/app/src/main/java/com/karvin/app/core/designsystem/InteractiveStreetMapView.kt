@@ -77,6 +77,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.material.icons.filled.Layers
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import coil3.compose.AsyncImage
 import com.karvin.app.domain.model.GeoPoint
 import com.karvin.app.domain.model.toPersianDigits
@@ -186,6 +188,14 @@ fun InteractiveStreetMapView(
             val maxTileY = floor(maxY / 256.0).toInt() + 1
 
             val maxTiles = 1 shl z
+            val snappPastelFilter = remember {
+                ColorFilter.colorMatrix(
+                    ColorMatrix().apply {
+                        // Soft pastel desaturation matching Snapp minimal light aesthetic
+                        setToSaturation(0.40f)
+                    }
+                )
+            }
 
             // Gesture handling Box
             Box(
@@ -312,8 +322,8 @@ fun InteractiveStreetMapView(
 
                             val tileUrl = when (currentMapStyle) {
                                 MapStyleType.SNAPP_LIGHT -> {
-                                    val cdnSub = listOf("a", "b", "c", "d")[(Math.abs(tx) + Math.abs(ty)) % 4]
-                                    "https://$cdnSub.basemaps.cartocdn.com/light_all/$z/$tx/$ty.png"
+                                    val cdnSub = listOf("a", "b", "c")[(Math.abs(tx) + Math.abs(ty)) % 3]
+                                    "https://$cdnSub.tile.openstreetmap.org/$z/$tx/$ty.png"
                                 }
                                 MapStyleType.ARCGIS_STREET -> {
                                     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/$z/$ty/$tx"
@@ -325,6 +335,7 @@ fun InteractiveStreetMapView(
                                     model = tileUrl,
                                     contentDescription = null,
                                     contentScale = ContentScale.FillBounds,
+                                    colorFilter = if (currentMapStyle == MapStyleType.SNAPP_LIGHT) snappPastelFilter else null,
                                     modifier = Modifier
                                         .offset { IntOffset(tileLeftPx.roundToInt(), tileTopPx.roundToInt()) }
                                         .size(with(density) { tileSizePx.toDp() }),

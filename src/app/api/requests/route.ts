@@ -1,5 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { userRegistry } from "@/lib/user-registry";
+
+const createRequestSchema = z.object({
+  userId: z.string().max(100).optional(),
+  userEmail: z.string().max(100).optional(),
+  userPhone: z.string().max(30).optional(),
+  fullName: z.string().max(150).optional(),
+  role: z.string().max(50).optional(),
+  title: z.string().min(2, "عنوان باید حداقل ۲ حرف باشد").max(200),
+  category: z.string().max(100).optional(),
+  budget: z.string().max(100).optional(),
+  city: z.string().max(100).optional(),
+  address: z.string().max(500).optional(),
+  details: z.string().max(2000).optional(),
+  deviceModel: z.string().max(200).optional(),
+  platform: z.enum(["ANDROID", "WEB", "IOS"]).optional(),
+});
 
 export async function GET() {
   try {
@@ -74,7 +91,23 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({}));
+    const rawBody = await req.json().catch(() => null);
+    if (!rawBody || typeof rawBody !== "object") {
+      return NextResponse.json(
+        { success: false, error: { message: "داده‌های ورودی نامعتبر است." } },
+        { status: 400 }
+      );
+    }
+
+    const parseResult = createRequestSchema.safeParse(rawBody);
+    if (!parseResult.success) {
+      const errorMsg = parseResult.error.errors[0]?.message || "اعتبارسنجی ورودی ناموفق بود.";
+      return NextResponse.json(
+        { success: false, error: { message: errorMsg, details: parseResult.error.format() } },
+        { status: 400 }
+      );
+    }
+
     const {
       userId,
       userEmail,
@@ -89,14 +122,7 @@ export async function POST(req: NextRequest) {
       details,
       deviceModel,
       platform,
-    } = body;
-
-    if (!title) {
-      return NextResponse.json(
-        { success: false, error: { message: "عنوان درخواست الزامی است." } },
-        { status: 400 }
-      );
-    }
+    } = parseResult.data;
 
     // Find or create the user in the registry
     let targetUser = await userRegistry.findUser({
