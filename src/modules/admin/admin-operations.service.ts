@@ -14,6 +14,7 @@ import {
 import { db } from "@/db";
 import { auditLogs, disputes, sessions, shifts, users } from "@/db/schema";
 import { AppError } from "@/lib/errors";
+import { userRegistry } from "@/lib/user-registry";
 import type { UserRole } from "@/modules/auth/auth.service";
 import { hasPermission } from "@/modules/auth/permissions";
 
@@ -77,8 +78,6 @@ function serializeUser(row: typeof users.$inferSelect) {
     updatedAt: row.updatedAt.toISOString(),
   };
 }
-
-import { userRegistry } from "@/lib/user-registry";
 
 export class AdminOperationsService {
   async getOverview(actorRole: UserRole) {
@@ -327,40 +326,95 @@ export class AdminOperationsService {
       );
     }
 
-    const rows = await db
-      .select({
-        id: auditLogs.id,
-        actorId: auditLogs.actorId,
-        actorName: users.fullName,
-        entityName: auditLogs.entityName,
-        entityId: auditLogs.entityId,
-        action: auditLogs.action,
-        details: auditLogs.details,
-        ipAddress: auditLogs.ipAddress,
-        timestamp: auditLogs.timestamp,
-      })
-      .from(auditLogs)
-      .leftJoin(users, eq(auditLogs.actorId, users.id))
-      .where(conditions.length ? and(...conditions) : undefined)
-      .orderBy(desc(auditLogs.timestamp), desc(auditLogs.id))
-      .limit(limit + 1);
+    // Resilient hybrid query: combines Postgres DB + live telemetry audit logs from userRegistry
+    let dbRows: any[] = [];
+    try {
+      dbRows = await db
+        .select({
+          id: auditLogs.id,
+          actorId: auditLogs.actorId,
+          actorName: users.fullName,
+          entityName: auditLogs.entityName,
+          entityId: auditLogs.entityId,
+          action: auditLogs.action,
+          details: auditLogs.details,
+          ipAddress: auditLogs.ipAddress,
+          timestamp: auditLogs.timestamp,
+        })
+        .from(auditLogs)
+        .leftJoin(users, eq(auditLogs.actorId, users.id))
+        .where(conditions.length ? and(...conditions) : undefined)
+        .orderBy(desc(auditLogs.timestamp), desc(auditLogs.id))
+        .limit(limit + 1);
+    } catch (err) {
+      console.warn("DB audit log select fallback:", err);
+    }
 
-    const hasMore = rows.length > limit;
-    const pageRows = rows.slice(0, limit);
+    // Merge in-memory telemetry logs
+    const memoryLogs = userRegistry.getTelemetryLogs();
+    const formattedMemoryLogs = memoryLogs.map((log) => ({
+      id: log.id,
+      actorId: log.userId,
+      actorName: log.actorName || (log.phone ? `کاربر ${log.phone}` : "کاربر سامانه"),
+      entityName: log.entityName,
+      entityId: log.entityId,
+      action: log.action,
+      details: redactSensitive(log.details),
+      ipAddress: log.ipAddress,
+      timestamp: log.timestamp,
+    }));
+
+    const seenIds = new Set<string>();
+    const allItems: any[] = [];
+
+    // Add telemetry logs first so real-time app events appear immediately
+    for (const item of formattedMemoryLogs) {
+      if (q) {
+        const qLower = q.toLowerCase();
+        const matchesQ =
+          item.action.toLowerCase().includes(qLower) ||
+          item.entityName.toLowerCase().includes(qLower) ||
+          item.entityId.toLowerCase().includes(qLower) ||
+          (item.actorName && item.actorName.toLowerCase().includes(qLower)) ||
+          JSON.stringify(item.details).toLowerCase().includes(qLower);
+        if (!matchesQ) continue;
+      }
+      if (input.action && !item.action.toLowerCase().includes(input.action.toLowerCase())) continue;
+      if (input.entityName && !item.entityName.toLowerCase().includes(input.entityName.toLowerCase())) continue;
+      if (input.actorId && item.actorId !== input.actorId) continue;
+
+      if (!seenIds.has(item.id)) {
+        seenIds.add(item.id);
+        allItems.push(item);
+      }
+    }
+
+    for (const row of dbRows) {
+      if (!seenIds.has(row.id)) {
+        seenIds.add(row.id);
+        allItems.push({
+          id: row.id,
+          actorId: row.actorId,
+          actorName: row.actorName || (row.details as Record<string, any>)?.actorName || null,
+          entityName: row.entityName,
+          entityId: row.entityId,
+          action: row.action,
+          details: redactSensitive(row.details),
+          ipAddress: row.ipAddress,
+          timestamp: row.timestamp instanceof Date ? row.timestamp.toISOString() : String(row.timestamp),
+        });
+      }
+    }
+
+    // Sort by timestamp descending
+    allItems.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    const hasMore = allItems.length > limit;
+    const pageRows = allItems.slice(0, limit);
     const last = pageRows[pageRows.length - 1];
     return {
-      items: pageRows.map((row) => ({
-        id: row.id,
-        actorId: row.actorId,
-        actorName: row.actorName || (row.details as Record<string, any>)?.actorName || null,
-        entityName: row.entityName,
-        entityId: row.entityId,
-        action: row.action,
-        details: redactSensitive(row.details),
-        ipAddress: row.ipAddress,
-        timestamp: row.timestamp.toISOString(),
-      })),
-      nextCursor: hasMore && last ? encodeCursor(last.timestamp, last.id) : null,
+      items: pageRows,
+      nextCursor: hasMore && last ? encodeCursor(new Date(last.timestamp), last.id) : null,
     };
   }
 }

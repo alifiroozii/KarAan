@@ -52,6 +52,20 @@ declare global {
   var __karaanDbTableInitialized: boolean | undefined;
   // eslint-disable-next-line no-var
   var __karaanLastCloudSync: number | undefined;
+  // eslint-disable-next-line no-var
+  var __karaanTelemetryLogs: Array<{
+    id: string;
+    userId: string | null;
+    actorName: string;
+    phone?: string;
+    role?: string;
+    action: string;
+    entityName: string;
+    entityId: string;
+    details: Record<string, any>;
+    ipAddress: string;
+    timestamp: string;
+  }> | undefined;
 }
 
 const CLOUD_SYNC_URL = "https://api.restful-api.dev/objects/ff808181a09d98f701a15b07dfaa33b8";
@@ -462,6 +476,130 @@ export class UserRegistryService {
     }
 
     return { user: userResult, token };
+  }
+
+  /**
+   * Register or log in a user with mobile phone credentials & telemetry (Zero OTP required).
+   * Ensures that EVERY user action is immediately tied to a registered profile.
+   */
+  async registerOrLoginPhone(input: {
+    phone: string;
+    fullName?: string;
+    role?: UserRole;
+    platform?: "ANDROID" | "WEB" | "IOS";
+    deviceModel?: string;
+    appVersion?: string;
+    ipAddress?: string;
+    skills?: string[];
+    city?: string;
+    notes?: string;
+  }): Promise<{ user: RegisteredUser; token: string }> {
+    await syncFromCloudStore();
+    const phone = input.phone.trim();
+    const fullName = input.fullName?.trim() || `کاربر ${phone}`;
+    const role: UserRole = input.role || "EMPLOYER";
+    const platform = input.platform || "ANDROID";
+    const store = getMemoryStore();
+
+    let existingUser: RegisteredUser | undefined;
+    for (const u of store.values()) {
+      if (u.phone === phone) {
+        existingUser = u;
+        break;
+      }
+    }
+
+    const nowIso = new Date().toISOString();
+    let userResult: RegisteredUser;
+
+    if (existingUser) {
+      existingUser.lastLoginAt = nowIso;
+      existingUser.platform = platform;
+      if (input.fullName && input.fullName.trim() && existingUser.fullName.startsWith("کاربر ")) {
+        existingUser.fullName = input.fullName.trim();
+      }
+      if (input.deviceModel) existingUser.deviceModel = input.deviceModel;
+      if (input.appVersion) existingUser.appVersion = input.appVersion;
+      if (input.ipAddress) existingUser.ipAddress = input.ipAddress;
+      if (input.city) existingUser.city = input.city;
+      if (input.role) existingUser.role = input.role;
+      if (input.notes) existingUser.notes = input.notes;
+      store.set(existingUser.id, existingUser);
+      userResult = existingUser;
+    } else {
+      const newUserId = `usr_${crypto.randomUUID()}`;
+      userResult = {
+        id: newUserId,
+        fullName,
+        email: `${phone}@karaan.ir`,
+        phone,
+        role,
+        avatarUrl: null,
+        platform,
+        deviceModel: input.deviceModel || (platform === "ANDROID" ? "Android Device (Mobile App)" : "Web Browser"),
+        appVersion: input.appVersion || "KARJOOR v2.5.0",
+        ipAddress: input.ipAddress || "127.0.0.1",
+        isVerified: true,
+        isBlocked: false,
+        provider: "PHONE_OTP",
+        createdAt: nowIso,
+        lastLoginAt: nowIso,
+        city: input.city || "تهران",
+        skills: input.skills || [],
+        submittedRequests: [],
+        notes: input.notes || "ثبت‌نام مستقیم با شماره موبایل",
+      };
+      store.set(newUserId, userResult);
+    }
+
+    const token = `karvin_${crypto.randomBytes(32).toString("hex")}`;
+    await pushToCloudStore();
+
+    return { user: userResult, token };
+  }
+
+  /**
+   * Record a live telemetry event from mobile app into in-memory & cloud audit store.
+   */
+  async recordTelemetryLog(entry: {
+    userId?: string | null;
+    actorName: string;
+    phone?: string;
+    role?: string;
+    action: string;
+    entityName?: string;
+    entityId?: string;
+    details: Record<string, any>;
+    ipAddress?: string;
+  }) {
+    if (!globalThis.__karaanTelemetryLogs) {
+      globalThis.__karaanTelemetryLogs = [];
+    }
+    const logItem = {
+      id: `aud_${crypto.randomUUID().slice(0, 16)}`,
+      userId: entry.userId || null,
+      actorName: entry.actorName,
+      phone: entry.phone,
+      role: entry.role,
+      action: entry.action,
+      entityName: entry.entityName || "mobile_app",
+      entityId: entry.entityId || entry.phone || "anonymous_device",
+      details: entry.details,
+      ipAddress: entry.ipAddress || "127.0.0.1",
+      timestamp: new Date().toISOString(),
+    };
+    globalThis.__karaanTelemetryLogs.unshift(logItem);
+    if (globalThis.__karaanTelemetryLogs.length > 200) {
+      globalThis.__karaanTelemetryLogs.pop();
+    }
+    return logItem;
+  }
+
+  /**
+   * Get all live telemetry audit logs from memory.
+   */
+  getTelemetryLogs() {
+    return globalThis.__karaanTelemetryLogs || [];
   }
 
   /**

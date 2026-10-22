@@ -12,6 +12,7 @@ import {
   Building2,
   Mail,
   Smartphone,
+  Phone,
   Globe,
   CheckCircle2,
   ArrowLeft,
@@ -109,12 +110,12 @@ export function AdminOverview() {
       bg: "bg-emerald-50 border-emerald-200",
     },
     {
-      label: "لاگین با حساب گوگل (Gmail)",
-      value: data.gmailUsers ?? Math.max(3, Math.floor(data.totalUsers * 0.7)),
-      sub: "احراز هویت سریع با جیمیل",
-      Icon: Mail,
-      color: "text-rose-600",
-      bg: "bg-rose-50 border-rose-200",
+      label: "ثبت‌نام مستقیم با شماره موبایل",
+      value: data.totalUsers,
+      sub: "احراز هویت سریع بدون کد پیامک",
+      Icon: Phone,
+      color: "text-emerald-600",
+      bg: "bg-emerald-50 border-emerald-200",
     },
     {
       label: "کاربران اپلیکیشن موبایل (Mobile)",
@@ -148,7 +149,7 @@ export function AdminOverview() {
             </span>
           </div>
           <p className="mt-1 text-xs text-slate-500">
-            مانیتورینگ لحظه‌ای کاربران لاگین‌کرده (کارجو، کارفرما و جیمیل) با قابلیت تطبیق مستقیم با اپلیکیشن اندروید و سرورهای ورسل.
+            مانیتورینگ لحظه‌ای کاربران لاگین‌کرده (کارجو، کارفرما و متقاضی) با قابلیت تطبیق مستقیم با اپلیکیشن اندروید و سرورهای ورسل.
           </p>
         </div>
 
@@ -198,10 +199,10 @@ export function AdminOverview() {
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900">
-                فید لحظه‌ای کاربران لاگین‌کرده (جیمیل و موبایل)
+                فید لحظه‌ای کاربران لاگین‌کرده (شماره همراه و اپلیکیشن)
               </h3>
               <p className="text-[11px] text-slate-500">
-                افرادی که با جیمیل یا اپلیکیشن اندروید وارد شده‌اند به‌صورت بلادرنگ در اینجا نمایش داده می‌شوند.
+                افرادی که با شماره همراه یا اپلیکیشن اندروید وارد شده‌اند به‌صورت بلادرنگ در اینجا نمایش داده می‌شوند.
               </p>
             </div>
           </div>
@@ -213,7 +214,7 @@ export function AdminOverview() {
 
         {recents.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-500">
-            هنوز کاربری ثبت نشده است. کاربران جدید با لاگین از طریق جیمیل یا اپ اینجا اضافه می‌شوند.
+            هنوز کاربری ثبت نشده است. کاربران جدید با لاگین از طریق شماره همراه یا اپ اینجا اضافه می‌شوند.
           </div>
         ) : (
           <div className="overflow-x-auto rounded-2xl border border-slate-200">
@@ -222,7 +223,7 @@ export function AdminOverview() {
                 <tr className="border-b border-slate-200 bg-slate-50 text-slate-600">
                   <th className="py-3 px-3 font-semibold">کاربر / نام و نشان</th>
                   <th className="py-3 px-3 font-semibold">نقش در سامانه</th>
-                  <th className="py-3 px-3 font-semibold">حساب کاربری (جیمیل / شماره)</th>
+                  <th className="py-3 px-3 font-semibold">شماره تماس (احراز مستقیم)</th>
                   <th className="py-3 px-3 font-semibold">پلتفرم ورودی</th>
                   <th className="py-3 px-3 font-semibold">وضعیت حساب</th>
                   <th className="py-3 px-3 font-semibold">زمان آخرین ورود</th>
@@ -274,22 +275,20 @@ export function AdminOverview() {
                         )}
                       </td>
 
-                      {/* Email / Gmail & Phone */}
+                      {/* Phone & Direct Auth */}
                       <td className="py-3.5 px-3">
                         <div className="space-y-0.5">
-                          {isGmail ? (
-                            <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-800">
-                              <span className="rounded bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.2 text-[9px] font-bold">
-                                Gmail
-                              </span>
-                              <span>{user.email}</span>
-                            </div>
-                          ) : (
-                            <span className="text-slate-400 text-[11px]">بدون جیمیل</span>
+                          <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-800 font-bold">
+                            <span className="rounded bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 text-[9px] font-bold">
+                              موبایل
+                            </span>
+                            <span>{user.phone || "بدون شماره"}</span>
+                          </div>
+                          {user.email && (
+                            <span className="block text-[10px] text-slate-400 font-mono">
+                              {user.email}
+                            </span>
                           )}
-                          <span className="block text-[10px] text-slate-500 font-mono">
-                            {user.phone}
-                          </span>
                         </div>
                       </td>
 

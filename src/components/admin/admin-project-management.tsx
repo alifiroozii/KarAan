@@ -248,10 +248,9 @@ export function AdminProjectManagement() {
   });
 
   const kanbanColumns = [
-    { key: "ACTIVE", title: "🆕 جدید و در انتظار تایید", items: projects.filter((p) => p.status === "ACTIVE") },
-    { key: "APPROVED", title: "✅ تایید شده و اعزام", items: projects.filter((p) => p.status === "APPROVED" || p.status === "ACCEPTED") },
-    { key: "IN_PROGRESS", title: "⚡ در حال اجرا (امانی)", items: projects.filter((p) => p.status === "IN_PROGRESS") },
-    { key: "COMPLETED", title: "🎉 تکمیل و تسویه شده", items: projects.filter((p) => p.status === "COMPLETED") },
+    { key: "ACTIVE", title: "🚀 فعال و زنده روی نقشه (ثبت مستقیم)", items: projects.filter((p) => p.status === "ACTIVE" || p.status === "APPROVED" || p.status === "ACCEPTED") },
+    { key: "IN_PROGRESS", title: "⚡ در حال اجرا با متخصص", items: projects.filter((p) => p.status === "IN_PROGRESS") },
+    { key: "COMPLETED", title: "🎉 تکمیل و پایان یافته", items: projects.filter((p) => p.status === "COMPLETED") },
   ];
 
   return (
@@ -292,21 +291,21 @@ export function AdminProjectManagement() {
           <p className="mt-1 text-[11px] text-emerald-600 font-medium">سپرده در حساب امانی کارجور (Escrow)</p>
         </div>
 
-        {/* Pending Review Card */}
-        <div className="relative overflow-hidden rounded-2xl border border-amber-100 bg-gradient-to-br from-white to-amber-50/40 p-5 shadow-xs">
+        {/* Direct Auto-Active Card (Zero approval delays) */}
+        <div className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50/40 p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">در انتظار بررسی و نظارت</span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-xs">
-              <Clock className="h-5 w-5" />
+            <span className="text-xs font-bold text-slate-500">سفارشات زنده و تایید خودکار</span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
+              <CheckCircle2 className="h-5 w-5" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-amber-900 tracking-tight">
-              {metrics.pendingReview.toLocaleString("fa-IR")}
+            <span className="text-3xl font-black text-emerald-900 tracking-tight">
+              {(metrics.approvedAndMatching + metrics.pendingReview).toLocaleString("fa-IR")}
             </span>
-            <span className="text-xs font-bold text-amber-700">نیاز به اقدام</span>
+            <span className="text-xs font-bold text-emerald-700">۱۰۰٪ فعال روی نقشه</span>
           </div>
-          <p className="mt-1 text-[11px] text-slate-500">درخواست‌های تازه جهت تایید صلاحیت و تخصیص</p>
+          <p className="mt-1 text-[11px] text-emerald-600">ثبت مستقیم با موبایل بدون نیاز به تایید دستی</p>
         </div>
 
         {/* Active & In Progress Card */}
@@ -570,32 +569,26 @@ export function AdminProjectManagement() {
                       className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-700 transition cursor-pointer shadow-2xs"
                     >
                       <Eye className="h-3.5 w-3.5" />
-                      <span>جزئیات</span>
+                      <span>جزئیات و لاگ</span>
                     </button>
 
-                    {proj.status === "ACTIVE" && (
-                      <button
-                        onClick={() =>
-                          updateStatusMutation.mutate({ id: proj.id, status: "APPROVED" })
-                        }
-                        disabled={updateStatusMutation.isPending}
-                        className="flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-blue-700 transition cursor-pointer shadow-xs disabled:opacity-50"
-                      >
-                        <Check className="h-3.5 w-3.5" />
-                        <span>تایید</span>
-                      </button>
+                    {(proj.status === "ACTIVE" || proj.status === "APPROVED") && (
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200/80 px-2 py-1 text-[11px] font-bold text-emerald-700">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        فعال روی نقشه
+                      </span>
                     )}
 
-                    {proj.status === "APPROVED" && (
+                    {proj.status === "IN_PROGRESS" && (
                       <button
                         onClick={() =>
-                          updateStatusMutation.mutate({ id: proj.id, status: "IN_PROGRESS" })
+                          updateStatusMutation.mutate({ id: proj.id, status: "COMPLETED" })
                         }
                         disabled={updateStatusMutation.isPending}
-                        className="flex items-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-indigo-700 transition cursor-pointer shadow-xs disabled:opacity-50"
+                        className="flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition cursor-pointer shadow-xs disabled:opacity-50"
                       >
-                        <Sparkles className="h-3.5 w-3.5" />
-                        <span>اعزام</span>
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <span>تسویه</span>
                       </button>
                     )}
 
@@ -730,35 +723,14 @@ export function AdminProjectManagement() {
                             title="مشاهده جزییات کامل و تله‌متری"
                           >
                             <Eye className="h-3 w-3" />
-                            <span>جزییات</span>
+                            <span>جزییات و لاگ</span>
                           </button>
 
-                          {proj.status === "ACTIVE" && (
-                            <button
-                              onClick={() =>
-                                updateStatusMutation.mutate({ id: proj.id, status: "APPROVED" })
-                              }
-                              disabled={updateStatusMutation.isPending}
-                              className="flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-blue-700 transition cursor-pointer shadow-xs disabled:opacity-50"
-                              title="تایید فوری پروژه"
-                            >
-                              <Check className="h-3 w-3" />
-                              <span>تایید</span>
-                            </button>
-                          )}
-
-                          {proj.status === "APPROVED" && (
-                            <button
-                              onClick={() =>
-                                updateStatusMutation.mutate({ id: proj.id, status: "IN_PROGRESS" })
-                              }
-                              disabled={updateStatusMutation.isPending}
-                              className="flex items-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-indigo-700 transition cursor-pointer shadow-xs disabled:opacity-50"
-                              title="شروع پروژه و اعزام متخصص"
-                            >
-                              <Sparkles className="h-3 w-3" />
-                              <span>اعزام</span>
-                            </button>
+                          {(proj.status === "ACTIVE" || proj.status === "APPROVED") && (
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200/80 px-2 py-1 text-[11px] font-bold text-emerald-700">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              فعال زنده
+                            </span>
                           )}
 
                           {proj.status === "IN_PROGRESS" && (
@@ -905,20 +877,13 @@ export function AdminProjectManagement() {
             {/* Actions & Status Changer */}
             <div className="border-t border-slate-100 pt-4 flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs font-bold text-slate-500">تغییر وضعیت مستقیم:</span>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {selectedProject.status !== "APPROVED" && (
-                  <button
-                    onClick={() =>
-                      updateStatusMutation.mutate({ id: selectedProject.id, status: "APPROVED" })
-                    }
-                    disabled={updateStatusMutation.isPending}
-                    className="rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700 transition cursor-pointer shadow-xs disabled:opacity-50"
-                  >
-                    تایید پروژه
-                  </button>
-                )}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-bold text-emerald-800">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  ثبت مستقیم و فعال خودکار در سامانه (بدون نیاز به تایید دستی)
+                </span>
 
-                {selectedProject.status !== "IN_PROGRESS" && (
+                {selectedProject.status !== "IN_PROGRESS" && selectedProject.status !== "COMPLETED" && (
                   <button
                     onClick={() =>
                       updateStatusMutation.mutate({ id: selectedProject.id, status: "IN_PROGRESS" })
@@ -939,18 +904,6 @@ export function AdminProjectManagement() {
                     className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition cursor-pointer shadow-xs disabled:opacity-50"
                   >
                     تکمیل و تسویه
-                  </button>
-                )}
-
-                {selectedProject.status !== "CANCELLED" && (
-                  <button
-                    onClick={() =>
-                      updateStatusMutation.mutate({ id: selectedProject.id, status: "CANCELLED" })
-                    }
-                    disabled={updateStatusMutation.isPending}
-                    className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100 transition cursor-pointer disabled:opacity-50"
-                  >
-                    لغو / مسدودسازی
                   </button>
                 )}
               </div>

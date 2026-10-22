@@ -128,6 +128,29 @@ export async function POST(req: NextRequest) {
       details,
     });
 
+    // Auto-record in telemetry audit logs
+    try {
+      await userRegistry.recordTelemetryLog({
+        userId: targetUser.id,
+        actorName: targetUser.fullName,
+        phone: targetUser.phone,
+        role: targetUser.role,
+        action: "ORDER_SUBMITTED",
+        entityName: "service_request",
+        entityId: created?.id || "req_direct",
+        details: {
+          title,
+          category: category || "فنی و تخصصی",
+          budget: budget || "توافقی",
+          city: city || targetUser.city || "تهران",
+          address: address || "تهران",
+          event: "ثبت مستقیم درخواست کار و انتشار بدون معطلی روی نقشه",
+        },
+      });
+    } catch (e) {
+      console.warn("Telemetry log record warning:", e);
+    }
+
     return NextResponse.json({
       success: true,
       message: "درخواست کار با موفقیت ثبت شد و به پنل مدیریت ارسال گردید.",

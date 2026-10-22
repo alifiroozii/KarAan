@@ -126,6 +126,11 @@ object WebMercator {
     }
 }
 
+enum class MapStyleType(val title: String) {
+    SNAPP_LIGHT("اسنپ مینیمال"),
+    ARCGIS_STREET("خیابان‌های تفصیلی")
+}
+
 @Composable
 fun InteractiveStreetMapView(
     modifier: Modifier = Modifier,
@@ -145,6 +150,7 @@ fun InteractiveStreetMapView(
     var zoomLevel by remember { mutableFloatStateOf(initialZoom) }
     var currentLat by remember(centerPoint.latitude) { mutableDoubleStateOf(centerPoint.latitude) }
     var currentLng by remember(centerPoint.longitude) { mutableDoubleStateOf(centerPoint.longitude) }
+    var currentMapStyle by remember { mutableStateOf(MapStyleType.SNAPP_LIGHT) }
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -296,7 +302,7 @@ fun InteractiveStreetMapView(
                     }
                 }
 
-                // Layer 2: High-Resolution Street Raster Tiles from ArcGIS World Street Map (Zero API Key required)
+                // Layer 2: High-Resolution Street Raster Tiles (Snapp Minimal Light via CartoDB Positron / ArcGIS World Street)
                 for (tx in minTileX..maxTileX) {
                     for (ty in minTileY..maxTileY) {
                         if (tx in 0 until maxTiles && ty in 0 until maxTiles) {
@@ -304,10 +310,17 @@ fun InteractiveStreetMapView(
                             val tileTopPx = ((ty * 256.0 - cy) * scaleInTile + heightPx / 2.0).toFloat()
                             val tileSizePx = (256.0 * scaleInTile).toFloat()
 
-                            // ArcGIS path: /tile/{z}/{row-y}/{col-x}
-                            val tileUrl = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/$z/$ty/$tx"
+                            val tileUrl = when (currentMapStyle) {
+                                MapStyleType.SNAPP_LIGHT -> {
+                                    val cdnSub = listOf("a", "b", "c", "d")[(Math.abs(tx) + Math.abs(ty)) % 4]
+                                    "https://$cdnSub.basemaps.cartocdn.com/light_all/$z/$tx/$ty.png"
+                                }
+                                MapStyleType.ARCGIS_STREET -> {
+                                    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/$z/$ty/$tx"
+                                }
+                            }
 
-                            key(tx, ty, z) {
+                            key(tx, ty, z, currentMapStyle) {
                                 AsyncImage(
                                     model = tileUrl,
                                     contentDescription = null,
@@ -426,12 +439,12 @@ fun InteractiveStreetMapView(
                         contentAlignment = Alignment.Center,
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            // Pin Head
+                            // Pin Head (Snapp Iconic Emerald Pin)
                             Surface(
                                 shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primary,
-                                shadowElevation = 8.dp,
-                                border = androidx.compose.foundation.BorderStroke(2.dp, Color.White),
+                                color = Color(0xFF05CD85),
+                                shadowElevation = 10.dp,
+                                border = androidx.compose.foundation.BorderStroke(2.5.dp, Color.White),
                                 modifier = Modifier.size(46.dp),
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
@@ -447,15 +460,15 @@ fun InteractiveStreetMapView(
                             Box(
                                 modifier = Modifier
                                     .width(3.dp)
-                                    .height(12.dp)
-                                    .background(MaterialTheme.colorScheme.primary),
+                                    .height(10.dp)
+                                    .background(Color(0xFF05CD85)),
                             )
-                            // Pin Ground Shadow Reticle
+                            // Pin Ground Shadow Reticle & Pulse Halo (Snapp Style)
                             Box(
                                 modifier = Modifier
-                                    .size(12.dp, 6.dp)
+                                    .size(16.dp, 8.dp)
                                     .clip(CircleShape)
-                                    .background(Color.Black.copy(alpha = 0.35f)),
+                                    .background(Color(0xFF05CD85).copy(alpha = 0.45f)),
                             )
                         }
                     }
@@ -472,7 +485,7 @@ fun InteractiveStreetMapView(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    // Layer / scale toggle button
+                    // Map Style Layer Switcher (Snapp Minimal Light <-> ArcGIS Detailed)
                     Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
@@ -482,15 +495,19 @@ fun InteractiveStreetMapView(
                             .size(44.dp)
                             .clip(CircleShape)
                             .clickable {
-                                zoomLevel = if (zoomLevel > 14.8f) 13.5f else 15.8f
+                                currentMapStyle = if (currentMapStyle == MapStyleType.SNAPP_LIGHT) {
+                                    MapStyleType.ARCGIS_STREET
+                                } else {
+                                    MapStyleType.SNAPP_LIGHT
+                                }
                             },
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Default.Layers,
-                                contentDescription = "تغییر مقیاس",
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(20.dp),
+                                contentDescription = "تغییر لایه نقشه: ${currentMapStyle.title}",
+                                tint = if (currentMapStyle == MapStyleType.SNAPP_LIGHT) Color(0xFF05CD85) else MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp),
                             )
                         }
                     }

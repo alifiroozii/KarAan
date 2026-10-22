@@ -29,7 +29,38 @@ export async function POST(req: NextRequest) {
       timestamp: new Date().toISOString(),
     };
 
-    // 1. Persist to Postgres database audit_logs table
+    // 1. Record in userRegistry telemetry logs & ensure user exists in directory
+    await userRegistry.recordTelemetryLog({
+      userId: body.userId || null,
+      actorName,
+      phone: body.phone,
+      role: body.role,
+      action,
+      entityName,
+      entityId,
+      details,
+      ipAddress,
+    });
+
+    if (body.phone) {
+      try {
+        await userRegistry.registerOrLoginPhone({
+          phone: body.phone,
+          fullName: body.fullName || body.actorName,
+          role: body.role === "PROVIDER" ? "WORKER" : "EMPLOYER",
+          platform: (body.platform as any) || "ANDROID",
+          deviceModel: body.deviceModel,
+          appVersion: body.appVersion,
+          ipAddress,
+          city: body.city || "تهران",
+          notes: body.lat && body.lng ? `مختصات زنده: ${body.lat.toFixed(4)}, ${body.lng.toFixed(4)}` : undefined,
+        });
+      } catch (regErr) {
+        console.warn("User registry auto-register fallback:", regErr);
+      }
+    }
+
+    // 2. Persist to Postgres database audit_logs table
     try {
       await db.insert(auditLogs).values({
         id: `aud_${crypto.randomUUID().slice(0, 16)}`,
@@ -44,21 +75,6 @@ export async function POST(req: NextRequest) {
     } catch (dbErr) {
       // In case Postgres is sleeping, log error but proceed with cloud memory store
       console.warn("DB audit insert fallback:", dbErr);
-    }
-
-    // 2. If coordinates are provided, update user in memory registry
-    if (body.phone) {
-      try {
-        const found = await userRegistry.findUser({ phone: body.phone });
-        if (found) {
-          found.lastLoginAt = new Date().toISOString();
-          if (body.lat && body.lng) {
-            found.notes = `موقعیت: ${body.lat.toFixed(4)}, ${body.lng.toFixed(4)} | سرعت: ${body.speed || 0}`;
-          }
-        }
-      } catch {
-        // Non-blocking
-      }
     }
 
     return NextResponse.json({

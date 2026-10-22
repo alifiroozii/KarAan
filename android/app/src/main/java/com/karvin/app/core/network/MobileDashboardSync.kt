@@ -31,6 +31,9 @@ object MobileDashboardSync {
     )
 
     private var lastLocationSyncTime: Long = 0L
+    @Volatile var activePhone: String = ""
+    @Volatile var activeFullName: String = ""
+    @Volatile var activeRole: String = "USER"
 
     fun syncTelemetryEvent(
         action: String,
@@ -44,13 +47,21 @@ object MobileDashboardSync {
     ) {
         scope.launch {
             try {
+                val effectivePhone = if (phone.isNotBlank()) phone else activePhone
+                val effectiveName = if (fullName.isNotBlank()) fullName else {
+                    if (activeFullName.isNotBlank()) activeFullName
+                    else if (effectivePhone.isNotBlank()) "کاربر $effectivePhone"
+                    else "کاربر اندروید"
+                }
+                val effectiveRole = if (role.isNotBlank() && role != "USER") role else activeRole
+
                 val json = JSONObject().apply {
                     put("action", action)
                     put("entityName", "android_mobile")
-                    put("entityId", phone.ifBlank { "device_${Build.MODEL}" })
-                    put("phone", phone)
-                    put("actorName", fullName.ifBlank { if (phone.isNotBlank()) "کاربر $phone" else "کاربر اندروید" })
-                    put("role", role)
+                    put("entityId", effectivePhone.ifBlank { "device_${Build.MODEL}" })
+                    put("phone", effectivePhone)
+                    put("actorName", effectiveName)
+                    put("role", effectiveRole)
                     put("platform", "ANDROID")
                     put("deviceModel", "${Build.MANUFACTURER} ${Build.MODEL}")
                     put("appVersion", "KARJOOR v2.5")
@@ -71,6 +82,8 @@ object MobileDashboardSync {
     }
 
     fun syncAppLaunch(phone: String = "", role: String = "USER") {
+        if (phone.isNotBlank()) activePhone = phone
+        if (role.isNotBlank()) activeRole = role
         syncTelemetryEvent(
             action = "APP_LAUNCH",
             phone = phone,
@@ -88,10 +101,15 @@ object MobileDashboardSync {
         if (now - lastLocationSyncTime < 4000L) return
         lastLocationSyncTime = now
 
+        val effectivePhone = if (phone.isNotBlank()) phone else activePhone
+        val effectiveRole = if (role.isNotBlank() && role != "USER") role else activeRole
+        val effectiveName = if (activeFullName.isNotBlank()) activeFullName else if (effectivePhone.isNotBlank()) "کاربر $effectivePhone" else "کاربر اندروید"
+
         syncTelemetryEvent(
             action = "LOCATION_UPDATE",
-            phone = phone,
-            role = role,
+            phone = effectivePhone,
+            fullName = effectiveName,
+            role = effectiveRole,
             lat = lat,
             lng = lng,
             speed = speed,
@@ -106,10 +124,13 @@ object MobileDashboardSync {
     fun syncUserLogout(phone: String = "", role: String = "USER") {
         syncTelemetryEvent(
             action = "USER_LOGOUT",
-            phone = phone,
-            role = role,
+            phone = phone.ifBlank { activePhone },
+            role = role.ifBlank { activeRole },
             details = mapOf("event" to "خروج از حساب کاربری برای تغییر نقش یا جابجایی")
         )
+        activePhone = ""
+        activeFullName = ""
+        activeRole = "USER"
     }
 
     fun syncUserSession(
@@ -131,6 +152,9 @@ object MobileDashboardSync {
             val determinedName = fullName.trim().ifBlank {
                 if (determinedPhone.isNotBlank()) "کاربر $determinedPhone" else "کاربر کارجور"
             }
+            activePhone = determinedPhone
+            activeFullName = determinedName
+            activeRole = role
             val json = JSONObject().apply {
                 put("fullName", determinedName)
                 put("phone", determinedPhone)

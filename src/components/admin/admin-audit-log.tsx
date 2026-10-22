@@ -87,7 +87,7 @@ export function AdminAuditLog() {
           <input
             value={q}
             onChange={(event) => setQ(event.target.value)}
-            placeholder="جستجو در اکشن، موجودیت یا شناسه کاربر..."
+            placeholder="جستجو در اکشن، موجودیت، شماره موبایل یا شناسه کاربر..."
             className="w-full bg-transparent outline-none placeholder-slate-400"
           />
         </label>
@@ -107,6 +107,31 @@ export function AdminAuditLog() {
         />
       </div>
 
+      {/* Quick Filter Chips */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+        <span className="text-slate-400 font-bold text-[11px] whitespace-nowrap">فیلتر فوری:</span>
+        {[
+          { label: "همه رویدادها", act: "" },
+          { label: "📱 ورود به اپ (APP_LAUNCH)", act: "APP_LAUNCH" },
+          { label: "🔑 لاگین موبایل (USER_LOGIN_PHONE)", act: "USER_LOGIN_PHONE" },
+          { label: "📍 موقعیت GPS (LOCATION_UPDATE)", act: "LOCATION_UPDATE" },
+          { label: "💼 ثبت سفارش (ORDER_SUBMITTED)", act: "ORDER_SUBMITTED" },
+          { label: "🚪 خروج از حساب (USER_LOGOUT)", act: "USER_LOGOUT" },
+        ].map((chip) => (
+          <button
+            key={chip.act}
+            onClick={() => setAction(chip.act)}
+            className={`whitespace-nowrap rounded-xl px-3 py-1.5 font-bold transition cursor-pointer text-xs ${
+              action === chip.act
+                ? "bg-blue-600 text-white shadow-xs"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            {chip.label}
+          </button>
+        ))}
+      </div>
+
       {/* Error state */}
       {query.isError && (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-700">
@@ -123,12 +148,25 @@ export function AdminAuditLog() {
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="rounded-lg bg-blue-50 border border-blue-200 px-2.5 py-1 font-mono text-xs font-bold text-blue-700">
                     {item.action}
                   </span>
-                  <span className="text-xs font-bold text-slate-700">
-                    {item.entityName}: <span className="font-mono text-slate-500">#{item.entityId.slice(-8)}</span>
+                  <span className="text-xs font-bold text-slate-800">
+                    {item.action === "APP_LAUNCH"
+                      ? "🚀 ورود و اجرای اپلیکیشن"
+                      : item.action === "USER_LOGIN_PHONE"
+                      ? "🔑 لاگین مستقیم با شماره همراه"
+                      : item.action === "LOCATION_UPDATE"
+                      ? "📍 پایش موقعیت مکانی و حرکت روی نقشه"
+                      : item.action === "ORDER_SUBMITTED"
+                      ? "💼 ثبت درخواست کار جدید"
+                      : item.action === "USER_LOGOUT"
+                      ? "🚪 خروج از حساب کاربری"
+                      : item.action}
+                  </span>
+                  <span className="text-xs text-slate-400 font-mono">
+                    #{item.entityId.slice(-8)}
                   </span>
                 </div>
               </div>

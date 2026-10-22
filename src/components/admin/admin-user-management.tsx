@@ -29,6 +29,9 @@ import {
   Calendar,
   Layers,
   Globe,
+  Phone,
+  Terminal,
+  Activity,
 } from "lucide-react";
 
 interface UserSubmittedRequest {
@@ -100,15 +103,40 @@ export function AdminUserManagement() {
   const { searchQuery: globalSearch, setTotalUsersCount } = useAdmin();
   const [localSearchQuery, setLocalSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<
-    "ALL" | "ANDROID" | "WORKER" | "EMPLOYER" | "GMAIL" | "WITH_REQUESTS" | "BLOCKED"
+    "ALL" | "ANDROID" | "WORKER" | "EMPLOYER" | "PHONE" | "GMAIL" | "WITH_REQUESTS" | "BLOCKED"
   >("ALL");
 
   const effectiveSearch = globalSearch || localSearchQuery;
 
   // Selected user for Deep Inspector Modal
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
-  const [inspectorTab, setInspectorTab] = useState<"PROFILE" | "DEVICE" | "REQUESTS" | "JSON">("PROFILE");
+  const [inspectorTab, setInspectorTab] = useState<"PROFILE" | "DEVICE" | "REQUESTS" | "LOGS" | "JSON">("PROFILE");
   const [copiedId, setCopiedId] = useState(false);
+
+  // Live user telemetry audit logs
+  const userLogsQuery = useQuery({
+    queryKey: ["admin", "user-logs", selectedUser?.phone, selectedUser?.id],
+    queryFn: async () => {
+      if (!selectedUser) return [];
+      const queryParam = selectedUser.phone || selectedUser.id;
+      const res = await fetch(`/api/admin/audit?q=${encodeURIComponent(queryParam)}&limit=40`, {
+        cache: "no-store",
+      });
+      const data = await res.json();
+      return (data?.data?.items || []) as Array<{
+        id: string;
+        action: string;
+        entityName: string;
+        entityId: string;
+        actorName: string;
+        details: any;
+        ipAddress: string;
+        timestamp: string;
+      }>;
+    },
+    enabled: Boolean(selectedUser && inspectorTab === "LOGS"),
+    refetchInterval: 5_000,
+  });
 
   // Queries
   const overviewQuery = useQuery({
@@ -229,6 +257,7 @@ export function AdminUserManagement() {
       if (activeFilter === "ANDROID") return user.platform === "ANDROID";
       if (activeFilter === "WORKER") return user.role === "WORKER";
       if (activeFilter === "EMPLOYER") return user.role === "EMPLOYER";
+      if (activeFilter === "PHONE") return Boolean(user.phone && user.phone.trim().length > 0);
       if (activeFilter === "GMAIL") return user.provider === "GMAIL" || user.email?.includes("@");
       if (activeFilter === "WITH_REQUESTS") return (user.submittedRequests?.length || 0) > 0;
       if (activeFilter === "BLOCKED") return user.isBlocked;
@@ -243,6 +272,7 @@ export function AdminUserManagement() {
     employers: usersQuery.data?.filter((u) => u.role === "EMPLOYER").length || 0,
     mobileUsers: usersQuery.data?.filter((u) => u.platform === "ANDROID").length || 0,
     gmailUsers: usersQuery.data?.filter((u) => u.provider === "GMAIL" || u.email?.includes("@")).length || 0,
+    phoneUsers: usersQuery.data?.filter((u) => u.phone && u.phone.trim().length > 0).length || 0,
     blockedUsers: usersQuery.data?.filter((u) => u.isBlocked).length || 0,
     totalRequestsCount: usersQuery.data?.reduce((acc, u) => acc + (u.submittedRequests?.length || 0), 0) || 0,
     activeUsersToday: usersQuery.data?.length || 0,
@@ -358,18 +388,18 @@ export function AdminUserManagement() {
           <span className="text-[11px] text-slate-400">متصل از فایل karan.apk</span>
         </div>
 
-        {/* Gmail Auth Users */}
+        {/* Phone Registered Users */}
         <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">لاگین با حساب گوگل (Gmail)</span>
-            <div className="rounded-xl bg-rose-50 border border-rose-200 p-2 text-rose-600">
-              <Mail className="h-4 w-4" />
+            <span className="text-xs font-semibold text-slate-500">ثبت‌نام مستقیم با شماره موبایل</span>
+            <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-2 text-emerald-600">
+              <Phone className="h-4 w-4" />
             </div>
           </div>
           <strong className="mt-2 block text-2xl font-black text-slate-900">
-            {overview.gmailUsers.toLocaleString("fa-IR")}
+            {overview.totalUsers.toLocaleString("fa-IR")}
           </strong>
-          <span className="text-[11px] text-slate-400">ورود بدون رمز با جیمیل</span>
+          <span className="text-[11px] text-slate-400">ورود بدون رمز و بدون معطلی پیامک</span>
         </div>
 
         {/* Submitted Requests */}
@@ -475,15 +505,15 @@ export function AdminUserManagement() {
           </button>
 
           <button
-            onClick={() => setActiveFilter("GMAIL")}
+            onClick={() => setActiveFilter("PHONE")}
             className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-              activeFilter === "GMAIL"
-                ? "bg-rose-600 text-white shadow-xs"
+              activeFilter === "PHONE"
+                ? "bg-emerald-600 text-white shadow-xs"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
-            <Mail className="h-3.5 w-3.5" />
-            <span>لاگین با جیمیل ({overview.gmailUsers})</span>
+            <Phone className="h-3.5 w-3.5" />
+            <span>ثبت با موبایل ({overview.totalUsers})</span>
           </button>
 
           <button
@@ -758,7 +788,7 @@ export function AdminUserManagement() {
             </div>
 
             {/* Modal Nav Tabs */}
-            <div className="flex items-center gap-2 border-b border-slate-200 px-5 pt-3 bg-white">
+            <div className="flex items-center gap-2 border-b border-slate-200 px-5 pt-3 bg-white flex-wrap">
               <button
                 onClick={() => setInspectorTab("PROFILE")}
                 className={`pb-3 px-3 text-xs font-bold border-b-2 transition cursor-pointer ${
@@ -770,6 +800,17 @@ export function AdminUserManagement() {
                 مشخصات فردی و هویتی
               </button>
               <button
+                onClick={() => setInspectorTab("LOGS")}
+                className={`pb-3 px-3 text-xs font-bold border-b-2 transition cursor-pointer flex items-center gap-1.5 ${
+                  inspectorTab === "LOGS"
+                    ? "border-emerald-600 text-emerald-600"
+                    : "border-transparent text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                <Activity className="h-3.5 w-3.5" />
+                <span>رویدادها و تله‌متری زنده</span>
+              </button>
+              <button
                 onClick={() => setInspectorTab("DEVICE")}
                 className={`pb-3 px-3 text-xs font-bold border-b-2 transition cursor-pointer ${
                   inspectorTab === "DEVICE"
@@ -777,7 +818,7 @@ export function AdminUserManagement() {
                     : "border-transparent text-slate-500 hover:text-slate-900"
                 }`}
               >
-                دستگاه و تله‌متری
+                دستگاه و اتصال
               </button>
               <button
                 onClick={() => setInspectorTab("REQUESTS")}
@@ -873,38 +914,19 @@ export function AdminUserManagement() {
                   )}
 
                   {/* IDENTITY VERIFICATION CARD */}
-                  <div className="rounded-2xl border border-slate-200 p-3.5 space-y-2 sm:col-span-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gradient-to-r from-slate-50 to-indigo-50/20">
+                  <div className="rounded-2xl border border-emerald-200 p-3.5 space-y-2 sm:col-span-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gradient-to-r from-emerald-50/60 to-indigo-50/20">
                     <div>
-                      <span className="text-slate-400 block text-[11px]">وضعیت تأیید مدارک و احراز هویت:</span>
+                      <span className="text-slate-400 block text-[11px]">وضعیت تایید و دسترسی سامانه:</span>
                       <strong className="text-xs flex items-center gap-1.5 mt-0.5">
-                        {selectedUser.isVerified ? (
-                          <span className="text-emerald-600 font-bold flex items-center gap-1">
-                            <CheckCircle2 className="w-4 h-4" /> تأیید هویت شده (دارای نشان اصالت کاروین)
-                          </span>
-                        ) : (
-                          <span className="text-amber-600 font-bold flex items-center gap-1">
-                            <Clock className="w-4 h-4" /> در انتظار بررسی مدارک
-                          </span>
-                        )}
+                        <span className="text-emerald-700 font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          احراز هویت خودکار ۱۰۰٪ با شماره همراه ({selectedUser.phone || "کاربر"})
+                        </span>
                       </strong>
                     </div>
-                    <button
-                      disabled={verifyMutation.isPending}
-                      onClick={() =>
-                        verifyMutation.mutate({
-                          userId: selectedUser.id,
-                          isVerified: !selectedUser.isVerified,
-                        })
-                      }
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                        selectedUser.isVerified
-                          ? "bg-slate-200 text-slate-700 hover:bg-slate-300"
-                          : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-                      }`}
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      {selectedUser.isVerified ? "لغو تأیید هویت" : "✓ تأیید مدارک و احراز هویت"}
-                    </button>
+                    <span className="rounded-full bg-emerald-100 border border-emerald-300 px-3 py-1 text-xs font-bold font-mono text-emerald-800">
+                      ✓ تایید مستقیم و خودکار
+                    </span>
                   </div>
                 </div>
               )}
@@ -1028,31 +1050,19 @@ export function AdminUserManagement() {
                           </div>
                         )}
 
-                        {/* APPROVAL ACTION BUTTONS */}
+                        {/* AUTO-ACTIVE BADGE & COMPLETION */}
                         <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200">
                           <span className="text-[10px] text-slate-400 font-mono dir-ltr">
                             تاریخ ثبت: {new Date(req.createdAt).toLocaleDateString("fa-IR")}
                           </span>
 
                           <div className="flex items-center gap-1.5">
-                            {req.status !== "APPROVED" && req.status !== "COMPLETED" && (
-                              <button
-                                disabled={requestStatusMutation.isPending}
-                                onClick={() =>
-                                  requestStatusMutation.mutate({
-                                    requestId: req.id,
-                                    status: "APPROVED",
-                                    notes: "تأیید رسمی صلاحیت و انتشار در کاروین",
-                                  })
-                                }
-                                className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-1 shadow-sm cursor-pointer"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                تأیید و تصویب
-                              </button>
-                            )}
+                            <span className="rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[11px] font-bold text-emerald-700 flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              فعال و ثبت مستقیم روی نقشه
+                            </span>
 
-                            {req.status !== "COMPLETED" && (
+                            {req.status === "IN_PROGRESS" && (
                               <button
                                 disabled={requestStatusMutation.isPending}
                                 onClick={() =>
@@ -1068,28 +1078,115 @@ export function AdminUserManagement() {
                                 تکمیل کار
                               </button>
                             )}
-
-                            {req.status !== "CANCELLED" && (
-                              <button
-                                disabled={requestStatusMutation.isPending}
-                                onClick={() =>
-                                  requestStatusMutation.mutate({
-                                    requestId: req.id,
-                                    status: "CANCELLED",
-                                    notes: "درخواست رد شد",
-                                  })
-                                }
-                                className="px-2 py-1 text-[11px] font-medium rounded-lg text-rose-600 hover:bg-rose-50 transition flex items-center gap-1 border border-rose-200 cursor-pointer"
-                              >
-                                <Ban className="w-3 h-3" />
-                                رد
-                              </button>
-                            )}
                           </div>
                         </div>
                       </div>
                     ))
                   )}
+                </div>
+              )}
+
+              {/* TAB: USER LIVE TELEMETRY LOGS */}
+              {inspectorTab === "LOGS" && (
+                <div className="space-y-3">
+                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-3.5 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
+                      <span className="font-bold text-emerald-900">
+                        پایش بلادرنگ تمام تعاملات کاربر ({selectedUser.phone || selectedUser.fullName})
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-emerald-700 font-mono font-bold">
+                      {userLogsQuery.data?.length || 0} رویداد ثبت‌شده
+                    </span>
+                  </div>
+
+                  {userLogsQuery.isLoading && (
+                    <div className="p-8 text-center text-xs text-slate-500">
+                      در حال بارگذاری لاگ‌های زنده کاربر...
+                    </div>
+                  )}
+
+                  {!userLogsQuery.isLoading && (userLogsQuery.data?.length === 0 || !userLogsQuery.data) && (
+                    <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-500">
+                      هیچ رویداد تله‌متری خاصی برای این کاربر ثبت نشده یا هنوز لاگ ارسال نکرده است.
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    {userLogsQuery.data?.map((log) => {
+                      const isLocation = log.action === "LOCATION_UPDATE";
+                      const isLogin = log.action === "USER_LOGIN_PHONE" || log.action === "USER_SESSION_SYNC";
+                      const isLaunch = log.action === "APP_LAUNCH";
+                      const isOrder = log.action === "ORDER_SUBMITTED";
+                      const isLogout = log.action === "USER_LOGOUT";
+
+                      const badgeColor = isLocation
+                        ? "bg-amber-50 text-amber-700 border-amber-200"
+                        : isLogin
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : isOrder
+                        ? "bg-blue-50 text-blue-700 border-blue-200"
+                        : isLogout
+                        ? "bg-rose-50 text-rose-700 border-rose-200"
+                        : "bg-slate-50 text-slate-700 border-slate-200";
+
+                      return (
+                        <div
+                          key={log.id}
+                          className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs space-y-2"
+                        >
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`rounded-lg border px-2.5 py-0.5 font-mono text-[11px] font-bold ${badgeColor}`}
+                              >
+                                {log.action}
+                              </span>
+                              <span className="text-xs font-bold text-slate-800">
+                                {isLaunch
+                                  ? "🚀 شروع و اجرای اپلیکیشن کارجور"
+                                  : isLogin
+                                  ? "🔑 ورود مستقیم با شماره موبایل"
+                                  : isLocation
+                                  ? "📍 پایش موقعیت مکانی کاربر (GPS)"
+                                  : isOrder
+                                  ? "💼 ثبت درخواست یا پروژه کاری جدید"
+                                  : isLogout
+                                  ? "🚪 خروج از حساب برای جابجایی نقش"
+                                  : log.action}
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-slate-400 font-mono">
+                              {new Date(log.timestamp).toLocaleString("fa-IR")}
+                            </span>
+                          </div>
+
+                          {Boolean(log.details) && (
+                            <div className="rounded-xl bg-slate-50 p-2.5 text-[11px] font-mono text-slate-700 border border-slate-100">
+                              {typeof log.details === "object" ? (
+                                <div className="space-y-1">
+                                  {Object.entries(log.details).map(([k, v]) => (
+                                    <div key={k} className="flex items-start gap-1">
+                                      <span className="text-slate-400 font-semibold">{k}:</span>
+                                      <span className="text-slate-800 break-all">{String(v)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                String(log.details)
+                              )}
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
+                            {log.ipAddress && <span>IP: {log.ipAddress}</span>}
+                            <span>موجودیت: {log.entityName}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
