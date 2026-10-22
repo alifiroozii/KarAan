@@ -57,12 +57,13 @@ import com.karvin.app.domain.model.toPersianDigits
 fun LoginScreen(
     onOtpSent: (String) -> Unit,
     onAuthenticated: (com.karvin.app.domain.model.UserRole) -> Unit = {},
+    lockedRole: com.karvin.app.domain.model.UserRole? = null,
     viewModel: PhoneAuthViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var phone by remember { mutableStateOf("") }
     var fullName by remember { mutableStateOf("") }
-    var selectedRole by remember { mutableStateOf(com.karvin.app.domain.model.UserRole.REQUESTER) }
+    var selectedRole by remember(lockedRole) { mutableStateOf(lockedRole ?: com.karvin.app.domain.model.UserRole.REQUESTER) }
 
     LaunchedEffect(state.otpSent) {
         if (state.otpSent) {
@@ -102,74 +103,39 @@ fun LoginScreen(
             }
         }
 
-        // Role Selector Pills (Google Stitch Segmented Style)
-        Text("نقش شما در سامانه:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-        Row(
+        // Dedicated Single Role Display (کاربر فقط یک نقش واحد دارد)
+        val isReq = selectedRole == com.karvin.app.domain.model.UserRole.REQUESTER
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = if (isReq) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else KarjoorColors.Secondary.copy(alpha = 0.12f),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (isReq) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f) else KarjoorColors.Secondary.copy(alpha = 0.4f)
+            ),
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            val isReq = selectedRole == com.karvin.app.domain.model.UserRole.REQUESTER
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = if (isReq) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    if (isReq) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                ),
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(14.dp))
-                    .clickable { selectedRole = com.karvin.app.domain.model.UserRole.REQUESTER },
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Icon(
-                        Icons.Default.BusinessCenter,
-                        contentDescription = null,
-                        tint = if (isReq) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
+                Icon(
+                    if (isReq) Icons.Default.BusinessCenter else Icons.Default.Engineering,
+                    contentDescription = null,
+                    tint = if (isReq) MaterialTheme.colorScheme.primary else KarjoorColors.Secondary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (isReq) "ورود با نقش: کارفرما (سفارش‌دهنده)" else "ورود با نقش: متخصص و مجری کار",
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isReq) MaterialTheme.colorScheme.primary else KarjoorColors.Secondary,
                     )
                     Text(
-                        "کارفرما",
-                        fontSize = 12.sp,
-                        fontWeight = if (isReq) FontWeight.Bold else FontWeight.Medium,
-                        color = if (isReq) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            }
-
-            val isProv = selectedRole == com.karvin.app.domain.model.UserRole.PROVIDER
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = if (isProv) KarjoorColors.Secondary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    if (isProv) KarjoorColors.Secondary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                ),
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(14.dp))
-                    .clickable { selectedRole = com.karvin.app.domain.model.UserRole.PROVIDER },
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Icon(
-                        Icons.Default.Engineering,
-                        contentDescription = null,
-                        tint = if (isProv) KarjoorColors.Secondary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        "متخصص",
-                        fontSize = 12.sp,
-                        fontWeight = if (isProv) FontWeight.Bold else FontWeight.Medium,
-                        color = if (isProv) KarjoorColors.Secondary else MaterialTheme.colorScheme.onSurface,
+                        text = "حساب تک‌نقشی تایید شده در کارجور",
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

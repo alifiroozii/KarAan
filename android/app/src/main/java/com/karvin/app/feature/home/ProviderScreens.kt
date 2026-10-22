@@ -1533,29 +1533,11 @@ fun RequesterHomeScreen(
                             }
                         }
 
-                        // Actions: Quick Role Switch Button & Notifications
+                        // Actions: Notifications
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            // Quick Role Switch Chip
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                                modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable {
-                                    navController.navigate(Routes.Profile)
-                                },
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                ) {
-                                    Text("⇄ متخصص", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                }
-                            }
-
                             // Notification Bell with Dot
                             Box {
                                 IconButton(onClick = { navController.navigate(Routes.Notifications) }) {

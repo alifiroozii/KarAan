@@ -154,48 +154,56 @@ fun GoogleStitchBottomBar(
                 onClick = { onNavigate(jobsRoute) }
             )
 
-            // Central Elevated Action Button (ثبت کار)
+            // Central Primary Action Button (کاملاً در بستر نوار پایین و بدون تداخل با خط بالا)
+            val isProvider = role == UserRole.PROVIDER
+            val centerTitle = if (isProvider) "فرصت‌ها" else "ثبت کار"
+            val centerTarget = if (isProvider) Routes.ProviderJobs else Routes.CreateJob
+            val centerIcon = if (isProvider) Icons.Default.Explore else Icons.Default.Add
+
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .offset(y = (-12).dp),
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { onNavigate(centerTarget) }
+                    .padding(horizontal = 2.dp, vertical = 2.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
                 Surface(
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.primary,
-                    border = BorderStroke(3.dp, MaterialTheme.colorScheme.surface),
-                    shadowElevation = 6.dp,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .clickable { onNavigate(Routes.CreateJob) },
+                    shadowElevation = 4.dp,
+                    modifier = Modifier.size(40.dp),
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(
                                 Brush.linearGradient(
-                                    listOf(Color(0xFF2563EB), Color(0xFF1D4ED8))
+                                    if (isProvider) {
+                                        listOf(Color(0xFF0D9488), Color(0xFF059669))
+                                    } else {
+                                        listOf(Color(0xFF2563EB), Color(0xFF1D4ED8))
+                                    }
                                 )
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            Icons.Default.Add,
-                            contentDescription = "ثبت کار",
+                            centerIcon,
+                            contentDescription = centerTitle,
                             tint = Color.White,
-                            modifier = Modifier.size(26.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 }
                 Spacer(Modifier.height(3.dp))
                 Text(
-                    text = "ثبت کار",
+                    text = centerTitle,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = if (isProvider) Color(0xFF0D9488) else MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
                 )
             }
 

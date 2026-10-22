@@ -122,7 +122,9 @@ fun KarvinApp(
 
                 // ─── Auth ───
                 composable(Routes.Login) {
+                    val activeRole = profileState.user?.role ?: UserRole.REQUESTER
                     LoginScreen(
+                        lockedRole = activeRole,
                         onOtpSent = { phone ->
                             navController.navigate(Routes.otp(phone))
                         },

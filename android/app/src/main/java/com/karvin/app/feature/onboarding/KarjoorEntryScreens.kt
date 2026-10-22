@@ -420,7 +420,7 @@ fun KarjoorRoleSelectionScreen(
         Spacer(Modifier.height(4.dp))
 
         Text(
-            text = "هر زمان که بخواهی می‌توانی نقش خود را تغییر دهی یا هر دو را همزمان در حساب کاربری‌ات فعال داشته باشی.",
+            text = "هر کاربر در کارجور دارای یک نقش اختصاصی (کارفرما یا متخصص) است. لطفاً نقش خود را تعیین کنید:",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             lineHeight = 20.sp,

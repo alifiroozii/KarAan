@@ -15,7 +15,10 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -570,87 +573,110 @@ fun RequesterMapScreen(
                 .padding(top = 10.dp, start = 14.dp, end = 14.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Tier 1: Search input + Mic/Filter button + Map/List toggle (Google Stitch 781b)
+            // Tier 1: Compact Search Pill + List/Map Toggle (Google Stitch Minimalist 42dp height)
             Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(42.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                OutlinedTextField(
-                    value = state.filter.query,
-                    onValueChange = { viewModel.updateFilter(state.filter.copy(query = it)) },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("جستجوی خدمت، تخصص یا کارشناس...", fontSize = 12.sp) },
-                    singleLine = true,
-                    leadingIcon = {
+                // Compact Search Pill (بدون حاشیه بزرگ یا شکست متن به چند سطر)
+                Surface(
+                    shape = RoundedCornerShape(21.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                    shadowElevation = 2.dp,
+                    border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(42.dp),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = "جستجو",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp),
+                        )
+
                         Box(
-                            modifier = Modifier
-                                .padding(start = 6.dp)
-                                .size(32.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
-                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.CenterStart,
                         ) {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
+                            if (state.filter.query.isEmpty()) {
+                                Text(
+                                    text = "جستجوی خدمت یا متخصص...",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            BasicTextField(
+                                value = state.filter.query,
+                                onValueChange = { viewModel.updateFilter(state.filter.copy(query = it)) },
+                                singleLine = true,
+                                maxLines = 1,
+                                textStyle = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 12.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Medium,
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
                             )
                         }
-                    },
-                    trailingIcon = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(end = 4.dp),
+
+                        // Filter Button
+                        Surface(
+                            shape = CircleShape,
+                            color = if (state.filter != RequesterMapFilter()) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .clickable { showFilters = true },
                         ) {
-                            IconButton(
-                                onClick = { showFilters = true },
-                                modifier = Modifier
-                                    .size(34.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(
-                                        if (state.filter != RequesterMapFilter()) MaterialTheme.colorScheme.primaryContainer
-                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                                    ),
-                            ) {
-                                Box {
-                                    Icon(
-                                        Icons.Default.Tune,
-                                        contentDescription = "فیلترها",
-                                        tint = if (state.filter != RequesterMapFilter()) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(17.dp),
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Default.Tune,
+                                    contentDescription = "فیلترها",
+                                    tint = if (state.filter != RequesterMapFilter()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(15.dp),
+                                )
+                                if (state.filter != RequesterMapFilter()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.error)
+                                            .align(Alignment.TopEnd)
                                     )
-                                    if (state.filter != RequesterMapFilter()) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(7.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.error)
-                                                .align(Alignment.TopEnd)
-                                        )
-                                    }
                                 }
                             }
                         }
-                    },
-                    shape = RoundedCornerShape(20.dp),
-                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                    ),
-                )
+                    }
+                }
 
-                // List / Map Toggle Button (Stitch Pill Style)
+                // List / Map Toggle Button (Compact Pill 42dp height)
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(21.dp),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                    shadowElevation = 3.dp,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-                    modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { listMode = !listMode },
+                    shadowElevation = 2.dp,
+                    border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
+                    modifier = Modifier
+                        .height(42.dp)
+                        .clip(RoundedCornerShape(21.dp))
+                        .clickable { listMode = !listMode },
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 11.dp),
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
@@ -658,11 +684,11 @@ fun RequesterMapScreen(
                             if (listMode) Icons.Default.Map else Icons.AutoMirrored.Filled.FormatListBulleted,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(17.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                         Text(
                             if (listMode) "نقشه" else "فهرست",
-                            style = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                         )

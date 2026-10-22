@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
@@ -28,6 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -56,7 +59,6 @@ import com.karvin.app.domain.model.toPersianDigits
 @Composable
 fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var showRoleDialog by remember { mutableStateOf(false) }
     val defaultUser = remember {
         com.karvin.app.domain.model.User(
             id = "demo_user",
@@ -88,7 +90,7 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
                             Avatar(user, size = 72.dp)
                             Column(Modifier.padding(horizontal = 14.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                                 Text(user.name, style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                                Text("${user.city} · ${if (user.role == UserRole.PROVIDER) "انجام‌دهنده" else "درخواست‌دهنده"}", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                                Text("${user.city} · ${if (user.role == UserRole.PROVIDER) "متخصص / استادکار" else "کارفرما / سفارش‌دهنده"}", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
                                 RatingLine(user.rating, user.reviewCount)
                             }
                             IconButton(onClick = { navController.navigate(Routes.EditProfile) }) {
@@ -98,14 +100,13 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
                     }
                 }
 
-                // Prominent Role Switcher Banner Card (Google Stitch Style)
+                // Dedicated Single Role Badge Card (کاربر فقط یک نقش واحد و ثابت دارد)
                 item {
                     val isPerformer = user.role == UserRole.PROVIDER
                     Card(
-                        onClick = { showRoleDialog = true },
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         shape = RoundedCornerShape(18.dp),
-                        border = BorderStroke(1.dp, if (isPerformer) com.karvin.app.core.designsystem.KarjoorColors.Secondary.copy(alpha = 0.5f) else com.karvin.app.core.designsystem.KarjoorColors.Primary.copy(alpha = 0.5f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                     ) {
                         Row(
@@ -114,23 +115,38 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
-                                Text("نقش فعال شما در کارجور:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("نقش کاربری اختصاصی:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(
-                                    if (isPerformer) "متخصص (ارائه‌دهنده خدمت)" else "کارفرما (سفارش‌دهنده خدمت)",
+                                    if (isPerformer) "متخصص و ارائه‌دهنده خدمت" else "کارفرما و سفارش‌دهنده خدمت",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = androidx.compose.ui.text.font.FontWeight.Black,
                                     color = if (isPerformer) com.karvin.app.core.designsystem.KarjoorColors.Secondary else com.karvin.app.core.designsystem.KarjoorColors.Primary,
                                 )
-                                Text("تغییر آنی بدون خروج از حساب", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("حساب اختصاصی تک‌نقشی تایید شده در کارجور", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Button(
-                                onClick = { showRoleDialog = true },
+                            Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                    containerColor = if (isPerformer) com.karvin.app.core.designsystem.KarjoorColors.Primary else com.karvin.app.core.designsystem.KarjoorColors.Secondary,
-                                ),
+                                color = (if (isPerformer) com.karvin.app.core.designsystem.KarjoorColors.Secondary else com.karvin.app.core.designsystem.KarjoorColors.Primary).copy(alpha = 0.12f),
+                                border = BorderStroke(1.dp, (if (isPerformer) com.karvin.app.core.designsystem.KarjoorColors.Secondary else com.karvin.app.core.designsystem.KarjoorColors.Primary).copy(alpha = 0.3f)),
                             ) {
-                                Text(if (isPerformer) "تبدیل به کارفرما ⇄" else "تبدیل به متخصص ⇄", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = if (isPerformer) com.karvin.app.core.designsystem.KarjoorColors.Secondary else com.karvin.app.core.designsystem.KarjoorColors.Primary,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Text(
+                                        "تأییدشده",
+                                        fontSize = 11.sp,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                        color = if (isPerformer) com.karvin.app.core.designsystem.KarjoorColors.Secondary else com.karvin.app.core.designsystem.KarjoorColors.Primary,
+                                    )
+                                }
                             }
                         }
                     }
@@ -172,44 +188,6 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
         }
     }
     })
-    if (showRoleDialog) AlertDialog(
-        onDismissRequest = { showRoleDialog = false },
-        title = { Text("تغییر نقش کاربری") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                listOf(
-                    UserRole.PROVIDER to ("متخصص و ارائه‌دهنده خدمت — مشاهده کارهای نزدیک و اعلام آمادگی"),
-                    UserRole.REQUESTER to ("کارفرما و سفارش‌دهنده — ثبت خدمت جدید و انتخاب متخصص"),
-                ).forEach { (role, label) ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth().clickable {
-                            viewModel.setRole(role)
-                            showRoleDialog = false
-                            navController.navigate(if (role == UserRole.PROVIDER) Routes.ProviderHome else Routes.RequesterHome) {
-                                popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
-                                launchSingleTop = true
-                            }
-                        }.padding(vertical = 4.dp),
-                    ) {
-                        RadioButton(
-                            selected = state.user?.role == role,
-                            onClick = {
-                                viewModel.setRole(role)
-                                showRoleDialog = false
-                                navController.navigate(if (role == UserRole.PROVIDER) Routes.ProviderHome else Routes.RequesterHome) {
-                                    popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
-                                    launchSingleTop = true
-                                }
-                            },
-                        )
-                        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp))
-                    }
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = { showRoleDialog = false }) { Text("انصراف") } },
-    )
 }
 
 @Composable
