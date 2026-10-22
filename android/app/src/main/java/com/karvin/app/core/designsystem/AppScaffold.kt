@@ -122,24 +122,25 @@ fun GoogleStitchBottomBar(
 
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 16.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+        shadowElevation = 12.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 6.dp, vertical = 6.dp),
+                .padding(horizontal = 4.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceAround,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            // Tab 1: کاوش و نقشه زنده
+            // Tab 1: کاوش
             val isExploreSelected = currentRoute == mapRoute || currentRoute == homeRoute
             StitchNavItem(
-                title = "کاوش و نقشه",
+                title = "کاوش",
                 icon = Icons.Default.Explore,
                 selected = isExploreSelected,
+                modifier = Modifier.weight(1f),
                 onClick = { onNavigate(mapRoute) }
             )
 
@@ -149,58 +150,72 @@ fun GoogleStitchBottomBar(
                 title = "درخواست‌ها",
                 icon = Icons.Default.Assignment,
                 selected = isJobsSelected,
+                modifier = Modifier.weight(1f),
                 onClick = { onNavigate(jobsRoute) }
             )
 
-            // Tab 3: Central Elevated FAB (ثبت کار)
-            Box(
+            // Central Elevated Action Button (ثبت کار)
+            Column(
                 modifier = Modifier
-                    .offset(y = (-10).dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.linearGradient(
-                            listOf(Color(0xFF2563EB), Color(0xFF1D4ED8))
-                        )
-                    )
-                    .clickable { onNavigate(Routes.CreateJob) }
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
-                contentAlignment = Alignment.Center,
+                    .weight(1f)
+                    .offset(y = (-12).dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary,
+                    border = BorderStroke(3.dp, MaterialTheme.colorScheme.surface),
+                    shadowElevation = 6.dp,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .clickable { onNavigate(Routes.CreateJob) },
                 ) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "ثبت کار",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = "ثبت کار",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(Color(0xFF2563EB), Color(0xFF1D4ED8))
+                                )
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "ثبت کار",
+                            tint = Color.White,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
                 }
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    text = "ثبت کار",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
 
-            // Tab 4: پیام‌ها
+            // Tab 3: پیام‌ها
             val isChatSelected = currentRoute == Routes.Chat
             StitchNavItem(
                 title = "پیام‌ها",
                 icon = Icons.Outlined.ChatBubbleOutline,
                 selected = isChatSelected,
-                hasBadge = false,
+                modifier = Modifier.weight(1f),
                 onClick = { onNavigate(Routes.Chat) }
             )
 
-            // Tab 5: حساب من
+            // Tab 4: حساب من
             val isProfileSelected = currentRoute == Routes.Profile
             StitchNavItem(
                 title = "حساب من",
                 icon = Icons.Default.Person,
                 selected = isProfileSelected,
+                modifier = Modifier.weight(1f),
                 onClick = { onNavigate(Routes.Profile) }
             )
         }
@@ -212,36 +227,45 @@ private fun StitchNavItem(
     title: String,
     icon: ImageVector,
     selected: Boolean,
+    modifier: Modifier = Modifier,
     hasBadge: Boolean = false,
     onClick: () -> Unit,
 ) {
     val activeColor = MaterialTheme.colorScheme.primary
-    val inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
+    val inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
     val color = if (selected) activeColor else inactiveColor
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 2.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Box {
-            Icon(
-                icon,
-                contentDescription = title,
-                tint = color,
-                modifier = Modifier.size(23.dp)
-            )
-            if (hasBadge) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFEF4444))
-                        .align(Alignment.TopEnd)
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent,
+        ) {
+            Box(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = title,
+                    tint = color,
+                    modifier = Modifier.size(22.dp)
                 )
+                if (hasBadge) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFEF4444))
+                            .align(Alignment.TopEnd)
+                    )
+                }
             }
         }
         Spacer(Modifier.height(2.dp))
@@ -250,6 +274,7 @@ private fun StitchNavItem(
             fontSize = 11.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
             color = color,
+            maxLines = 1,
         )
     }
 }

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Bolt
@@ -42,6 +43,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Plumbing
 import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
@@ -1512,6 +1514,20 @@ fun RequesterHomeScreen(
                                             color = MaterialTheme.colorScheme.primary,
                                         )
                                     }
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+                                        border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)),
+                                    ) {
+                                        Text(
+                                            "نسخه ۱ آزمایشی",
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            fontSize = 9.sp,
+                                        )
+                                    }
                                 }
                                 Text("ثبت و مدیریت مستقیم سفارشات", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
@@ -1769,46 +1785,68 @@ fun RequesterHomeScreen(
             }
 
             item {
-                data class HomeCategoryItem(val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val accentColor: Color)
+                data class HomeCategoryItem(
+                    val title: String,
+                    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+                    val accentColor: Color,
+                    val bgGradient: List<Color>,
+                )
                 val primaryCategories = listOf(
-                    HomeCategoryItem("برق‌کاری", Icons.Default.Bolt, Color(0xFFF59E0B)),
-                    HomeCategoryItem("لوله‌کشی", Icons.Default.Build, Color(0xFF0284C7)),
-                    HomeCategoryItem("نظافت", Icons.Default.CleaningServices, Color(0xFF10B981)),
-                    HomeCategoryItem("سرمایش/گرمایش", Icons.Default.Build, Color(0xFF6366F1)),
-                    HomeCategoryItem("باربری", Icons.Default.LocalShipping, Color(0xFFF97316)),
-                    HomeCategoryItem("امداد خودرو", Icons.Default.DirectionsCar, Color(0xFFEF4444)),
-                    HomeCategoryItem("نقاشی", Icons.Default.FormatPaint, Color(0xFF8B5CF6)),
-                    HomeCategoryItem("باغبانی", Icons.Default.Yard, Color(0xFF059669)),
+                    HomeCategoryItem("برق‌کاری", Icons.Default.Bolt, Color(0xFFD97706), listOf(Color(0xFFFFFBEB), Color(0xFFFEF3C7))),
+                    HomeCategoryItem("لوله‌کشی", Icons.Default.Plumbing, Color(0xFF0284C7), listOf(Color(0xFFF0F9FF), Color(0xFFE0F2FE))),
+                    HomeCategoryItem("نظافت", Icons.Default.CleaningServices, Color(0xFF059669), listOf(Color(0xFFECFDF5), Color(0xFFD1FAE5))),
+                    HomeCategoryItem("سرمایش/گرمایش", Icons.Default.AcUnit, Color(0xFF0891B2), listOf(Color(0xFFECFEFF), Color(0xFFCFFAFE))),
+                    HomeCategoryItem("باربری", Icons.Default.LocalShipping, Color(0xFFEA580C), listOf(Color(0xFFFFF7ED), Color(0xFFFFEDD5))),
+                    HomeCategoryItem("امداد خودرو", Icons.Default.DirectionsCar, Color(0xFFE11D48), listOf(Color(0xFFFFF1F2), Color(0xFFFFE4E6))),
+                    HomeCategoryItem("نقاشی", Icons.Default.FormatPaint, Color(0xFF7C3AED), listOf(Color(0xFFF5F3FF), Color(0xFFEDE9FE))),
+                    HomeCategoryItem("باغبانی", Icons.Default.Yard, Color(0xFF16A34A), listOf(Color(0xFFF0FDF4), Color(0xFFDCFCE7))),
                 )
 
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    primaryCategories.chunked(4).forEach { rowItems ->
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            rowItems.forEach { item ->
-                                Card(
-                                    onClick = { navController.navigate(Routes.RequesterMap) },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                                ) {
+                Surface(
+                    shape = RoundedCornerShape(22.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        primaryCategories.chunked(4).forEach { rowItems ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceAround,
+                            ) {
+                                rowItems.forEach { item ->
                                     Column(
-                                        modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .clickable { navController.navigate(Routes.RequesterMap) }
+                                            .padding(vertical = 4.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp),
                                     ) {
                                         Surface(
-                                            shape = RoundedCornerShape(14.dp),
-                                            color = item.accentColor.copy(alpha = 0.12f),
-                                            modifier = Modifier.size(44.dp),
+                                            shape = RoundedCornerShape(16.dp),
+                                            color = item.bgGradient.first(),
+                                            border = BorderStroke(1.dp, item.accentColor.copy(alpha = 0.22f)),
+                                            modifier = Modifier.size(52.dp),
                                         ) {
-                                            Box(contentAlignment = Alignment.Center) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .background(
+                                                        androidx.compose.ui.graphics.Brush.verticalGradient(item.bgGradient)
+                                                    ),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
                                                 Icon(
                                                     item.icon,
                                                     contentDescription = item.title,
                                                     tint = item.accentColor,
-                                                    modifier = Modifier.size(22.dp),
+                                                    modifier = Modifier.size(26.dp),
                                                 )
                                             }
                                         }
@@ -1816,6 +1854,7 @@ fun RequesterHomeScreen(
                                             item.title,
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface,
                                             textAlign = TextAlign.Center,
                                             maxLines = 1,
                                             fontSize = 11.sp,
