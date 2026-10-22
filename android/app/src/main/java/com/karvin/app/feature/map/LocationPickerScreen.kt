@@ -22,6 +22,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -87,6 +89,8 @@ fun LocationPickerScreen(
 
     var pickedLat by remember { mutableDoubleStateOf(initialLat) }
     var pickedLng by remember { mutableDoubleStateOf(initialLng) }
+    var alleyDetail by remember { mutableStateOf("") }
+    var buildingNo by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         viewModel.fetchCurrentLocation { point ->
@@ -109,14 +113,14 @@ fun LocationPickerScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            // High-Resolution Interactive Street Map with OpenStreetMap / CartoDB Voyager tiles
+            // High-Resolution Interactive Street Map with OpenStreetMap High-Precision Alley Tiles
             InteractiveStreetMapView(
                 modifier = Modifier.fillMaxSize(),
                 centerPoint = GeoPoint(pickedLat, pickedLng),
                 userPoint = GeoPoint(pickedLat, pickedLng),
                 isPickerMode = true,
                 isLocating = isLocating,
-                initialZoom = 15.2f,
+                initialZoom = 16.5f,
                 onCameraMove = { point ->
                     pickedLat = point.latitude
                     pickedLng = point.longitude
@@ -182,10 +186,33 @@ fun LocationPickerScreen(
                     }
 
                     Text(
-                        text = "نقشه را حرکت دهید تا نشانگر دقیقاً روی کوچه و ساختمان مورد نظر قرار گیرد.",
+                        text = "نقشه را حرکت دهید یا زوم کنید تا نشانگر دقیقاً روی کوچه و ساختمان مورد نظر قرار گیرد.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+
+                    // Optional Alley and House Number inputs
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        androidx.compose.material3.OutlinedTextField(
+                            value = alleyDetail,
+                            onValueChange = { alleyDetail = it },
+                            label = { Text("نام خیابان فرعی / کوچه", fontSize = 11.sp) },
+                            modifier = Modifier.weight(1.3f),
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                        androidx.compose.material3.OutlinedTextField(
+                            value = buildingNo,
+                            onValueChange = { buildingNo = it },
+                            label = { Text("پلاک / واحد", fontSize = 11.sp) },
+                            modifier = Modifier.weight(0.9f),
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                    }
 
                     Surface(
                         shape = RoundedCornerShape(10.dp),
@@ -194,7 +221,7 @@ fun LocationPickerScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
@@ -214,10 +241,15 @@ fun LocationPickerScreen(
 
                     Button(
                         onClick = {
+                            val fullAddress = buildString {
+                                append(neighborhood)
+                                if (alleyDetail.isNotBlank()) append("، $alleyDetail")
+                                if (buildingNo.isNotBlank()) append("، پلاک $buildingNo")
+                            }
                             onLocationPicked?.invoke(pickedLat, pickedLng)
                             navController.previousBackStackEntry?.savedStateHandle?.set("picked_lat", pickedLat)
                             navController.previousBackStackEntry?.savedStateHandle?.set("picked_lng", pickedLng)
-                            navController.previousBackStackEntry?.savedStateHandle?.set("picked_address", neighborhood)
+                            navController.previousBackStackEntry?.savedStateHandle?.set("picked_address", fullAddress)
                             navController.popBackStack()
                         },
                         modifier = Modifier

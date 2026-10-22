@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CleaningServices
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.FormatPaint
@@ -47,7 +48,9 @@ import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -140,6 +143,37 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import com.karvin.app.domain.model.toRatingString
+
+// ──────────────────────── Active Tracking Models ────────────────────────
+
+data class ActiveJobTrackingState(
+    val isActive: Boolean = true,
+    val jobId: String = "job_urgent_electric_01",
+    val jobTitle: String = "رفع اتصالی برق و نصب کلید مینیاتوری",
+    val jobAddress: String = "تهران، میدان انقلاب، خیابان کارگر جنوبی، کوچه رشتچی، پلاک ۱۴",
+    val jobPoint: GeoPoint = GeoPoint(35.7008, 51.3912), // میدان انقلاب، خ رشتچی
+    val workerId: String = "worker_ahmad_01",
+    val workerName: String = "احمد کریمی",
+    val workerSpecialty: String = "استادکار ارشد تأسیسات و برق",
+    val workerPhone: String = "09123456789",
+    val workerRating: Double = 4.95,
+    val workerReviewCount: Int = 128,
+    val workerVehicle: String = "موتورسیکلت هوندا ۱۲۵ مشکی - ۲۴ ب ۷۱۵",
+    val workerPoint: GeoPoint = GeoPoint(35.7085, 51.4020), // ولیعصر / طالقانی در مسیر
+    val etaMinutes: Int = 8,
+    val distanceKm: Double = 1.9,
+    val securityPin: String = "۷۴۸۲",
+    val statusText: String = "متخصص در حال حرکت با موتورسیکلت به سمت آدرس شماست",
+    val routeWaypoints: List<GeoPoint> = listOf(
+        GeoPoint(35.7085, 51.4020),
+        GeoPoint(35.7065, 51.3990),
+        GeoPoint(35.7042, 51.3955),
+        GeoPoint(35.7022, 51.3930),
+        GeoPoint(35.7008, 51.3912),
+    ),
+)
+
 // ──────────────────────── ViewModel ────────────────────────
 
 enum class MapEntityFilter(val label: String) {
@@ -155,9 +189,10 @@ data class RequesterMapUiState(
     val filteredRequests: List<NearbyServiceRequest> = emptyList(),
     val entityFilter: MapEntityFilter = MapEntityFilter.ALL,
     val filter: RequesterMapFilter = RequesterMapFilter(),
-    val userPoint: GeoPoint = GeoPoint(35.7730, 51.3700), // سعادت‌آباد
+    val userPoint: GeoPoint = GeoPoint(35.7008, 51.3912), // مرکز تهران و میدان انقلاب
     val selectedProvider: NearbyProvider? = null,
     val selectedRequest: NearbyServiceRequest? = null,
+    val activeTracking: ActiveJobTrackingState? = null,
     val loading: Boolean = true,
     val isLocating: Boolean = false,
     val gpsActive: Boolean = false,
@@ -277,6 +312,19 @@ class RequesterMapViewModel @Inject constructor(
         _state.update { it.copy(radarMode = !it.radarMode) }
     }
 
+    fun toggleLiveTracking() {
+        _state.update {
+            if (it.activeTracking == null) {
+                it.copy(
+                    activeTracking = ActiveJobTrackingState(),
+                    userPoint = GeoPoint(35.7008, 51.3912),
+                )
+            } else {
+                it.copy(activeTracking = null)
+            }
+        }
+    }
+
     private fun filterProviders(
         providers: List<NearbyProvider>,
         userPoint: GeoPoint,
@@ -368,6 +416,7 @@ fun RequesterMapScreen(
     navController: NavHostController,
     viewModel: RequesterMapViewModel = hiltViewModel(),
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     var listMode by remember { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
@@ -483,8 +532,14 @@ fun RequesterMapScreen(
                 markers = radarMarkers,
                 selectedMarkerId = selectedMarkerId,
                 isLocating = state.isLocating,
-                initialZoom = 14.5f,
+                initialZoom = if (state.activeTracking != null) 15.6f else 15.0f,
                 showRadarRings = state.radarMode,
+                routePoints = state.activeTracking?.routeWaypoints ?: emptyList(),
+                jobTargetPoint = state.activeTracking?.jobPoint,
+                jobAddressLabel = state.activeTracking?.jobAddress,
+                enRouteWorkerPoint = state.activeTracking?.workerPoint,
+                enRouteWorkerName = state.activeTracking?.workerName,
+                enRouteWorkerEta = state.activeTracking?.let { "${it.etaMinutes.toString().toPersianDigits()} دقیقه" },
                 onMarkerClick = { marker ->
                     if (marker.type == MapMarkerType.PERFORMER) {
                         val rawId = marker.id.removePrefix("provider_")
@@ -624,7 +679,7 @@ fun RequesterMapScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // "همه" Active Pill
-                val isAllSelected = state.filter.categoryId == null
+                val isAllSelected = state.filter.categoryId == null && state.activeTracking == null
                 Surface(
                     shape = RoundedCornerShape(9999.dp),
                     color = if (isAllSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
@@ -653,6 +708,40 @@ fun RequesterMapScreen(
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (isAllSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+
+                // Live Specialist Tracking Pill (رهگیری زنده اعزام متخصص)
+                val isTrackingActive = state.activeTracking != null
+                Surface(
+                    shape = RoundedCornerShape(9999.dp),
+                    color = if (isTrackingActive) Color(0xFF059669) else MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                    shadowElevation = if (isTrackingActive) 4.dp else 1.dp,
+                    border = BorderStroke(
+                        1.dp,
+                        if (isTrackingActive) Color(0xFF059669) else Color(0xFF10B981).copy(alpha = 0.6f)
+                    ),
+                    modifier = Modifier.clip(RoundedCornerShape(9999.dp)).clickable {
+                        viewModel.toggleLiveTracking()
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 13.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.TwoWheeler,
+                            contentDescription = null,
+                            tint = if (isTrackingActive) Color.White else Color(0xFF059669),
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            text = if (isTrackingActive) "در حال رهگیری زنده" else "رهگیری اعزام متخصص",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isTrackingActive) Color.White else Color(0xFF065F46),
                         )
                     }
                 }
@@ -777,6 +866,29 @@ fun RequesterMapScreen(
                         }
                     }
                 }
+            }
+        }
+
+        // Live Specialist Tracking Bottom Sheet / HUD (Snapp / Uber style)
+        state.activeTracking?.let { tracking ->
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 8.dp)
+            ) {
+                LiveTrackingBottomSheet(
+                    tracking = tracking,
+                    onDismiss = { viewModel.toggleLiveTracking() },
+                    onCallWorker = {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
+                            data = android.net.Uri.parse("tel:${tracking.workerPhone}")
+                        }
+                        context.startActivity(intent)
+                    },
+                    onChatWorker = {
+                        navController.navigate(Routes.Chat)
+                    },
+                )
             }
         }
     }
@@ -1442,6 +1554,339 @@ private fun RequesterJobBottomSheet(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
                 ) {
                     Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = "چت", tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Snapp/Uber-style Live Tracking Bottom Sheet showing specialist arrival time, distance,
+ * vehicle, and security PIN.
+ */
+@Composable
+fun LiveTrackingBottomSheet(
+    tracking: ActiveJobTrackingState,
+    onDismiss: () -> Unit,
+    onCallWorker: () -> Unit,
+    onChatWorker: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(26.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 14.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // Header: Status + Close Button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Live Status Pill
+                Surface(
+                    shape = RoundedCornerShape(9999.dp),
+                    color = Color(0xFFDCFCE7),
+                    border = BorderStroke(1.dp, Color(0xFF86EFAC)),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF16A34A))
+                        )
+                        Text(
+                            text = "اعزام متخصص • در حال حرکت",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF15803D),
+                        )
+                    }
+                }
+
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(28.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "بستن",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+
+            // ETA and Distance Highlight Banner (Snapp / Uber style)
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Icon(
+                                Icons.Default.Schedule,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Text(
+                                text = "${tracking.etaMinutes.toString().toPersianDigits()} دقیقه تا رسیدن متخصص",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        Text(
+                            text = "فاصله باقیمانده: ${tracking.distanceKm.toString().toPersianDigits()} کیلومتر • مسیر روان",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    // Transport Mode Badge
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier.size(42.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.TwoWheeler,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Job Title and Destination Address (کارفرما / آدرس ثبت شده)
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = Color(0xFFDC2626),
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            text = "محل اجرای کار (آدرس ثبت‌شده شما):",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    Text(
+                        text = tracking.jobAddress,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+
+            // Specialist Profile Card
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Avatar with Verified Badge
+                Box {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFF1E293B),
+                        modifier = Modifier.size(50.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = tracking.workerName.take(1),
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFF10B981),
+                        border = BorderStroke(2.dp, Color.White),
+                        modifier = Modifier
+                            .size(18.dp)
+                            .align(Alignment.BottomEnd),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(12.dp),
+                            )
+                        }
+                    }
+                }
+
+                // Specialist Details
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = tracking.workerName,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFFEF3C7),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                Text(
+                                    text = tracking.workerRating.toRatingString(),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFB45309),
+                                )
+                                Icon(
+                                    Icons.Default.Star,
+                                    contentDescription = null,
+                                    tint = Color(0xFFF59E0B),
+                                    modifier = Modifier.size(11.dp),
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        text = tracking.workerSpecialty,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = tracking.workerVehicle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+
+                // Security PIN Badge (کد امنیتی تایید ورود به ساختمان)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFF1F5F9),
+                    border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = "پین تایید ورود",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 9.sp,
+                            color = Color(0xFF64748B),
+                        )
+                        Text(
+                            text = tracking.securityPin,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF0F172A),
+                        )
+                    }
+                }
+            }
+
+            // Action Buttons: Call & Chat
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Button(
+                    onClick = onCallWorker,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF059669)),
+                ) {
+                    Icon(
+                        Icons.Default.Phone,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "تماس با متخصص",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = onChatWorker,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp),
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.ChatBubbleOutline,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "پیام در کارجور",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
                 }
             }
         }

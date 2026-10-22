@@ -67,6 +67,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -77,9 +78,18 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.TwoWheeler
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import coil3.compose.AsyncImage
+import coil3.network.NetworkHeaders
+import coil3.network.httpHeaders
+import coil3.request.ImageRequest
 import com.karvin.app.domain.model.GeoPoint
 import com.karvin.app.domain.model.toPersianDigits
 import com.karvin.app.domain.model.toRatingString
@@ -128,10 +138,11 @@ object WebMercator {
     }
 }
 
-enum class MapStyleType(val title: String) {
-    SNAPP_LIGHT("اسنپ مینیمال"),
-    ARCGIS_STREET("خیابان‌های تفصیلی"),
-    SATELLITE("تصاویر ماهواره‌ای")
+enum class MapStyleType(val title: String, val badge: String) {
+    OSM_DETAILED("معابر و کوچه‌ها (فارسی)", "کوچه‌ها"),
+    SNAPP_LIGHT("اسنپ مینیمال", "مینیمال"),
+    ARCGIS_STREET("خیابان‌های شریانی", "شریانی"),
+    SATELLITE("تصاویر ماهواره‌ای", "ماهواره"),
 }
 
 @Composable
@@ -143,9 +154,16 @@ fun InteractiveStreetMapView(
     selectedMarkerId: String? = null,
     isPickerMode: Boolean = false,
     isLocating: Boolean = false,
-    initialZoom: Float = 14.5f,
+    initialZoom: Float = 15.0f,
     showNeighborhoodPill: Boolean = false,
     showRadarRings: Boolean = true,
+    // Live Tracking & Route Parameters
+    routePoints: List<GeoPoint> = emptyList(),
+    jobTargetPoint: GeoPoint? = null,
+    jobAddressLabel: String? = null,
+    enRouteWorkerPoint: GeoPoint? = null,
+    enRouteWorkerName: String? = null,
+    enRouteWorkerEta: String? = null,
     onMarkerClick: ((RadarMarkerItem) -> Unit)? = null,
     onCameraMove: ((GeoPoint) -> Unit)? = null,
     onMyLocationClick: (() -> Unit)? = null,
@@ -153,9 +171,15 @@ fun InteractiveStreetMapView(
     var zoomLevel by remember { mutableFloatStateOf(initialZoom) }
     var currentLat by remember(centerPoint.latitude) { mutableDoubleStateOf(centerPoint.latitude) }
     var currentLng by remember(centerPoint.longitude) { mutableDoubleStateOf(centerPoint.longitude) }
-    var currentMapStyle by remember { mutableStateOf(MapStyleType.SNAPP_LIGHT) }
+    var currentMapStyle by remember { mutableStateOf(MapStyleType.OSM_DETAILED) }
 
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val networkHeaders = remember {
+        NetworkHeaders.Builder()
+            .set("User-Agent", "KarAanApp/1.0 (Android; ir.karan; contact@karan.app)")
+            .build()
+    }
 
     // Smooth GPS tracking transition
     LaunchedEffect(centerPoint) {
@@ -169,7 +193,7 @@ fun InteractiveStreetMapView(
             val heightPx = constraints.maxHeight.toFloat()
             val density = LocalDensity.current
 
-            val z = floor(zoomLevel).toInt().coerceIn(11, 18)
+            val z = floor(zoomLevel).toInt().coerceIn(11, 19)
             val scaleInTile = 2.0.pow((zoomLevel - z).toDouble()).toFloat()
 
             // Base pixel position of camera center at integer zoom z
@@ -192,7 +216,6 @@ fun InteractiveStreetMapView(
             val snappPastelFilter = remember {
                 ColorFilter.colorMatrix(
                     ColorMatrix().apply {
-                        // Soft pastel desaturation matching Snapp minimal light aesthetic
                         setToSaturation(0.65f)
                     }
                 )
@@ -212,16 +235,16 @@ fun InteractiveStreetMapView(
                                 )
                                 currentLat = tapLat
                                 currentLng = tapLng
-                                zoomLevel = (zoomLevel + 1.0f).coerceAtMost(18.0f)
+                                zoomLevel = (zoomLevel + 1.0f).coerceAtMost(19.5f)
                                 onCameraMove?.invoke(GeoPoint(tapLat, tapLng))
                             }
                         )
                     }
                     .pointerInput(z, scaleInTile) {
                         detectTransformGestures { _, pan, zoomFactor, _ ->
-                            // Smooth Zoom
+                            // Smooth Zoom up to 19.5 (Detailed Streets & Alleys)
                             if (zoomFactor != 1f) {
-                                val newZoom = (zoomLevel * zoomFactor).coerceIn(11.0f, 18.0f)
+                                val newZoom = (zoomLevel * zoomFactor).coerceIn(11.0f, 19.5f)
                                 zoomLevel = newZoom
                             }
                             // Smooth Pan
@@ -313,7 +336,7 @@ fun InteractiveStreetMapView(
                     }
                 }
 
-                // Layer 2: High-Resolution Street Raster Tiles (Snapp Minimal Light via CartoDB Positron / ArcGIS World Street)
+                // Layer 2: High-Resolution Street Raster Tiles (OpenStreetMap Detailed Persian / Esri World Street / Satellite)
                 for (tx in minTileX..maxTileX) {
                     for (ty in minTileY..maxTileY) {
                         if (tx in 0 until maxTiles && ty in 0 until maxTiles) {
@@ -322,6 +345,9 @@ fun InteractiveStreetMapView(
                             val tileSizePx = (256.0 * scaleInTile).toFloat()
 
                             val tileUrl = when (currentMapStyle) {
+                                MapStyleType.OSM_DETAILED -> {
+                                    "https://tile.openstreetmap.org/$z/$tx/$ty.png"
+                                }
                                 MapStyleType.SNAPP_LIGHT -> {
                                     "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/$z/$ty/$tx"
                                 }
@@ -333,9 +359,16 @@ fun InteractiveStreetMapView(
                                 }
                             }
 
+                            val tileRequest = remember<ImageRequest>(tileUrl) {
+                                ImageRequest.Builder(context)
+                                    .data(tileUrl)
+                                    .httpHeaders(networkHeaders)
+                                    .build()
+                            }
+
                             key(tx, ty, z, currentMapStyle) {
                                 AsyncImage(
-                                    model = tileUrl,
+                                    model = tileRequest,
                                     contentDescription = null,
                                     contentScale = ContentScale.FillBounds,
                                     modifier = Modifier
@@ -343,8 +376,15 @@ fun InteractiveStreetMapView(
                                         .size(with(density) { tileSizePx.toDp() }),
                                 )
                                 if (currentMapStyle == MapStyleType.SNAPP_LIGHT) {
+                                    val refUrl = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/$z/$ty/$tx"
+                                    val refRequest = remember<ImageRequest>(refUrl) {
+                                        ImageRequest.Builder(context)
+                                            .data(refUrl)
+                                            .httpHeaders(networkHeaders)
+                                            .build()
+                                    }
                                     AsyncImage(
-                                        model = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/$z/$ty/$tx",
+                                        model = refRequest,
                                         contentDescription = null,
                                         contentScale = ContentScale.FillBounds,
                                         modifier = Modifier
@@ -372,7 +412,6 @@ fun InteractiveStreetMapView(
                         radiiMeters.forEach { meters ->
                             val rPx = meters / metersPerPixel
                             if (rPx in 15f..2500f) {
-                                // Subtle dashed radar distance circle
                                 drawCircle(
                                     color = Color(0xFF2563EB).copy(alpha = 0.22f),
                                     radius = rPx,
@@ -384,6 +423,59 @@ fun InteractiveStreetMapView(
                                 )
                             }
                         }
+                    }
+                }
+
+                // Layer 2.8: Route Polyline between Worker and Job Location
+                if (routePoints.size >= 2) {
+                    val screenPoints = routePoints.map { pt ->
+                        val (px, py) = WebMercator.latLngToPixel(pt.latitude, pt.longitude, z.toFloat())
+                        Offset(
+                            ((px - cx) * scaleInTile + widthPx / 2.0).toFloat(),
+                            ((py - cy) * scaleInTile + heightPx / 2.0).toFloat()
+                        )
+                    }
+
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val path = Path().apply {
+                            moveTo(screenPoints.first().x, screenPoints.first().y)
+                            for (i in 1 until screenPoints.size) {
+                                lineTo(screenPoints[i].x, screenPoints[i].y)
+                            }
+                        }
+
+                        // Outer casing / glow
+                        drawPath(
+                            path = path,
+                            color = Color(0xFF2563EB).copy(alpha = 0.32f),
+                            style = Stroke(
+                                width = 13.dp.toPx(),
+                                cap = StrokeCap.Round,
+                                join = StrokeJoin.Round
+                            )
+                        )
+
+                        // Core solid route line
+                        drawPath(
+                            path = path,
+                            color = Color(0xFF2563EB),
+                            style = Stroke(
+                                width = 5.5.dp.toPx(),
+                                cap = StrokeCap.Round,
+                                join = StrokeJoin.Round
+                            )
+                        )
+
+                        // Inner directional dashed accent
+                        drawPath(
+                            path = path,
+                            color = Color(0xFF93C5FD),
+                            style = Stroke(
+                                width = 2.dp.toPx(),
+                                cap = StrokeCap.Round,
+                                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(14f, 14f), 0f)
+                            )
+                        )
                     }
                 }
 
@@ -449,6 +541,63 @@ fun InteractiveStreetMapView(
                             contentAlignment = Alignment.Center,
                         ) {
                             UserGpsPulseBeacon()
+                        }
+                    }
+
+                    // Layer 3.2: Job Location Target Pin (محل کار درخواست‌دهنده)
+                    jobTargetPoint?.let { jp ->
+                        val (jx, jy) = WebMercator.latLngToPixel(jp.latitude, jp.longitude, z.toFloat())
+                        val jobScreenX = ((jx - cx) * scaleInTile + widthPx / 2.0).toFloat()
+                        val jobScreenY = ((jy - cy) * scaleInTile + heightPx / 2.0).toFloat()
+
+                        if (jobScreenX in -250f..(widthPx + 250f) && jobScreenY in -250f..(heightPx + 250f)) {
+                            Box(
+                                modifier = Modifier
+                                    .layout { measurable, constraints ->
+                                        val placeable = measurable.measure(constraints)
+                                        layout(0, 0) {
+                                            placeable.place(
+                                                (jobScreenX - placeable.width / 2f).roundToInt(),
+                                                (jobScreenY - placeable.height).roundToInt()
+                                            )
+                                        }
+                                    }
+                            ) {
+                                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                                    JobLocationTargetPin(
+                                        address = jobAddressLabel ?: WebMercator.getTehranNeighborhood(jp.latitude, jp.longitude)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Layer 3.3: Worker En-Route Live Pin (موقعیت و حرکت متخصص)
+                    enRouteWorkerPoint?.let { wp ->
+                        val (wx, wy) = WebMercator.latLngToPixel(wp.latitude, wp.longitude, z.toFloat())
+                        val workerScreenX = ((wx - cx) * scaleInTile + widthPx / 2.0).toFloat()
+                        val workerScreenY = ((wy - cy) * scaleInTile + heightPx / 2.0).toFloat()
+
+                        if (workerScreenX in -250f..(widthPx + 250f) && workerScreenY in -250f..(heightPx + 250f)) {
+                            Box(
+                                modifier = Modifier
+                                    .layout { measurable, constraints ->
+                                        val placeable = measurable.measure(constraints)
+                                        layout(0, 0) {
+                                            placeable.place(
+                                                (workerScreenX - placeable.width / 2f).roundToInt(),
+                                                (workerScreenY - placeable.height).roundToInt()
+                                            )
+                                        }
+                                    }
+                            ) {
+                                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                                    WorkerEnRoutePin(
+                                        name = enRouteWorkerName ?: "متخصص در مسیر",
+                                        eta = enRouteWorkerEta ?: "در راه",
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -606,9 +755,10 @@ fun InteractiveStreetMapView(
                             .clip(RoundedCornerShape(14.dp))
                             .clickable {
                                 currentMapStyle = when (currentMapStyle) {
+                                    MapStyleType.OSM_DETAILED -> MapStyleType.SNAPP_LIGHT
                                     MapStyleType.SNAPP_LIGHT -> MapStyleType.ARCGIS_STREET
                                     MapStyleType.ARCGIS_STREET -> MapStyleType.SATELLITE
-                                    MapStyleType.SATELLITE -> MapStyleType.SNAPP_LIGHT
+                                    MapStyleType.SATELLITE -> MapStyleType.OSM_DETAILED
                                 }
                             },
                     ) {
@@ -617,8 +767,9 @@ fun InteractiveStreetMapView(
                                 Icons.Default.Layers,
                                 contentDescription = "تغییر لایه نقشه: ${currentMapStyle.title}",
                                 tint = when (currentMapStyle) {
+                                    MapStyleType.OSM_DETAILED -> Color(0xFF059669)
                                     MapStyleType.SNAPP_LIGHT -> Color(0xFF2563EB)
-                                    MapStyleType.ARCGIS_STREET -> Color(0xFF10B981)
+                                    MapStyleType.ARCGIS_STREET -> Color(0xFF6366F1)
                                     MapStyleType.SATELLITE -> Color(0xFFF59E0B)
                                 },
                                 modifier = Modifier.size(19.dp),
@@ -1031,6 +1182,191 @@ private fun UserGpsPulseBeacon() {
                 .padding(2.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primary),
+        )
+    }
+}
+
+/**
+ * Job Location Pin marking requester's project location with target callout.
+ */
+@Composable
+fun JobLocationTargetPin(address: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(bottom = 4.dp),
+    ) {
+        // Speech Bubble Callout
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFF0F172A),
+            shadowElevation = 8.dp,
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFEF4444)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Place,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(12.dp),
+                    )
+                }
+                Column {
+                    Text(
+                        text = "محل اجرای کار",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFCA5A5),
+                        fontSize = 10.sp,
+                    )
+                    Text(
+                        text = address,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+
+        // Small triangle arrow below bubble
+        Box(
+            modifier = Modifier
+                .size(10.dp, 6.dp)
+                .background(Color(0xFF0F172A), shape = RoundedCornerShape(bottomStart = 2.dp, bottomEnd = 2.dp))
+        )
+
+        // Target Pin Head
+        Surface(
+            shape = CircleShape,
+            color = Color(0xFFDC2626),
+            shadowElevation = 10.dp,
+            border = androidx.compose.foundation.BorderStroke(3.dp, Color.White),
+            modifier = Modifier.size(38.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+        // Pulse ring under pin
+        Box(
+            modifier = Modifier
+                .size(16.dp, 6.dp)
+                .clip(CircleShape)
+                .background(Color(0xFFDC2626).copy(alpha = 0.4f)),
+        )
+    }
+}
+
+/**
+ * Worker En-Route Marker with motorcycle badge and live ETA callout.
+ */
+@Composable
+fun WorkerEnRoutePin(name: String, eta: String) {
+    val infiniteTransition = rememberInfiniteTransition(label = "worker_pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 0.9f,
+        targetValue = 1.35f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "worker_pulse_scale"
+    )
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(bottom = 4.dp),
+    ) {
+        // ETA pill above worker
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFF059669),
+            shadowElevation = 8.dp,
+            border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.White),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                )
+                Text(
+                    text = eta,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    fontSize = 11.sp,
+                )
+                Text(
+                    text = "• $name",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFFD1FAE5),
+                    fontSize = 11.sp,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(4.dp))
+
+        // Worker Pin with Motorcycle & Halo
+        Box(contentAlignment = Alignment.Center) {
+            // Pulsing Halo
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .scale(pulseScale)
+                    .clip(CircleShape)
+                    .background(Color(0xFF10B981).copy(alpha = 0.35f))
+            )
+
+            // Pin Head
+            Surface(
+                shape = CircleShape,
+                color = Color(0xFF047857),
+                shadowElevation = 8.dp,
+                border = androidx.compose.foundation.BorderStroke(2.5.dp, Color.White),
+                modifier = Modifier.size(40.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.TwoWheeler,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .size(16.dp, 6.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF047857).copy(alpha = 0.4f)),
         )
     }
 }

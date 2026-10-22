@@ -316,10 +316,14 @@ fun CreateJobScreen(navController: NavHostController, workerId: String? = null, 
     val currentBackStackEntry = navController.currentBackStackEntry
     val pickedLat = currentBackStackEntry?.savedStateHandle?.getStateFlow<Double?>("picked_lat", null)?.collectAsStateWithLifecycle()
     val pickedLng = currentBackStackEntry?.savedStateHandle?.getStateFlow<Double?>("picked_lng", null)?.collectAsStateWithLifecycle()
-    LaunchedEffect(pickedLat?.value, pickedLng?.value) {
+    val pickedAddress = currentBackStackEntry?.savedStateHandle?.getStateFlow<String?>("picked_address", null)?.collectAsStateWithLifecycle()
+    LaunchedEffect(pickedLat?.value, pickedLng?.value, pickedAddress?.value) {
+        val addr = pickedAddress?.value
         val lat = pickedLat?.value
         val lng = pickedLng?.value
-        if (lat != null && lng != null) {
+        if (!addr.isNullOrBlank()) {
+            address = addr
+        } else if (lat != null && lng != null) {
             address = "موقعیت دقیق: ${String.format("%.4f", lat).toPersianDigits()} , ${String.format("%.4f", lng).toPersianDigits()}"
         }
     }
