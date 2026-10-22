@@ -102,7 +102,7 @@ fun JobsScreen(navController: NavHostController, employerMode: Boolean, viewMode
         if (employerMode) com.karvin.app.domain.model.UserRole.REQUESTER else com.karvin.app.domain.model.UserRole.PROVIDER,
         content = { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-        AppTopBar(if (employerMode) "درخواست‌های من" else "درخواست‌های نزدیک", onBack = { navController.popBackStack() }, actions = {
+        AppTopBar(if (employerMode) "سفارش‌ها و درخواست‌های من" else "فرصت‌های کاری اطراف", onBack = null, actions = {
             if (!employerMode) IconButton(onClick = { showFilters = true }, modifier = Modifier.semantics { contentDescription = "فیلترها" }) { Icon(Icons.Default.FilterList, "فیلترها") }
         })
         if (!employerMode) {

@@ -323,10 +323,10 @@ fun InteractiveStreetMapView(
 
                             val tileUrl = when (currentMapStyle) {
                                 MapStyleType.SNAPP_LIGHT -> {
-                                    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/$z/$ty/$tx"
+                                    "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/$z/$ty/$tx"
                                 }
                                 MapStyleType.ARCGIS_STREET -> {
-                                    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/$z/$ty/$tx"
+                                    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/$z/$ty/$tx"
                                 }
                                 MapStyleType.SATELLITE -> {
                                     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/$z/$ty/$tx"
@@ -338,11 +338,20 @@ fun InteractiveStreetMapView(
                                     model = tileUrl,
                                     contentDescription = null,
                                     contentScale = ContentScale.FillBounds,
-                                    colorFilter = if (currentMapStyle == MapStyleType.SNAPP_LIGHT) snappPastelFilter else null,
                                     modifier = Modifier
                                         .offset { IntOffset(tileLeftPx.roundToInt(), tileTopPx.roundToInt()) }
                                         .size(with(density) { tileSizePx.toDp() }),
                                 )
+                                if (currentMapStyle == MapStyleType.SNAPP_LIGHT) {
+                                    AsyncImage(
+                                        model = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/$z/$ty/$tx",
+                                        contentDescription = null,
+                                        contentScale = ContentScale.FillBounds,
+                                        modifier = Modifier
+                                            .offset { IntOffset(tileLeftPx.roundToInt(), tileTopPx.roundToInt()) }
+                                            .size(with(density) { tileSizePx.toDp() }),
+                                    )
+                                }
                             }
                         }
                     }
@@ -489,102 +498,25 @@ fun InteractiveStreetMapView(
                 }
             }
 
-        // Floating HUD Map Controls (always pinned to physical Left edge)
+        // Floating HUD Map Controls (Google Stitch Apple Maps Unified Dock)
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier
                         .align(Alignment.CenterStart)
-                        .padding(start = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                        .padding(start = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    // Map Style Layer Switcher (Snapp Minimal Light <-> ArcGIS Detailed)
+                    // 1. My Location FAB (Apple Maps / Stitch style)
                     Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                        shadowElevation = 6.dp,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color.White.copy(alpha = 0.96f),
+                        shadowElevation = 5.dp,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
                         modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .clickable {
-                                currentMapStyle = when (currentMapStyle) {
-                                    MapStyleType.SNAPP_LIGHT -> MapStyleType.ARCGIS_STREET
-                                    MapStyleType.ARCGIS_STREET -> MapStyleType.SATELLITE
-                                    MapStyleType.SATELLITE -> MapStyleType.SNAPP_LIGHT
-                                }
-                            },
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Layers,
-                                contentDescription = "تغییر لایه نقشه: ${currentMapStyle.title}",
-                                tint = when (currentMapStyle) {
-                                    MapStyleType.SNAPP_LIGHT -> Color(0xFF05CD85)
-                                    MapStyleType.ARCGIS_STREET -> Color(0xFF2563EB)
-                                    MapStyleType.SATELLITE -> Color(0xFFF59E0B)
-                                },
-                                modifier = Modifier.size(22.dp),
-                            )
-                        }
-                    }
-
-                    // Zoom In (+)
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                        shadowElevation = 6.dp,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .clickable {
-                                zoomLevel = (zoomLevel + 0.8f).coerceAtMost(18.0f)
-                            },
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = "بزرگ‌نمایی",
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(22.dp),
-                            )
-                        }
-                    }
-
-                    // Zoom Out (-)
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                        shadowElevation = 6.dp,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .clickable {
-                                zoomLevel = (zoomLevel - 0.8f).coerceAtLeast(11.5f)
-                            },
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Remove,
-                                contentDescription = "کوچک‌نمایی",
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(22.dp),
-                            )
-                        }
-                    }
-
-                    // My Location FAB
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                        shadowElevation = 6.dp,
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(14.dp))
                             .clickable {
                                 userPoint?.let {
                                     currentLat = it.latitude
@@ -598,18 +530,99 @@ fun InteractiveStreetMapView(
                         Box(contentAlignment = Alignment.Center) {
                             if (isLocating) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(22.dp),
-                                    strokeWidth = 2.5.dp,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Color(0xFF2563EB),
                                 )
                             } else {
                                 Icon(
                                     Icons.Default.MyLocation,
                                     contentDescription = "موقعیت من",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(24.dp),
+                                    tint = Color(0xFF2563EB),
+                                    modifier = Modifier.size(20.dp),
                                 )
                             }
+                        }
+                    }
+
+                    // 2. Unified Zoom Capsule (+ and - together)
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color.White.copy(alpha = 0.96f),
+                        shadowElevation = 5.dp,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        modifier = Modifier.width(38.dp),
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clickable {
+                                        zoomLevel = (zoomLevel + 0.8f).coerceAtMost(18.0f)
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = "بزرگ‌نمایی",
+                                    tint = Color(0xFF0F172A),
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(Color(0xFFE2E8F0))
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clickable {
+                                        zoomLevel = (zoomLevel - 0.8f).coerceAtLeast(11.5f)
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Default.Remove,
+                                    contentDescription = "کوچک‌نمایی",
+                                    tint = Color(0xFF0F172A),
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+                        }
+                    }
+
+                    // 3. Map Style Layers Switcher
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color.White.copy(alpha = 0.96f),
+                        shadowElevation = 5.dp,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable {
+                                currentMapStyle = when (currentMapStyle) {
+                                    MapStyleType.SNAPP_LIGHT -> MapStyleType.ARCGIS_STREET
+                                    MapStyleType.ARCGIS_STREET -> MapStyleType.SATELLITE
+                                    MapStyleType.SATELLITE -> MapStyleType.SNAPP_LIGHT
+                                }
+                            },
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.Layers,
+                                contentDescription = "تغییر لایه نقشه: ${currentMapStyle.title}",
+                                tint = when (currentMapStyle) {
+                                    MapStyleType.SNAPP_LIGHT -> Color(0xFF2563EB)
+                                    MapStyleType.ARCGIS_STREET -> Color(0xFF10B981)
+                                    MapStyleType.SATELLITE -> Color(0xFFF59E0B)
+                                },
+                                modifier = Modifier.size(19.dp),
+                            )
                         }
                     }
                 }

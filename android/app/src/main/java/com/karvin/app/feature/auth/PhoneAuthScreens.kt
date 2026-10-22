@@ -1,6 +1,8 @@
 package com.karvin.app.feature.auth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,8 +17,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BusinessCenter
+import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Security
+import com.karvin.app.core.designsystem.KarjoorColors
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.karvin.app.core.designsystem.KarjoorMark
 import com.karvin.app.core.designsystem.PrimaryButton
 import com.karvin.app.domain.model.toPersianDigits
 
@@ -67,7 +73,7 @@ fun LoginScreen(
     AuthContainer(
         title = "ورود و ثبت‌نام در کارجور",
         subtitle = "ثبت‌نام و ورود سریع فقط با شماره موبایل (بدون نیاز به تایید پیامکی)",
-        icon = { Icon(Icons.Default.Phone, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp)) },
+        icon = { KarjoorMark(size = 46.dp) },
     ) {
         // Free Service Notice Banner
         Surface(
@@ -96,24 +102,77 @@ fun LoginScreen(
             }
         }
 
-        // Role Selector Pills
+        // Role Selector Pills (Google Stitch Segmented Style)
         Text("نقش شما در سامانه:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            androidx.compose.material3.FilterChip(
-                selected = selectedRole == com.karvin.app.domain.model.UserRole.REQUESTER,
-                onClick = { selectedRole = com.karvin.app.domain.model.UserRole.REQUESTER },
-                label = { Text("درخواست‌دهنده نیرو (کارفرما)", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                modifier = Modifier.weight(1f),
-            )
-            androidx.compose.material3.FilterChip(
-                selected = selectedRole == com.karvin.app.domain.model.UserRole.PROVIDER,
-                onClick = { selectedRole = com.karvin.app.domain.model.UserRole.PROVIDER },
-                label = { Text("متخصص / ارائه‌دهنده خدمت", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                modifier = Modifier.weight(1f),
-            )
+            val isReq = selectedRole == com.karvin.app.domain.model.UserRole.REQUESTER
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = if (isReq) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (isReq) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable { selectedRole = com.karvin.app.domain.model.UserRole.REQUESTER },
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        Icons.Default.BusinessCenter,
+                        contentDescription = null,
+                        tint = if (isReq) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        "کارفرما",
+                        fontSize = 12.sp,
+                        fontWeight = if (isReq) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isReq) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+
+            val isProv = selectedRole == com.karvin.app.domain.model.UserRole.PROVIDER
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = if (isProv) KarjoorColors.Secondary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (isProv) KarjoorColors.Secondary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable { selectedRole = com.karvin.app.domain.model.UserRole.PROVIDER },
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Engineering,
+                        contentDescription = null,
+                        tint = if (isProv) KarjoorColors.Secondary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        "متخصص",
+                        fontSize = 12.sp,
+                        fontWeight = if (isProv) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isProv) KarjoorColors.Secondary else MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
         }
 
         Spacer(Modifier.height(4.dp))

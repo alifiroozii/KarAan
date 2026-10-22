@@ -2,7 +2,9 @@ package com.karvin.app.feature.onboarding
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,8 +18,32 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.BusinessCenter
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Engineering
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.HeadsetMic
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.PostAdd
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.Work
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,10 +55,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.karvin.app.core.designsystem.KarjoorCard
 import com.karvin.app.core.designsystem.KarjoorColors
 import com.karvin.app.core.designsystem.KarjoorDimensions
@@ -279,121 +308,572 @@ fun KarjoorRoleSelectionScreen(
         Modifier
             .fillMaxSize()
             .background(KarjoorColors.Background)
-            .padding(horizontal = KarjoorDimensions.screenGutter),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 18.dp),
     ) {
-        Spacer(Modifier.height(KarjoorDimensions.spacing24))
+        Spacer(Modifier.height(16.dp))
 
-        KarjoorLogo(markSize = 44.dp, showSubtitle = true)
+        // 1. Google Stitch Top Header Bar (مرحله ۱ از ۲, کارجور, دکمه بستن)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Right (in RTL): Close Button
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(38.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "بستن",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
 
-        Spacer(Modifier.height(KarjoorDimensions.spacing32))
+            // Center: Screen Title & Step
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(KarjoorColors.Secondary))
+                    Text(
+                        "انتخاب نقش",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                Text(
+                    "مرحله ۱ از ۲",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 10.sp,
+                )
+            }
 
-        Text(
-            text = "با کارجور، چه کاری می‌خوای انجام بدی؟",
-            style = MaterialTheme.typography.headlineSmall,
-            color = KarjoorColors.TextPrimary,
-        )
-        Spacer(Modifier.height(KarjoorDimensions.spacing8))
-        Text(
-            text = "هر نقشی رو انتخاب کنی، تا زمان لاگ‌اوت در اون باقی می‌مونی.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = KarjoorColors.TextSecondary,
-        )
+            // Left (in RTL): Minimal Karjoor Brand Pill
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    KarjoorMark(size = 16.dp)
+                    Text(
+                        "کارجور",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        }
 
         Spacer(Modifier.height(20.dp))
 
-        // 100% Free Service Badge
+        // 2. Welcoming Header Cluster (Google Stitch Standard)
         Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = KarjoorColors.Primary.copy(alpha = 0.08f),
-            border = androidx.compose.foundation.BorderStroke(1.dp, KarjoorColors.Primary.copy(alpha = 0.2f)),
+            shape = RoundedCornerShape(9999.dp),
+            color = KarjoorColors.Secondary.copy(alpha = 0.12f),
+            border = BorderStroke(1.dp, KarjoorColors.Secondary.copy(alpha = 0.25f)),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Icon(
+                    Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = KarjoorColors.Secondary,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    "شروع مسیر در کارجور",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = KarjoorColors.Secondary,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            text = "با کارجور، چه کاری می‌خوای انجام بدی؟",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Black,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 20.sp,
+        )
+
+        Spacer(Modifier.height(4.dp))
+
+        Text(
+            text = "هر زمان که بخواهی می‌توانی نقش خود را تغییر دهی یا هر دو را همزمان در حساب کاربری‌ات فعال داشته باشی.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            lineHeight = 20.sp,
+        )
+
+        Spacer(Modifier.height(18.dp))
+
+        // 3. Role Card 1: Performer / Specialist (انجام‌دهنده) - Stitch Design
+        StitchPerformerCard(
+            onClick = { onRoleSelected(KarjoorRole.PERFORMER) }
+        )
+
+        Spacer(Modifier.height(14.dp))
+
+        // 4. Role Card 2: Requester / Employer (درخواست‌دهنده) - Stitch Design
+        StitchRequesterCard(
+            onClick = { onRoleSelected(KarjoorRole.REQUESTER) }
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // 5. Trust Guarantee Micro-Strip
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Row(
                 modifier = Modifier.padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.VerifiedUser,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        "قرارداد رسمی و حساب تضمینی",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        "حفاظت کامل از حقوق مالی هر دو طرف",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // 6. Support Footer Pill
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        Icons.Default.HeadsetMic,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        "نیاز به راهنمایی داری؟ پشتیبانی ۲۴/۷ کارجور",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Text(
-                    text = "سرویس کارجور فعلاً کاملاً رایگان است (بدون کارمزد)",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = KarjoorColors.Primary,
+                    "گفتگو ←",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
         }
 
-        Spacer(Modifier.height(16.dp))
-
-        KarjoorRoleCard(
-            title = "می‌خواهم کار پیدا کنم",
-            description = "فرصت‌های کاری را ببین و برای انجام آن‌ها درخواست بده.",
-            badge = "انجام‌دهنده",
-            accent = KarjoorColors.Secondary,
-            onClick = { onRoleSelected(KarjoorRole.PERFORMER) },
-        )
-
-        Spacer(Modifier.height(KarjoorDimensions.spacing16))
-
-        KarjoorRoleCard(
-            title = "برای کارم نیرو می‌خواهم",
-            description = "کارت را ثبت کن و فرد مناسب را پیدا کن.",
-            badge = "درخواست‌دهنده",
-            accent = KarjoorColors.Primary,
-            onClick = { onRoleSelected(KarjoorRole.REQUESTER) },
-        )
-
-        Spacer(Modifier.weight(1f))
-        Spacer(Modifier.height(KarjoorDimensions.spacing24))
+        Spacer(Modifier.height(24.dp))
     }
 }
 
 @Composable
-private fun KarjoorRoleCard(
-    title: String,
-    description: String,
-    badge: String,
-    accent: Color,
-    onClick: () -> Unit,
-) {
-    KarjoorCard(
-        modifier = Modifier.fillMaxWidth(),
+private fun StitchPerformerCard(onClick: () -> Unit) {
+    Card(
         onClick = onClick,
-        borderColor = accent.copy(alpha = 0.35f),
-        contentDescription = "$title — $badge",
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.2.dp, KarjoorColors.Secondary.copy(alpha = 0.40f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(
-            Modifier.padding(KarjoorDimensions.spacing20),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Surface(
-                shape = RoundedCornerShape(KarjoorDimensions.cornerMedium),
-                color = accent.copy(alpha = 0.12f),
-                modifier = Modifier.size(56.dp),
+            // Top Header Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = badge.take(1),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = accent,
-                    )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = KarjoorColors.Secondary.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, KarjoorColors.Secondary.copy(alpha = 0.25f)),
+                        modifier = Modifier.size(46.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.Work,
+                                contentDescription = null,
+                                tint = KarjoorColors.Secondary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text(
+                                "انجام‌دهنده",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                "| Performer",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outlineVariant,
+                                fontSize = 10.sp,
+                            )
+                        }
+                        Text(
+                            "متخصص، فریلنسر، کارجو",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = KarjoorColors.Secondary,
+                        )
+                    }
+                }
+
+                // Verified Instant Payout Tag
+                Surface(
+                    shape = RoundedCornerShape(9999.dp),
+                    color = KarjoorColors.Secondary.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, KarjoorColors.Secondary.copy(alpha = 0.25f)),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Verified,
+                            contentDescription = null,
+                            tint = KarjoorColors.Secondary,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Text(
+                            "تسویه آنی",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = KarjoorColors.Secondary,
+                            fontSize = 10.sp,
+                        )
+                    }
                 }
             }
 
-            Spacer(Modifier.width(KarjoorDimensions.spacing16))
-
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Body
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = KarjoorColors.TextPrimary,
+                    "می‌خواهم کار پیدا کنم",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = description,
+                    "فرصت‌های کاری تایید شده را ببین، پیشنهاد قیمت بفرست و با ضمانت مالی پروژه بگیر.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = KarjoorColors.TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 20.sp,
                 )
-                Spacer(Modifier.height(KarjoorDimensions.spacing4))
-                KarjoorStatusPill(badge, accent)
             }
+
+            // Feature Tag Pills
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                StitchFeaturePill(Icons.Default.Payments, "درآمد نامحدود", KarjoorColors.Secondary)
+                StitchFeaturePill(Icons.Default.Lock, "پرداخت امن", KarjoorColors.Secondary)
+                StitchFeaturePill(Icons.Default.Tune, "سفارشی", KarjoorColors.Secondary)
+            }
+
+            // Action CTA Button
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFF1E293B), // Dark inverse-surface
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            "پیدا کردن کار",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        )
+                    }
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StitchRequesterCard(onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.40f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // Top Header Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                        modifier = Modifier.size(46.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.BusinessCenter,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text(
+                                "درخواست‌دهنده",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                "| Requester",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outlineVariant,
+                                fontSize = 10.sp,
+                            )
+                        }
+                        Text(
+                            "کارفرما، صاحب کسب‌وکار",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+
+                // Escrow Shield Tag
+                Surface(
+                    shape = RoundedCornerShape(9999.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Security,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Text(
+                            "صندوق امانی",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 10.sp,
+                        )
+                    }
+                }
+            }
+
+            // Body
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    "برای کارم نیرو می‌خواهم",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    "سفارش یا پروژه‌ات را رایگان ثبت کن، پیشنهادها را بسنج و بهترین نیرو را انتخاب کن.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 20.sp,
+                )
+            }
+
+            // Feature Tag Pills
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                StitchFeaturePill(Icons.Default.Group, "بهترین متخصصان", MaterialTheme.colorScheme.primary)
+                StitchFeaturePill(Icons.Default.AccountBalance, "حساب امن مالی", MaterialTheme.colorScheme.primary)
+                StitchFeaturePill(Icons.Default.HeadsetMic, "پشتیبانی ۲۴/۷", MaterialTheme.colorScheme.primary)
+            }
+
+            // Action CTA Button
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.PostAdd,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            "ثبت درخواست کار",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        )
+                    }
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StitchFeaturePill(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    tint: Color,
+) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(12.dp)
+            )
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 10.sp,
+            )
         }
     }
 }

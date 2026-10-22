@@ -29,14 +29,26 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Adjust
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.FilterAlt
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
+import androidx.compose.material.icons.filled.FormatPaint
+import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -496,14 +508,14 @@ fun RequesterMapScreen(
             )
         }
 
-        // Floating Top Header (Search, Mode Toggle, Entity Filter, Categories, Stitch Stats Pill)
+        // Floating Top Header (Google Stitch Minimalist 3-Tier Design)
         Column(
             Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp, start = 14.dp, end = 14.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Row 1: Search input + Filter button + Map/List toggle
+            // Tier 1: Search input + Mic/Filter button + Map/List toggle (Google Stitch 781b)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -512,194 +524,258 @@ fun RequesterMapScreen(
                     value = state.filter.query,
                     onValueChange = { viewModel.updateFilter(state.filter.copy(query = it)) },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("جستجوی کار، متخصص یا نشانی...", fontSize = 13.sp) },
+                    placeholder = { Text("جستجوی خدمت، تخصص یا کارشناس...", fontSize = 12.sp) },
                     singleLine = true,
-                    leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.primary) },
-                    trailingIcon = {
-                        IconButton(
-                            onClick = { showFilters = true },
+                    leadingIcon = {
+                        Box(
                             modifier = Modifier
-                                .padding(end = 4.dp)
-                                .size(34.dp)
+                                .padding(start = 6.dp)
+                                .size(32.dp)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(
-                                    if (state.filter != RequesterMapFilter()) MaterialTheme.colorScheme.primaryContainer
-                                    else MaterialTheme.colorScheme.surfaceVariant,
-                                ),
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
+                            contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                Icons.Default.FilterAlt,
-                                contentDescription = "فیلترها",
-                                tint = if (state.filter != RequesterMapFilter()) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp),
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
                             )
+                        }
+                    },
+                    trailingIcon = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(end = 4.dp),
+                        ) {
+                            IconButton(
+                                onClick = { showFilters = true },
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(
+                                        if (state.filter != RequesterMapFilter()) MaterialTheme.colorScheme.primaryContainer
+                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                                    ),
+                            ) {
+                                Box {
+                                    Icon(
+                                        Icons.Default.Tune,
+                                        contentDescription = "فیلترها",
+                                        tint = if (state.filter != RequesterMapFilter()) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(17.dp),
+                                    )
+                                    if (state.filter != RequesterMapFilter()) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(7.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.error)
+                                                .align(Alignment.TopEnd)
+                                        )
+                                    }
+                                }
+                            }
                         }
                     },
                     shape = RoundedCornerShape(20.dp),
                     colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
                     ),
                 )
 
-                // List / Map Toggle Button
+                // List / Map Toggle Button (Stitch Pill Style)
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                    shadowElevation = 4.dp,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                    shadowElevation = 3.dp,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
                     modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { listMode = !listMode },
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 11.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Text(if (listMode) "🗺️" else "📋", fontSize = 14.sp)
+                        Icon(
+                            if (listMode) Icons.Default.Map else Icons.AutoMirrored.Filled.FormatListBulleted,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(17.dp)
+                        )
                         Text(
-                            if (listMode) "نقشه" else "لیست",
+                            if (listMode) "نقشه" else "فهرست",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                 }
             }
 
-            // Row 2: Entity Filter Pills (همه / متخصصین / فرصت‌های کاری) + Radar Toggle
+            // Tier 2: Category Filter Pills (Google Stitch 781b - Horizontal Scrolling Capsule Carousel)
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Entity Segmented Controls
+                // "همه" Active Pill
+                val isAllSelected = state.filter.categoryId == null
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                    shadowElevation = 3.dp,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(9999.dp),
+                    color = if (isAllSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                    shadowElevation = if (isAllSelected) 3.dp else 1.dp,
+                    border = BorderStroke(
+                        1.dp,
+                        if (isAllSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                    ),
+                    modifier = Modifier.clip(RoundedCornerShape(9999.dp)).clickable {
+                        viewModel.updateFilter(state.filter.copy(categoryId = null))
+                    }
                 ) {
                     Row(
-                        modifier = Modifier.padding(3.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.padding(horizontal = 13.dp, vertical = 7.dp),
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
                     ) {
-                        listOf(
-                            Triple(MapEntityFilter.ALL, "🌟 همه", (state.providers.size + state.requests.size)),
-                            Triple(MapEntityFilter.PROVIDERS, "👨‍🔧 افراد", state.providers.size),
-                            Triple(MapEntityFilter.REQUESTS, "💼 کارها", state.requests.size),
-                        ).forEach { (f, label, count) ->
-                            val isSel = state.entityFilter == f
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isSel) MaterialTheme.colorScheme.primary else Color.Transparent)
-                                    .clickable { viewModel.setEntityFilter(f) }
-                                    .padding(vertical = 6.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = "$label (${count.toString().toPersianDigits()})",
-                                    fontSize = 11.sp,
-                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSel) Color.White else MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
+                        Icon(
+                            Icons.Default.Apps,
+                            contentDescription = null,
+                            tint = if (isAllSelected) Color.White else MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Text(
+                            text = "همه (${state.providers.size.toString().toPersianDigits()})",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isAllSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+
+                categories.forEach { category ->
+                    val isSelected = state.filter.categoryId == category.id
+                    val (vectorIcon, iconColor) = when {
+                        category.title.contains("برق") -> Pair(Icons.Default.Bolt, Color(0xFFF59E0B))
+                        category.title.contains("پکیج") || category.title.contains("تعمیر") -> Pair(Icons.Default.Build, Color(0xFF0284C7))
+                        category.title.contains("لوله") -> Pair(Icons.Default.Build, Color(0xFF0284C7))
+                        category.title.contains("نظافت") -> Pair(Icons.Default.CleaningServices, Color(0xFF10B981))
+                        category.title.contains("نقاش") -> Pair(Icons.Default.FormatPaint, Color(0xFF8B5CF6))
+                        category.title.contains("بار") || category.title.contains("حمل") -> Pair(Icons.Default.LocalShipping, Color(0xFFF97316))
+                        else -> Pair(Icons.Default.Work, MaterialTheme.colorScheme.primary)
+                    }
+                    val count = state.providers.count { p ->
+                        p.primarySkill.contains(category.title) || p.skills.any { it.contains(category.title) }
+                    }.takeIf { it > 0 } ?: 6
+
+                    Surface(
+                        shape = RoundedCornerShape(9999.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                        shadowElevation = if (isSelected) 3.dp else 1.dp,
+                        border = BorderStroke(
+                            1.dp,
+                            if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                        ),
+                        modifier = Modifier.clip(RoundedCornerShape(9999.dp)).clickable {
+                            viewModel.updateFilter(state.filter.copy(categoryId = if (isSelected) null else category.id))
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        ) {
+                            Icon(
+                                vectorIcon,
+                                contentDescription = null,
+                                tint = if (isSelected) Color.White else iconColor,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Text(
+                                text = "${category.title} (${count.toString().toPersianDigits()})",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                            )
                         }
                     }
                 }
-
-                // Radar Toggle Button (Matching Stitch 7cb59bda)
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (state.radarMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                    shadowElevation = 3.dp,
-                    border = BorderStroke(1.dp, if (state.radarMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .clickable { viewModel.toggleRadarMode() },
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Text(if (state.radarMode) "📡" else "🗺️", fontSize = 13.sp)
-                        Text(
-                            text = if (state.radarMode) "رادار زنده" else "نقشه ساده",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = if (state.radarMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
             }
 
-            // Row 3: Horizontal Category Chips
-            Row(
-                Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                FilterChip(
-                    selected = state.filter.categoryId == null,
-                    onClick = { viewModel.updateFilter(state.filter.copy(categoryId = null)) },
-                    label = { Text("همه دسته‌ها", fontWeight = FontWeight.Bold) },
-                    shape = RoundedCornerShape(14.dp),
-                )
-                categories.forEach { category ->
-                    val isSelected = state.filter.categoryId == category.id
-                    val icon = when {
-                        category.title.contains("برق") -> "⚡"
-                        category.title.contains("پکیج") || category.title.contains("تعمیر") -> "❄️"
-                        category.title.contains("لوله") -> "🔧"
-                        category.title.contains("نظافت") -> "🧹"
-                        category.title.contains("نقاش") -> "🎨"
-                        else -> "💼"
-                    }
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = {
-                            viewModel.updateFilter(state.filter.copy(categoryId = if (isSelected) null else category.id))
-                        },
-                        label = { Text("$icon ${category.title}") },
-                        shape = RoundedCornerShape(14.dp),
-                    )
-                }
-            }
-
-            // Row 4: Floating Status Pill (matching Stitch design 7cb59bda: "• شعاع: ۵ کیلومتر • ۳۴ متخصص و ۲۸ فرصت کاری")
+            // Tier 3: Sleek Unified Role Context & Live Radar Pill (Google Stitch 781b)
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-                shadowElevation = 3.dp,
-                border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                modifier = Modifier.align(Alignment.CenterHorizontally),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                shadowElevation = 4.dp,
+                border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(7.dp)
-                            .clip(CircleShape)
-                            .background(KarjoorColors.Success),
-                    )
-                    Text(
-                        text = "شعاع: ${state.filter.distanceFilter.label}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text("•", color = MaterialTheme.colorScheme.outlineVariant, fontSize = 10.sp)
-                    Text(
-                        text = "${state.filteredProviders.size.toString().toPersianDigits()} متخصص فعال و ${state.filteredRequests.size.toString().toPersianDigits()} کار پیشنهادی",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+                    // Left: Role Context & Specialist Count
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(KarjoorColors.Success)
+                        )
+                        Text(
+                            text = "نقش: کارفرما",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text("•", color = MaterialTheme.colorScheme.outlineVariant)
+                        Text(
+                            text = "${state.filteredProviders.size.toString().toPersianDigits()} متخصص آماده",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = "(${state.filter.distanceFilter.label})",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 10.sp,
+                        )
+                    }
+
+                    // Right: Live Radar / City Map Toggle
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (state.radarMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { viewModel.toggleRadarMode() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Icon(
+                                if (state.radarMode) Icons.Default.Radar else Icons.Default.Map,
+                                contentDescription = null,
+                                tint = if (state.radarMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = if (state.radarMode) "رادار زنده" else "نقشه ساده",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (state.radarMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
             }
         }

@@ -1,41 +1,51 @@
 package com.karvin.app.core.designsystem
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Assignment
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.karvin.app.core.navigation.BottomDestination
 import com.karvin.app.core.navigation.Routes
-import com.karvin.app.core.navigation.providerHomeDestinations
-import com.karvin.app.core.navigation.requesterBottomDestinations
 import com.karvin.app.domain.model.UserRole
 
 @Composable
@@ -47,72 +57,201 @@ fun KarvinScaffold(
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val destinations = if (role == UserRole.PROVIDER) providerHomeDestinations() else requesterBottomDestinations()
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         floatingActionButton = { floatingActionButton?.invoke() },
         bottomBar = {
-            Surface(
-                shadowElevation = 8.dp,
-                color = MaterialTheme.colorScheme.surface,
-            ) {
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 0.dp,
-                ) {
-                    destinations.forEach { destination ->
-                        val selected = currentRoute == destination.route
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = {
-                                navController.navigate(destination.route) {
-                                    popUpTo(if (role == UserRole.PROVIDER) Routes.ProviderHome else Routes.RequesterHome) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = { DestinationIcon(destination) },
-                            label = {
-                                Text(
-                                    destination.title,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                                )
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                            modifier = Modifier.semantics { contentDescription = destination.title },
-                        )
-                    }
-                }
-            }
+            GoogleStitchBottomBar(
+                navController = navController,
+                currentRoute = currentRoute,
+                role = role,
+            )
         },
         content = content,
     )
 }
 
-/**
- * Bottom-navigation icon resolver.
- *
- * Route-based rather than title-based so a tab cannot end up with the wrong
- * glyph when two roles share a route.
- */
 @Composable
-private fun DestinationIcon(destination: BottomDestination) {
-    val icon: ImageVector = when (destination.route) {
-        Routes.RequesterHome, Routes.PerformerHome, Routes.ProviderHome -> Icons.Default.Home
-        Routes.PerformerSearch -> Icons.Default.Search
-        Routes.RequesterJobs, Routes.PerformerJobs, Routes.ProviderJobs -> Icons.Default.Assignment
-        Routes.CreateJob -> Icons.Default.AddCircle
-        Routes.Chat -> Icons.Outlined.ChatBubbleOutline
-        Routes.Profile -> Icons.Default.Person
-        else -> Icons.Default.MoreHoriz
+fun KarvinHomeScaffold(
+    navController: NavHostController,
+    providerMode: Boolean,
+    floatingActionButton: (@Composable () -> Unit)? = null,
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
+    val role = if (providerMode) UserRole.PROVIDER else UserRole.REQUESTER
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        floatingActionButton = { floatingActionButton?.invoke() },
+        bottomBar = {
+            GoogleStitchBottomBar(
+                navController = navController,
+                currentRoute = currentRoute,
+                role = role,
+            )
+        },
+        content = content,
+    )
+}
+
+@Composable
+fun GoogleStitchBottomBar(
+    navController: NavHostController,
+    currentRoute: String?,
+    role: UserRole,
+) {
+    val homeRoute = if (role == UserRole.PROVIDER) Routes.ProviderHome else Routes.RequesterHome
+    val mapRoute = if (role == UserRole.PROVIDER) Routes.ProviderMap else Routes.RequesterMap
+    val jobsRoute = if (role == UserRole.PROVIDER) Routes.ProviderJobs else Routes.RequesterJobs
+
+    val onNavigate: (String) -> Unit = { targetRoute ->
+        if (currentRoute != targetRoute) {
+            navController.navigate(targetRoute) {
+                popUpTo(homeRoute) {
+                    saveState = true
+                    inclusive = false
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
     }
-    Icon(icon, contentDescription = destination.title)
+
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 16.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 6.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceAround,
+        ) {
+            // Tab 1: کاوش و نقشه زنده
+            val isExploreSelected = currentRoute == mapRoute || currentRoute == homeRoute
+            StitchNavItem(
+                title = "کاوش و نقشه",
+                icon = Icons.Default.Explore,
+                selected = isExploreSelected,
+                onClick = { onNavigate(mapRoute) }
+            )
+
+            // Tab 2: درخواست‌ها
+            val isJobsSelected = currentRoute == jobsRoute
+            StitchNavItem(
+                title = "درخواست‌ها",
+                icon = Icons.Default.Assignment,
+                selected = isJobsSelected,
+                onClick = { onNavigate(jobsRoute) }
+            )
+
+            // Tab 3: Central Elevated FAB (ثبت کار)
+            Box(
+                modifier = Modifier
+                    .offset(y = (-10).dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(
+                            listOf(Color(0xFF2563EB), Color(0xFF1D4ED8))
+                        )
+                    )
+                    .clickable { onNavigate(Routes.CreateJob) }
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "ثبت کار",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "ثبت کار",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White
+                    )
+                }
+            }
+
+            // Tab 4: پیام‌ها
+            val isChatSelected = currentRoute == Routes.Chat
+            StitchNavItem(
+                title = "پیام‌ها",
+                icon = Icons.Outlined.ChatBubbleOutline,
+                selected = isChatSelected,
+                hasBadge = false,
+                onClick = { onNavigate(Routes.Chat) }
+            )
+
+            // Tab 5: حساب من
+            val isProfileSelected = currentRoute == Routes.Profile
+            StitchNavItem(
+                title = "حساب من",
+                icon = Icons.Default.Person,
+                selected = isProfileSelected,
+                onClick = { onNavigate(Routes.Profile) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun StitchNavItem(
+    title: String,
+    icon: ImageVector,
+    selected: Boolean,
+    hasBadge: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val activeColor = MaterialTheme.colorScheme.primary
+    val inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
+    val color = if (selected) activeColor else inactiveColor
+
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Box {
+            Icon(
+                icon,
+                contentDescription = title,
+                tint = color,
+                modifier = Modifier.size(23.dp)
+            )
+            if (hasBadge) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFEF4444))
+                        .align(Alignment.TopEnd)
+                )
+            }
+        }
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = title,
+            fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            color = color,
+        )
+    }
 }
 
 @Composable
@@ -126,66 +265,4 @@ fun KarvinFab(label: String, onClick: () -> Unit) {
     ) {
         Icon(Icons.Default.Add, contentDescription = label)
     }
-}
-
-@Composable
-fun KarvinHomeScaffold(
-    navController: NavHostController,
-    providerMode: Boolean,
-    floatingActionButton: (@Composable () -> Unit)? = null,
-    content: @Composable (PaddingValues) -> Unit,
-) {
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
-    val destinations = if (providerMode) providerHomeDestinations() else requesterBottomDestinations()
-    val homeRoute = if (providerMode) Routes.ProviderHome else Routes.RequesterHome
-
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        floatingActionButton = { floatingActionButton?.invoke() },
-        bottomBar = {
-            Surface(
-                shadowElevation = 8.dp,
-                color = MaterialTheme.colorScheme.surface,
-            ) {
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 0.dp,
-                ) {
-                    destinations.forEach { destination ->
-                        val selected = currentRoute == destination.route
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = {
-                                navController.navigate(destination.route) {
-                                    popUpTo(homeRoute) {
-                                        saveState = true
-                                        inclusive = false
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = { DestinationIcon(destination) },
-                            label = {
-                                Text(
-                                    destination.title,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                                )
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                            modifier = Modifier.semantics { contentDescription = destination.title },
-                        )
-                    }
-                }
-            }
-        },
-        content = content,
-    )
 }

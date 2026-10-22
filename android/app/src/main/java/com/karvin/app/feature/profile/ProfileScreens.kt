@@ -73,7 +73,7 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
     val user = state.user ?: defaultUser
     KarvinScaffold(navController, user.role, content = { padding ->
     Column(Modifier.fillMaxSize().padding(padding)) {
-        AppTopBar("پروفایل", onBack = { navController.popBackStack() }, actions = { IconButton(onClick = { navController.navigate(Routes.Settings) }) { Icon(Icons.Default.Settings, "تنظیمات") } })
+        AppTopBar("حساب کاربری و تنظیمات", onBack = null, actions = { IconButton(onClick = { navController.navigate(Routes.Settings) }) { Icon(Icons.Default.Settings, "تنظیمات") } })
         run {
             androidx.compose.foundation.lazy.LazyColumn(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 item {
@@ -98,7 +98,7 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
                     }
                 }
 
-                // Prominent Role Switcher Banner Card
+                // Prominent Role Switcher Banner Card (Google Stitch Style)
                 item {
                     val isPerformer = user.role == UserRole.PROVIDER
                     Card(
@@ -114,14 +114,14 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
-                                Text("نقش فعال شما:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("نقش فعال شما در کارجور:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(
-                                    if (isPerformer) "انجام‌دهنده (Performer)" else "درخواست‌دهنده (Requester)",
+                                    if (isPerformer) "متخصص (ارائه‌دهنده خدمت)" else "کارفرما (سفارش‌دهنده خدمت)",
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Black,
                                     color = if (isPerformer) com.karvin.app.core.designsystem.KarjoorColors.Secondary else com.karvin.app.core.designsystem.KarjoorColors.Primary,
                                 )
-                                Text("سوییچ سریع بدون خروج از حساب", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("تغییر آنی بدون خروج از حساب", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Button(
                                 onClick = { showRoleDialog = true },
@@ -130,7 +130,7 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
                                     containerColor = if (isPerformer) com.karvin.app.core.designsystem.KarjoorColors.Primary else com.karvin.app.core.designsystem.KarjoorColors.Secondary,
                                 ),
                             ) {
-                                Text(if (isPerformer) "تغییر به درخواست‌دهنده ⇄" else "تغییر به انجام‌دهنده ⇄")
+                                Text(if (isPerformer) "تبدیل به کارفرما ⇄" else "تبدیل به متخصص ⇄", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
                             }
                         }
                     }
@@ -178,8 +178,8 @@ fun ProfileScreen(navController: NavHostController, viewModel: ProfileViewModel 
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 listOf(
-                    UserRole.PROVIDER to ("انجام‌دهنده (Performer) — مشاهده فرصت‌ها و انجام کار"),
-                    UserRole.REQUESTER to ("درخواست‌دهنده (Requester) — ثبت کار و استخدام نیرو"),
+                    UserRole.PROVIDER to ("متخصص و ارائه‌دهنده خدمت — مشاهده کارهای نزدیک و اعلام آمادگی"),
+                    UserRole.REQUESTER to ("کارفرما و سفارش‌دهنده — ثبت خدمت جدید و انتخاب متخصص"),
                 ).forEach { (role, label) ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

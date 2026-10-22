@@ -24,8 +24,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CheckCircle
@@ -34,15 +36,19 @@ import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.FormatPaint
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.material.icons.filled.Yard
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.AlertDialog
@@ -816,20 +822,26 @@ fun ProviderMapScreen(
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                    shadowElevation = 4.dp,
+                    shadowElevation = 3.dp,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
                     modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { listMode = !listMode },
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 11.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Text(if (listMode) "🗺️" else "📋", fontSize = 14.sp)
+                        Icon(
+                            if (listMode) Icons.Default.Map else Icons.AutoMirrored.Filled.FormatListBulleted,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(17.dp)
+                        )
                         Text(
-                            if (listMode) "نقشه" else "لیست",
+                            if (listMode) "نقشه" else "فهرست",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                 }
@@ -844,7 +856,7 @@ fun ProviderMapScreen(
                 // Entity Segmented Controls
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
                     shadowElevation = 3.dp,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
                     modifier = Modifier.weight(1f),
@@ -855,9 +867,9 @@ fun ProviderMapScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         listOf(
-                            Triple(com.karvin.app.feature.map.MapEntityFilter.ALL, "🌟 همه", (state.requests.size + state.providers.size)),
-                            Triple(com.karvin.app.feature.map.MapEntityFilter.REQUESTS, "💼 کارها", state.requests.size),
-                            Triple(com.karvin.app.feature.map.MapEntityFilter.PROVIDERS, "👨‍🔧 همکاران", state.providers.size),
+                            Triple(com.karvin.app.feature.map.MapEntityFilter.ALL, "همه", (state.requests.size + state.providers.size)),
+                            Triple(com.karvin.app.feature.map.MapEntityFilter.REQUESTS, "کارها", state.requests.size),
+                            Triple(com.karvin.app.feature.map.MapEntityFilter.PROVIDERS, "همکاران", state.providers.size),
                         ).forEach { (f, label, count) ->
                             val isSel = state.entityFilter == f
                             Box(
@@ -866,7 +878,7 @@ fun ProviderMapScreen(
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(if (isSel) MaterialTheme.colorScheme.primary else Color.Transparent)
                                     .clickable { viewModel.setEntityFilter(f) }
-                                    .padding(vertical = 6.dp),
+                                    .padding(vertical = 7.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
@@ -883,7 +895,7 @@ fun ProviderMapScreen(
                 // Radar Toggle Button
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = if (state.radarMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    color = if (state.radarMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
                     shadowElevation = 3.dp,
                     border = BorderStroke(1.dp, if (state.radarMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
                     modifier = Modifier
@@ -891,13 +903,18 @@ fun ProviderMapScreen(
                         .clickable { viewModel.toggleRadarMode() },
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        Text(if (state.radarMode) "📡" else "🗺️", fontSize = 13.sp)
+                        Icon(
+                            if (state.radarMode) Icons.Default.Radar else Icons.Default.Map,
+                            contentDescription = null,
+                            tint = if (state.radarMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(15.dp)
+                        )
                         Text(
-                            text = if (state.radarMode) "رادار زنده" else "نقشه ساده",
+                            text = if (state.radarMode) "رادار زنده" else "نقشه",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = if (state.radarMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
@@ -906,30 +923,90 @@ fun ProviderMapScreen(
                 }
             }
 
-            // Row 3: Category chips
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                FilterChip(
-                    selected = state.filter.categoryId == null,
-                    onClick = { viewModel.updateFilter(state.filter.copy(categoryId = null)) },
-                    label = { Text("همه دسته‌ها", fontWeight = FontWeight.Bold) },
-                    shape = RoundedCornerShape(14.dp),
-                )
+            // Row 3: Category Filter Capsules (Horizontal Scrolling)
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val isAllSelected = state.filter.categoryId == null
+                Surface(
+                    shape = RoundedCornerShape(9999.dp),
+                    color = if (isAllSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                    shadowElevation = if (isAllSelected) 3.dp else 1.dp,
+                    border = BorderStroke(
+                        1.dp,
+                        if (isAllSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                    ),
+                    modifier = Modifier.clip(RoundedCornerShape(9999.dp)).clickable {
+                        viewModel.updateFilter(state.filter.copy(categoryId = null))
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 13.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Apps,
+                            contentDescription = null,
+                            tint = if (isAllSelected) Color.White else MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Text(
+                            text = "همه دسته‌ها",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isAllSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+
                 categories.forEach { category ->
                     val isSelected = state.filter.categoryId == category.id
-                    val icon = when {
-                        category.title.contains("برق") -> "⚡"
-                        category.title.contains("پکیج") || category.title.contains("تعمیر") -> "❄️"
-                        category.title.contains("لوله") -> "🔧"
-                        category.title.contains("نظافت") -> "🧹"
-                        category.title.contains("نقاش") -> "🎨"
-                        else -> "💼"
+                    val (vectorIcon, iconColor) = when {
+                        category.title.contains("برق") -> Pair(Icons.Default.Bolt, Color(0xFFF59E0B))
+                        category.title.contains("پکیج") || category.title.contains("تعمیر") -> Pair(Icons.Default.Build, Color(0xFF0284C7))
+                        category.title.contains("لوله") -> Pair(Icons.Default.Build, Color(0xFF0284C7))
+                        category.title.contains("نظافت") -> Pair(Icons.Default.CleaningServices, Color(0xFF10B981))
+                        category.title.contains("نقاش") -> Pair(Icons.Default.FormatPaint, Color(0xFF8B5CF6))
+                        category.title.contains("بار") || category.title.contains("حمل") -> Pair(Icons.Default.LocalShipping, Color(0xFFF97316))
+                        else -> Pair(Icons.Default.Work, MaterialTheme.colorScheme.primary)
                     }
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { viewModel.updateFilter(state.filter.copy(categoryId = if (isSelected) null else category.id)) },
-                        label = { Text("$icon ${category.title}") },
-                        shape = RoundedCornerShape(14.dp),
-                    )
+
+                    Surface(
+                        shape = RoundedCornerShape(9999.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                        shadowElevation = if (isSelected) 3.dp else 1.dp,
+                        border = BorderStroke(
+                            1.dp,
+                            if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                        ),
+                        modifier = Modifier.clip(RoundedCornerShape(9999.dp)).clickable {
+                            viewModel.updateFilter(state.filter.copy(categoryId = if (isSelected) null else category.id))
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        ) {
+                            Icon(
+                                vectorIcon,
+                                contentDescription = null,
+                                tint = if (isSelected) Color.White else iconColor,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Text(
+                                text = category.title,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
                 }
             }
 
@@ -1377,51 +1454,143 @@ fun RequesterHomeScreen(
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // ─── Top App Bar ───
+            // ─── Google Stitch Top App Bar (Header with Role Clarity) ───
             item {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .padding(top = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    KarvinLogo()
-                    Spacer(Modifier.weight(1f))
-                    Box {
-                        IconButton(onClick = { navController.navigate(Routes.Notifications) }) {
-                            Icon(Icons.Default.Notifications, contentDescription = "اعلان‌ها", tint = MaterialTheme.colorScheme.onSurface)
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary)
-                                .align(Alignment.TopEnd),
-                        )
-                    }
-                    IconButton(onClick = { navController.navigate(Routes.Profile) }) {
-                        Icon(Icons.Default.Person, contentDescription = "پروفایل", tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
-
-            // ─── Greeting & Location Header ───
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("سلام، خوش آمدید 👋", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Surface(
-                        onClick = { navController.navigate(Routes.RequesterMap) },
-                        shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
+                        // User Profile & Role Indicator (Right in RTL)
                         Row(
-                            Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Box {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    modifier = Modifier.size(46.dp),
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text("ع", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .clip(CircleShape)
+                                        .background(KarjoorColors.Success)
+                                        .align(Alignment.BottomEnd),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                                }
+                            }
+
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Text("کارجور", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                    ) {
+                                        Text(
+                                            "کارفرما",
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                    }
+                                }
+                                Text("ثبت و مدیریت مستقیم سفارشات", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+
+                        // Actions: Quick Role Switch Button & Notifications
+                        Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                            Text(state.locationName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
-                            Text("· تغییر", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                            // Quick Role Switch Chip
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable {
+                                    navController.navigate(Routes.Profile)
+                                },
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    Text("⇄ متخصص", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+
+                            // Notification Bell with Dot
+                            Box {
+                                IconButton(onClick = { navController.navigate(Routes.Notifications) }) {
+                                    Icon(Icons.Default.Notifications, contentDescription = "اعلان‌ها", tint = MaterialTheme.colorScheme.onSurface)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary)
+                                        .align(Alignment.TopEnd)
+                                        .padding(top = 8.dp, end = 8.dp),
+                                )
+                            }
+                        }
+                    }
+
+                    // Location & Escrow Trust Sub-bar
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Surface(
+                            onClick = { navController.navigate(Routes.RequesterMap) },
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        ) {
+                            Row(
+                                Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Icon(Icons.Default.LocationOn, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                Text(state.locationName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+                                Text("· تغییر", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        // Escrow Shield Badge (Stitch Pattern)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(KarjoorColors.Success))
+                            Text(
+                                "تضمین پرداخت امن (Escrow)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = KarjoorColors.Success,
+                                fontWeight = FontWeight.SemiBold,
+                            )
                         }
                     }
                 }
@@ -1600,21 +1769,22 @@ fun RequesterHomeScreen(
             }
 
             item {
+                data class HomeCategoryItem(val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val accentColor: Color)
                 val primaryCategories = listOf(
-                    Triple("برق‌کاری", "⚡", Color(0xFFF59E0B)),
-                    Triple("لوله‌کشی", "🔧", Color(0xFF0284C7)),
-                    Triple("نظافت", "🧹", Color(0xFF10B981)),
-                    Triple("تعمیرات", "❄️", Color(0xFF6366F1)),
-                    Triple("باربری", "📦", Color(0xFFF97316)),
-                    Triple("امداد خودرو", "🚗", Color(0xFFEF4444)),
-                    Triple("نقاشی", "🎨", Color(0xFF8B5CF6)),
-                    Triple("باغبانی", "🌿", Color(0xFF059669)),
+                    HomeCategoryItem("برق‌کاری", Icons.Default.Bolt, Color(0xFFF59E0B)),
+                    HomeCategoryItem("لوله‌کشی", Icons.Default.Build, Color(0xFF0284C7)),
+                    HomeCategoryItem("نظافت", Icons.Default.CleaningServices, Color(0xFF10B981)),
+                    HomeCategoryItem("سرمایش/گرمایش", Icons.Default.Build, Color(0xFF6366F1)),
+                    HomeCategoryItem("باربری", Icons.Default.LocalShipping, Color(0xFFF97316)),
+                    HomeCategoryItem("امداد خودرو", Icons.Default.DirectionsCar, Color(0xFFEF4444)),
+                    HomeCategoryItem("نقاشی", Icons.Default.FormatPaint, Color(0xFF8B5CF6)),
+                    HomeCategoryItem("باغبانی", Icons.Default.Yard, Color(0xFF059669)),
                 )
 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     primaryCategories.chunked(4).forEach { rowItems ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            rowItems.forEach { (catTitle, catIcon, accentColor) ->
+                            rowItems.forEach { item ->
                                 Card(
                                     onClick = { navController.navigate(Routes.RequesterMap) },
                                     modifier = Modifier.weight(1f),
@@ -1626,23 +1796,29 @@ fun RequesterHomeScreen(
                                     Column(
                                         modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
                                         Surface(
-                                            shape = RoundedCornerShape(12.dp),
-                                            color = accentColor.copy(alpha = 0.12f),
-                                            modifier = Modifier.size(42.dp),
+                                            shape = RoundedCornerShape(14.dp),
+                                            color = item.accentColor.copy(alpha = 0.12f),
+                                            modifier = Modifier.size(44.dp),
                                         ) {
                                             Box(contentAlignment = Alignment.Center) {
-                                                Text(catIcon, fontSize = 20.sp)
+                                                Icon(
+                                                    item.icon,
+                                                    contentDescription = item.title,
+                                                    tint = item.accentColor,
+                                                    modifier = Modifier.size(22.dp),
+                                                )
                                             }
                                         }
                                         Text(
-                                            catTitle,
-                                            style = MaterialTheme.typography.labelMedium,
+                                            item.title,
+                                            style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
                                             textAlign = TextAlign.Center,
                                             maxLines = 1,
+                                            fontSize = 11.sp,
                                         )
                                     }
                                 }
@@ -1680,7 +1856,20 @@ fun RequesterHomeScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Text("📍", fontSize = 28.sp)
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                modifier = Modifier.size(48.dp),
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.LocationOn,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                }
+                            }
                             Text(
                                 "نیروهای مجرب به محض ثبت سفارش به محل اعزام می‌شوند",
                                 style = MaterialTheme.typography.bodyMedium,
