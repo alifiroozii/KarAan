@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useAdmin } from "./admin-context";
 import {
   AlertTriangle,
   BriefcaseBusiness,
@@ -18,6 +19,8 @@ import {
   ArrowLeft,
   Sparkles,
   RefreshCw,
+  Eye,
+  FolderOpen,
 } from "lucide-react";
 
 interface RecentUser {
@@ -58,6 +61,7 @@ async function fetchOverview(): Promise<Overview> {
 }
 
 export function AdminOverview() {
+  const { setActiveTab, setSearchQuery } = useAdmin();
   const query = useQuery({
     queryKey: ["admin", "overview"],
     queryFn: fetchOverview,
@@ -227,6 +231,7 @@ export function AdminOverview() {
                   <th className="py-3 px-3 font-semibold">پلتفرم ورودی</th>
                   <th className="py-3 px-3 font-semibold">وضعیت حساب</th>
                   <th className="py-3 px-3 font-semibold">زمان آخرین ورود</th>
+                  <th className="py-3 px-3 font-semibold text-center">پرونده کاربر</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
@@ -330,6 +335,25 @@ export function AdminOverview() {
                           minute: "2-digit",
                           second: "2-digit",
                         })}
+                      </td>
+
+                      {/* Dossier Action Button */}
+                      <td className="py-3.5 px-3 text-center">
+                        <button
+                          onClick={() => {
+                            if (user.phone) {
+                              setSearchQuery(user.phone);
+                            } else {
+                              setSearchQuery(user.id);
+                            }
+                            setActiveTab("users");
+                          }}
+                          className="inline-flex items-center gap-1 rounded-xl border border-blue-200 bg-blue-50/70 hover:bg-blue-100 px-2.5 py-1 text-[11px] font-bold text-blue-700 transition cursor-pointer"
+                          title="انتقال به پرونده کاربر"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          <span>پرونده</span>
+                        </button>
                       </td>
                     </tr>
                   );

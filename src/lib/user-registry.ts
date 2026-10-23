@@ -21,6 +21,15 @@ export interface UserSubmittedRequest {
   notes?: string;
 }
 
+export interface UserActivityEvent {
+  id: string;
+  action: string;
+  title: string;
+  timestamp: string;
+  details?: Record<string, any>;
+  ipAddress?: string;
+}
+
 export interface RegisteredUser {
   id: string;
   fullName: string;
@@ -41,6 +50,13 @@ export interface RegisteredUser {
   skills?: string[];
   submittedRequests?: UserSubmittedRequest[];
   notes?: string;
+  gpsCoordinates?: {
+    lat: number;
+    lng: number;
+    speed?: number;
+    updatedAt: string;
+  };
+  activityTimeline?: UserActivityEvent[];
 }
 
 declare global {
@@ -292,6 +308,10 @@ function mapDbRowToRegisteredUser(row: any): RegisteredUser {
     skills: parsedSkills,
     submittedRequests: parsedRequests,
     notes: row.notes ? String(row.notes) : undefined,
+    gpsCoordinates: row.gps_coordinates ?? row.gpsCoordinates,
+    activityTimeline: Array.isArray(row.activity_timeline ?? row.activityTimeline)
+      ? (row.activity_timeline ?? row.activityTimeline)
+      : undefined,
   };
 }
 
@@ -589,9 +609,44 @@ export class UserRegistryService {
       timestamp: new Date().toISOString(),
     };
     globalThis.__karaanTelemetryLogs.unshift(logItem);
-    if (globalThis.__karaanTelemetryLogs.length > 200) {
+    if (globalThis.__karaanTelemetryLogs.length > 300) {
       globalThis.__karaanTelemetryLogs.pop();
     }
+
+    // Attach to user dossier if phone is known
+    if (entry.phone) {
+      const cleanPhone = entry.phone.trim().replace(/\D/g, "");
+      const searchTail = cleanPhone.slice(-10);
+      const store = getMemoryStore();
+      for (const u of store.values()) {
+        const uDigits = u.phone.replace(/\D/g, "");
+        if (uDigits.endsWith(searchTail) || cleanPhone === uDigits) {
+          if (!u.activityTimeline) u.activityTimeline = [];
+          u.activityTimeline.unshift({
+            id: logItem.id,
+            action: logItem.action,
+            title: entry.details?.event || logItem.action,
+            timestamp: logItem.timestamp,
+            details: logItem.details,
+            ipAddress: logItem.ipAddress,
+          });
+          if (u.activityTimeline.length > 100) u.activityTimeline.pop();
+
+          if (typeof entry.details?.lat === "number" && typeof entry.details?.lng === "number") {
+            u.gpsCoordinates = {
+              lat: entry.details.lat,
+              lng: entry.details.lng,
+              speed: typeof entry.details?.speed === "number" ? entry.details.speed : undefined,
+              updatedAt: logItem.timestamp,
+            };
+          }
+          u.lastLoginAt = logItem.timestamp;
+          store.set(u.id, u);
+          break;
+        }
+      }
+    }
+
     return logItem;
   }
 
@@ -1050,6 +1105,221 @@ export class UserRegistryService {
       // Resilient fallback
     }
     await pushToCloudStore();
+  }
+
+  /**
+   * Purge all old legacy and test data from memory, local disk, database and cloud.
+   */
+  async purgeAllData(): Promise<{ success: boolean; purgedAt: string }> {
+    const store = getMemoryStore();
+    store.clear();
+    globalThis.__karaanRecentLogins = [];
+    globalThis.__karaanTelemetryLogs = [];
+
+    // Clear disk files
+    try {
+      if (fs.existsSync(LOCAL_DATA_PATH)) fs.writeFileSync(LOCAL_DATA_PATH, "[]", "utf-8");
+      if (fs.existsSync(TMP_DATA_PATH)) fs.writeFileSync(TMP_DATA_PATH, "[]", "utf-8");
+    } catch {}
+
+    // Clear Postgres table if accessible
+    try {
+      await this.ensureDbTable();
+      await sql`TRUNCATE TABLE registered_users CASCADE;`.catch(() => {});
+    } catch {}
+
+    // Clear remote cloud store
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 1500);
+      await fetch(CLOUD_SYNC_URL, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          name: "karaan_production_registry",
+          data: {
+            payload: Buffer.from("[]", "utf-8").toString("base64"),
+            updatedAt: new Date().toISOString(),
+          },
+        }),
+      });
+      clearTimeout(timeout);
+    } catch {}
+
+    return { success: true, purgedAt: new Date().toISOString() };
+  }
+
+  /**
+   * Get full user dossier by phone number with all associated telemetry logs & requests.
+   */
+  async getUserDossierByPhone(rawPhone: string) {
+    await syncFromCloudStore();
+    const cleanDigits = rawPhone.replace(/\D/g, "");
+    if (!cleanDigits) return null;
+    const searchTail = cleanDigits.slice(-10);
+
+    const store = getMemoryStore();
+    let user: RegisteredUser | null = null;
+
+    for (const u of store.values()) {
+      const uDigits = u.phone.replace(/\D/g, "");
+      if (uDigits.endsWith(searchTail) || cleanDigits === uDigits) {
+        user = u;
+        break;
+      }
+    }
+
+    if (!user) {
+      try {
+        await this.ensureDbTable();
+        const rows = await sql`SELECT * FROM registered_users WHERE phone LIKE ${"%" + searchTail} LIMIT 1;`;
+        if (rows.length > 0) {
+          user = mapDbRowToRegisteredUser(rows[0]);
+        }
+      } catch {}
+    }
+
+    if (!user) return null;
+
+    // Gather all audit/telemetry logs matching this user's phone or id
+    const allTelemetry = this.getTelemetryLogs();
+    const userLogs = allTelemetry.filter((l) => {
+      const lDigits = (l.phone || "").replace(/\D/g, "");
+      return (
+        (lDigits && lDigits.endsWith(searchTail)) ||
+        l.userId === user?.id ||
+        (l.details?.phone && String(l.details.phone).replace(/\D/g, "").endsWith(searchTail))
+      );
+    });
+
+    const timeline = user.activityTimeline || [];
+    const combinedLogMap = new Map<string, any>();
+    for (const l of userLogs) combinedLogMap.set(l.id, l);
+    for (const t of timeline) {
+      if (!combinedLogMap.has(t.id)) {
+        combinedLogMap.set(t.id, {
+          id: t.id,
+          action: t.action,
+          actorName: user.fullName,
+          phone: user.phone,
+          role: user.role,
+          entityName: "user_timeline",
+          entityId: user.id,
+          details: t.details || {},
+          ipAddress: t.ipAddress || user.ipAddress,
+          timestamp: t.timestamp,
+        });
+      }
+    }
+
+    const sortedLogs = Array.from(combinedLogMap.values()).sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+
+    return {
+      user,
+      logs: sortedLogs,
+      totalLogsCount: sortedLogs.length,
+      requestsCount: user.submittedRequests?.length || 0,
+      roleCategory: user.role === "EMPLOYER" || (user.role as any) === "REQUESTER" ? "REQUESTER" : "PROVIDER",
+      latestGps: user.gpsCoordinates || null,
+      generatedAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Get comprehensive multi-dimensional reports for Vercel Executive Dashboard.
+   */
+  async getComprehensiveReports() {
+    await syncFromCloudStore();
+    const store = getMemoryStore();
+    const all = Array.from(store.values());
+    const allLogs = this.getTelemetryLogs();
+
+    const totalUsers = all.length;
+    const requesters = all.filter((u) => u.role === "EMPLOYER" || (u as any).role === "REQUESTER");
+    const providers = all.filter((u) => u.role === "WORKER" || (u as any).role === "PROVIDER");
+    const androidUsers = all.filter((u) => u.platform === "ANDROID");
+    const webUsers = all.filter((u) => u.platform === "WEB");
+
+    const allRequests: UserSubmittedRequest[] = [];
+    for (const u of all) {
+      if (u.submittedRequests) {
+        allRequests.push(...u.submittedRequests);
+      }
+    }
+
+    const requestStatuses = {
+      active: allRequests.filter((r) => r.status === "ACTIVE").length,
+      approved: allRequests.filter((r) => r.status === "APPROVED" || r.status === "ACCEPTED").length,
+      inProgress: allRequests.filter((r) => r.status === "IN_PROGRESS").length,
+      completed: allRequests.filter((r) => r.status === "COMPLETED").length,
+      cancelled: allRequests.filter((r) => r.status === "CANCELLED").length,
+      total: allRequests.length,
+    };
+
+    const deviceMap = new Map<string, number>();
+    for (const u of all) {
+      const model = u.deviceModel || "Android Device";
+      deviceMap.set(model, (deviceMap.get(model) || 0) + 1);
+    }
+    const topDevices = Array.from(deviceMap.entries())
+      .map(([model, count]) => ({ model, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+
+    const cityMap = new Map<string, number>();
+    for (const u of all) {
+      const city = u.city || "تهران";
+      cityMap.set(city, (cityMap.get(city) || 0) + 1);
+    }
+    const topCities = Array.from(cityMap.entries())
+      .map(([city, count]) => ({ city, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+
+    const dailyActivityMap = new Map<string, { logins: number; requests: number; telemetry: number }>();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000).toISOString().split("T")[0];
+      dailyActivityMap.set(d, { logins: 0, requests: 0, telemetry: 0 });
+    }
+
+    for (const l of allLogs) {
+      const d = l.timestamp?.split("T")[0];
+      if (d && dailyActivityMap.has(d)) {
+        dailyActivityMap.get(d)!.telemetry++;
+        if (l.action?.includes("LOGIN")) dailyActivityMap.get(d)!.logins++;
+      }
+    }
+    for (const r of allRequests) {
+      const d = r.createdAt?.split("T")[0];
+      if (d && dailyActivityMap.has(d)) {
+        dailyActivityMap.get(d)!.requests++;
+      }
+    }
+
+    return {
+      summary: {
+        totalUsers,
+        requestersCount: requesters.length,
+        providersCount: providers.length,
+        androidUsersCount: androidUsers.length,
+        webUsersCount: webUsers.length,
+        totalRequestsCount: allRequests.length,
+        activeRequestsCount: requestStatuses.active + requestStatuses.approved + requestStatuses.inProgress,
+        completedRequestsCount: requestStatuses.completed,
+        totalTelemetryLogs: allLogs.length,
+      },
+      requestStatuses,
+      topDevices,
+      topCities,
+      dailyTrends: Array.from(dailyActivityMap.entries()).map(([date, stats]) => ({
+        date,
+        ...stats,
+      })),
+      generatedAt: new Date().toISOString(),
+    };
   }
 }
 

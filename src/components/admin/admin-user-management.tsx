@@ -32,6 +32,13 @@ import {
   Phone,
   Terminal,
   Activity,
+  BarChart3,
+  ExternalLink,
+  Trash2,
+  PieChart,
+  TrendingUp,
+  FileSpreadsheet,
+  FolderOpen,
 } from "lucide-react";
 
 interface UserSubmittedRequest {
@@ -47,6 +54,15 @@ interface UserSubmittedRequest {
   updatedAt?: string;
   approvedAt?: string;
   notes?: string;
+}
+
+interface UserActivityEvent {
+  id: string;
+  action: string;
+  timestamp: string;
+  details?: Record<string, any>;
+  ipAddress?: string;
+  gpsCoordinates?: { latitude: number; longitude: number };
 }
 
 interface UserItem {
@@ -70,6 +86,8 @@ interface UserItem {
   skills?: string[];
   submittedRequests?: UserSubmittedRequest[];
   notes?: string;
+  gpsCoordinates?: { latitude: number; longitude: number; updatedAt?: string };
+  activityTimeline?: UserActivityEvent[];
 }
 
 interface OverviewData {
@@ -137,6 +155,31 @@ export function AdminUserManagement() {
     enabled: Boolean(selectedUser && inspectorTab === "LOGS"),
     refetchInterval: 5_000,
   });
+
+  // Combined Logs: Merges embedded user activity timeline with live telemetry logs
+  const userCombinedLogs = useMemo(() => {
+    const map = new Map<string, any>();
+    if (selectedUser?.activityTimeline) {
+      for (const act of selectedUser.activityTimeline) {
+        map.set(act.id, {
+          id: act.id,
+          action: act.action,
+          timestamp: act.timestamp,
+          details: act.details,
+          ipAddress: act.ipAddress || selectedUser.ipAddress,
+          entityName: "user_timeline",
+        });
+      }
+    }
+    if (userLogsQuery.data) {
+      for (const log of userLogsQuery.data) {
+        map.set(log.id, log);
+      }
+    }
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+  }, [selectedUser?.activityTimeline, selectedUser?.ipAddress, userLogsQuery.data]);
 
   // Queries
   const overviewQuery = useQuery({
@@ -279,16 +322,80 @@ export function AdminUserManagement() {
     generatedAt: new Date().toISOString(),
   };
 
-  const [clearingFakes, setClearingFakes] = useState(false);
-  const handleClearFakes = async () => {
-    if (!confirm("آیا از پاکسازی کلیه داده‌های آزمایشی و باقی‌ماندن تنها حساب ادمین ارشد اطمینان دارید؟")) return;
-    setClearingFakes(true);
+  // Dossier Phone Lookup State
+  const [phoneSearchInput, setPhoneSearchInput] = useState("");
+  const [isSearchingDossier, setIsSearchingDossier] = useState(false);
+  const [dossierFeedback, setDossierFeedback] = useState<string | null>(null);
+
+  // Executive Reports Panel Toggle
+  const [showReportsPanel, setShowReportsPanel] = useState(false);
+
+  // Reports Query
+  const reportsQuery = useQuery({
+    queryKey: ["admin", "reports"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/reports", { cache: "no-store" });
+      const body = await res.json();
+      if (!res.ok || !body.success) throw new Error(body?.error?.message || "دریافت گزارش‌ها ناموفق بود.");
+      return body.data;
+    },
+    enabled: showReportsPanel,
+    refetchInterval: showReportsPanel ? 12_000 : false,
+  });
+
+  // Purge All Legacy Data
+  const [isPurgingAll, setIsPurgingAll] = useState(false);
+  const handlePurgeAllData = async () => {
+    if (
+      !confirm(
+        "⚠️ هشدار حساس: آیا از پاکسازی قطعی کلیه داده‌های آزمایشی، لاگ‌ها و بازنشانی سامانه به وضعیت صفر اطمینان دارید؟\nاین عملیات برگشت‌ناپذیر است و تنها حساب ادمین ارشد باقی خواهد ماند."
+      )
+    ) {
+      return;
+    }
+    setIsPurgingAll(true);
     try {
-      await fetch("/api/admin/users", { method: "DELETE" });
-      await queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
-      await queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
+      const res = await fetch("/api/admin/purge-data", { method: "POST" });
+      const body = await res.json();
+      if (res.ok && body.success) {
+        alert("✅ کلیه داده‌های پیشین با موفقیت پاکسازی شدند و سامانه آماده کاربران جدید است.");
+        await queryClient.invalidateQueries({ queryKey: ["admin"] });
+        setSelectedUser(null);
+      } else {
+        alert("خطا در پاکسازی: " + (body?.error?.message || "نامشخص"));
+      }
+    } catch (err: any) {
+      alert("خطا در برقراری ارتباط: " + err.message);
     } finally {
-      setClearingFakes(false);
+      setIsPurgingAll(false);
+    }
+  };
+
+  // Lookup Phone Dossier
+  const handleLookupPhoneDossier = async (inputPhone?: string) => {
+    const rawTarget = (inputPhone || phoneSearchInput).trim();
+    if (!rawTarget) {
+      setDossierFeedback("لطفاً شماره تلفن همراه کاربر را وارد نمایید.");
+      return;
+    }
+    setIsSearchingDossier(true);
+    setDossierFeedback(null);
+    try {
+      const res = await fetch(`/api/admin/users/dossier?phone=${encodeURIComponent(rawTarget)}`, {
+        cache: "no-store",
+      });
+      const body = await res.json();
+      if (!res.ok || !body.success || !body.data?.user) {
+        setDossierFeedback("❌ کاربری با این شماره تلفن در سامانه ثبت نشده است.");
+        return;
+      }
+      setSelectedUser(body.data.user);
+      setInspectorTab("LOGS");
+      setDossierFeedback(`✓ پرونده الکترونیکی ${body.data.user.fullName} (${body.data.totalLogsCount} رویداد تله‌متری) باز شد.`);
+    } catch (e: any) {
+      setDossierFeedback("خطا در جستجوی پرونده: " + e.message);
+    } finally {
+      setIsSearchingDossier(false);
     }
   };
 
@@ -308,6 +415,50 @@ export function AdminUserManagement() {
     downloadAnchor.remove();
   };
 
+  // Export CSV with UTF-8 BOM
+  const handleExportCsv = () => {
+    const list = usersQuery.data || [];
+    if (list.length === 0) {
+      alert("کاربری برای خروجی اکسل یافت نشد.");
+      return;
+    }
+    const headers = [
+      "شناسه یکتا",
+      "نام و نام خانوادگی",
+      "شماره موبایل",
+      "نقش در سامانه",
+      "پلتفرم",
+      "مدل دستگاه",
+      "نسخه اپ",
+      "شهر",
+      "تعداد سفارش‌ها",
+      "وضعیت حساب",
+      "تاریخ ثبت‌نام",
+    ];
+    const rows = list.map((u) => [
+      `"${u.id}"`,
+      `"${u.fullName || ''}"`,
+      `"${u.phone || ''}"`,
+      `"${u.role === 'WORKER' ? 'متخصص / کارجو' : u.role === 'EMPLOYER' ? 'کارفرما / متقاضی' : 'مدیر'}"`,
+      `"${u.platform}"`,
+      `"${u.deviceModel || ''}"`,
+      `"${u.appVersion || ''}"`,
+      `"${u.city || ''}"`,
+      `"${u.submittedRequests?.length || 0}"`,
+      `"${u.isBlocked ? 'مسدود' : 'فعال'}"`,
+      `"${u.createdAt ? new Date(u.createdAt).toISOString() : ''}"`,
+    ]);
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `karaan_users_report_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
   return (
     <div className="space-y-6">
       {/* 1. Header Banner */}
@@ -315,22 +466,35 @@ export function AdminUserManagement() {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-xl sm:text-2xl font-black text-slate-900">
-              مرکز مدیریت و مانیتورینگ متمرکز کاربران
+              پرونده جامع کاربران و مانیتورینگ متمرکز
             </h2>
             <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-bold">
               تله‌متری زنده
             </span>
           </div>
           <p className="mt-1 text-xs text-slate-500">
-            فهرست تمامی کاربرانی که اپلیکیشن را نصب کرده، لاگین نموده‌اند یا درخواست کار ثبت کرده‌اند با ریز اطلاعات ارسالی.
+            جستجوی مستقیم پرونده با شماره تلفن، ردیابی تمامی لاگ‌ها و رویدادها، تفکیک نقش کارفرما/متخصص و گزارش‌های آماری.
           </p>
         </div>
 
         <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
           <button
+            onClick={() => setShowReportsPanel((prev) => !prev)}
+            className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition shadow-xs cursor-pointer ${
+              showReportsPanel
+                ? "border-blue-300 bg-blue-50 text-blue-700"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            <BarChart3 className="h-3.5 w-3.5 text-blue-600" />
+            <span>{showReportsPanel ? "بستن گزارش‌ها" : "📊 مرکز گزارش‌ها"}</span>
+          </button>
+
+          <button
             onClick={() => {
               void usersQuery.refetch();
               void overviewQuery.refetch();
+              if (showReportsPanel) void reportsQuery.refetch();
             }}
             className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 shadow-xs cursor-pointer"
           >
@@ -339,13 +503,22 @@ export function AdminUserManagement() {
           </button>
 
           <button
-            onClick={handleClearFakes}
-            disabled={clearingFakes}
+            onClick={handlePurgeAllData}
+            disabled={isPurgingAll}
             className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50/70 px-3 py-2 text-xs font-bold text-red-600 transition hover:bg-red-100 shadow-xs cursor-pointer"
-            title="پاکسازی تمام کاربران فیک و آزمایشی"
+            title="پاکسازی کامل تمام اطلاعات قبلی و بازنشانی به نقطه صفر"
           >
-            <RotateCcw className={`h-3.5 w-3.5 ${clearingFakes ? "animate-spin" : ""}`} />
-            <span>پاکسازی فیک‌ها</span>
+            <Trash2 className={`h-3.5 w-3.5 ${isPurgingAll ? "animate-spin" : ""}`} />
+            <span>پاکسازی کامل دیتا</span>
+          </button>
+
+          <button
+            onClick={handleExportCsv}
+            className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-2 text-xs font-bold shadow-xs transition cursor-pointer"
+            title="خروجی سازگار با اکسل"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+            <span>اکسل (CSV)</span>
           </button>
 
           <button
@@ -357,6 +530,230 @@ export function AdminUserManagement() {
           </button>
         </div>
       </div>
+
+      {/* 2. DIRECT PHONE DOSSIER SEARCH BOX (Core User Requirement) */}
+      <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/50 to-slate-50 border border-blue-200 rounded-3xl p-5 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs">
+              <FolderOpen className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-slate-900">
+                استعلام پرونده جامع کاربر با شماره تلفن همراه
+              </h3>
+              <p className="text-[11px] text-slate-500">
+                با جستجوی شماره موبایل، شناسنامه هویتی، سخت‌افزاری، موقعیت مکانی GPS و تمام لاگ‌های ثبت‌شده مشاهده می‌شود.
+              </p>
+            </div>
+          </div>
+          <span className="text-[11px] font-bold text-blue-700 bg-blue-100/70 border border-blue-200 px-2.5 py-0.5 rounded-full self-start sm:self-auto">
+            تایم‌لاین رویدادها + ممیزی
+          </span>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+          <div className="relative flex-1 w-full">
+            <Phone className="pointer-events-none absolute right-3.5 top-3.5 h-4 w-4 text-blue-500" />
+            <input
+              type="tel"
+              value={phoneSearchInput}
+              onChange={(e) => setPhoneSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  void handleLookupPhoneDossier();
+                }
+              }}
+              placeholder="شماره موبایل کاربر را وارد کنید (مثال: 09123456789)..."
+              className="w-full rounded-2xl border border-blue-200 bg-white py-2.5 pr-10 pl-4 text-xs sm:text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
+            />
+          </div>
+
+          <button
+            onClick={() => handleLookupPhoneDossier()}
+            disabled={isSearchingDossier}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-500 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-600/25 transition cursor-pointer disabled:opacity-50"
+          >
+            {isSearchingDossier ? (
+              <RefreshCw className="h-4 w-4 animate-spin" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+            <span>مشاهده پرونده الکترونیکی</span>
+          </button>
+        </div>
+
+        {dossierFeedback && (
+          <div className="text-xs font-bold text-blue-900 bg-blue-100/50 border border-blue-200 rounded-xl px-3 py-2 flex items-center justify-between">
+            <span>{dossierFeedback}</span>
+            <button
+              onClick={() => setDossierFeedback(null)}
+              className="text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* 3. COMPREHENSIVE REPORTS PANEL (When Toggled) */}
+      {showReportsPanel && (
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-5 animate-in fade-in">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-indigo-600" />
+              <h3 className="text-base font-black text-slate-900">
+                مرکز گزارش‌ها و تحلیل‌های مدیریتی سامانه کارجور
+              </h3>
+            </div>
+            <span className="text-[11px] text-slate-400">
+              بروزرسانی بلادرنگ از تله‌متری سرور
+            </span>
+          </div>
+
+          {reportsQuery.isLoading ? (
+            <div className="py-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+              <RefreshCw className="h-4 w-4 animate-spin text-indigo-600" />
+              <span>در حال محاسبه و پردازش داده‌های آماری...</span>
+            </div>
+          ) : reportsQuery.data ? (
+            <div className="space-y-5">
+              {/* Top Row: Ratios & Counts */}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                  <span className="text-[11px] font-semibold text-slate-500">تفکیک کارفرما به مجری</span>
+                  <div className="mt-2 flex items-baseline justify-between">
+                    <span className="text-xl font-black text-emerald-700">
+                      {reportsQuery.data.summary.requestersCount} کارفرما
+                    </span>
+                    <span className="text-xs font-bold text-slate-400">/</span>
+                    <span className="text-xl font-black text-amber-700">
+                      {reportsQuery.data.summary.providersCount} متخصص
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 w-full rounded-full bg-slate-200 overflow-hidden flex">
+                    <div
+                      className="bg-emerald-500"
+                      style={{
+                        width: `${
+                          reportsQuery.data.summary.totalUsers > 0
+                            ? (reportsQuery.data.summary.requestersCount / reportsQuery.data.summary.totalUsers) * 100
+                            : 50
+                        }%`,
+                      }}
+                    />
+                    <div
+                      className="bg-amber-500"
+                      style={{
+                        width: `${
+                          reportsQuery.data.summary.totalUsers > 0
+                            ? (reportsQuery.data.summary.providersCount / reportsQuery.data.summary.totalUsers) * 100
+                            : 50
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                  <span className="text-[11px] font-semibold text-slate-500">سهم پلتفرم‌ها</span>
+                  <div className="mt-2 flex items-baseline justify-between">
+                    <span className="text-xl font-black text-sky-700">
+                      {reportsQuery.data.summary.androidUsersCount} اپ اندروید
+                    </span>
+                    <span className="text-xs font-bold text-slate-400">/</span>
+                    <span className="text-xl font-black text-indigo-700">
+                      {reportsQuery.data.summary.webUsersCount} وب
+                    </span>
+                  </div>
+                  <span className="mt-1 block text-[10px] text-slate-400">
+                    اتصال از نسخه native karan.apk
+                  </span>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                  <span className="text-[11px] font-semibold text-slate-500">سفارش‌ها و درخواست‌ها</span>
+                  <strong className="mt-2 block text-2xl font-black text-slate-900">
+                    {reportsQuery.data.summary.totalRequestsCount}
+                  </strong>
+                  <div className="mt-1 flex items-center gap-2 text-[10px]">
+                    <span className="text-emerald-600 font-bold">
+                      {reportsQuery.data.summary.completedRequestsCount} تکمیل‌شده
+                    </span>
+                    <span>•</span>
+                    <span className="text-amber-600 font-bold">
+                      {reportsQuery.data.summary.activeRequestsCount} فعال در جریان
+                    </span>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                  <span className="text-[11px] font-semibold text-slate-500">رویدادهای تله‌متری سرور</span>
+                  <strong className="mt-2 block text-2xl font-black text-indigo-700">
+                    {reportsQuery.data.summary.totalTelemetryLogs}
+                  </strong>
+                  <span className="mt-1 block text-[10px] text-slate-400">
+                    ثبت خودکار کلیه پینگ‌های کاربر
+                  </span>
+                </div>
+              </div>
+
+              {/* Status Breakdown & Top Devices */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* Request Status Breakdown */}
+                <div className="rounded-2xl border border-slate-200 p-4 space-y-3">
+                  <h4 className="text-xs font-bold text-slate-800">وضعیت درخواست‌های کاری:</h4>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600">فعال روی نقشه:</span>
+                      <strong className="text-emerald-700 font-mono">
+                        {reportsQuery.data.requestStatuses.active}
+                      </strong>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600">در حال انجام توسط متخصص:</span>
+                      <strong className="text-blue-700 font-mono">
+                        {reportsQuery.data.requestStatuses.inProgress}
+                      </strong>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600">تکمیل‌شده و تسویه:</span>
+                      <strong className="text-emerald-600 font-mono">
+                        {reportsQuery.data.requestStatuses.completed}
+                      </strong>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600">لغو شده یا انصراف:</span>
+                      <strong className="text-rose-600 font-mono">
+                        {reportsQuery.data.requestStatuses.cancelled}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Top Devices */}
+                <div className="rounded-2xl border border-slate-200 p-4 space-y-3">
+                  <h4 className="text-xs font-bold text-slate-800">مدل دستگاه‌های کاربران اپلیکیشن:</h4>
+                  {reportsQuery.data.topDevices.length === 0 ? (
+                    <span className="text-xs text-slate-400">هنوز مدلی ثبت نشده است.</span>
+                  ) : (
+                    <div className="space-y-1.5 text-xs">
+                      {reportsQuery.data.topDevices.map((d: any) => (
+                        <div key={d.model} className="flex items-center justify-between">
+                          <span className="text-slate-700 truncate max-w-[200px] font-mono">{d.model}</span>
+                          <span className="rounded-md bg-slate-100 border px-1.5 py-0.5 text-[10px] font-bold text-slate-700 font-mono">
+                            {d.count} دستگاه
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {/* 2. KPI Metrics Bar */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -890,6 +1287,37 @@ export function AdminUserManagement() {
                     </div>
                   </div>
 
+                  {/* GPS Live Coordinates Card */}
+                  {selectedUser.gpsCoordinates && (
+                    <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-3.5 space-y-2 sm:col-span-2">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-1.5 text-blue-900 font-bold">
+                          <MapPin className="h-4 w-4 text-blue-600 animate-bounce" />
+                          <span>آخرین موقعیت مکانی ثبت‌شده کاربر (GPS تله‌متری):</span>
+                        </div>
+                        <a
+                          href={`https://www.openstreetmap.org/?mlat=${selectedUser.gpsCoordinates.latitude}&mlon=${selectedUser.gpsCoordinates.longitude}#map=16/${selectedUser.gpsCoordinates.latitude}/${selectedUser.gpsCoordinates.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 rounded-xl bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 text-[11px] font-bold shadow-xs transition"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          <span>مشاهده دقیق روی نقشه</span>
+                        </a>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs font-mono text-slate-700 dir-ltr text-right">
+                        <span>Lat: {selectedUser.gpsCoordinates.latitude.toFixed(6)}</span>
+                        <span>•</span>
+                        <span>Lon: {selectedUser.gpsCoordinates.longitude.toFixed(6)}</span>
+                        {selectedUser.gpsCoordinates.updatedAt && (
+                          <span className="text-slate-400 text-[10px]">
+                            ({new Date(selectedUser.gpsCoordinates.updatedAt).toLocaleTimeString("fa-IR")})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {selectedUser.skills && selectedUser.skills.length > 0 && (
                     <div className="rounded-2xl border border-slate-200 p-3.5 space-y-2 sm:col-span-2">
                       <span className="text-slate-400 block text-[11px]">مهارت‌ها و تخصص‌های اعلامی:</span>
@@ -1086,35 +1514,35 @@ export function AdminUserManagement() {
                 </div>
               )}
 
-              {/* TAB: USER LIVE TELEMETRY LOGS */}
+              {/* TAB: USER LIVE TELEMETRY LOGS & ACTIVITY TIMELINE */}
               {inspectorTab === "LOGS" && (
                 <div className="space-y-3">
                   <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-3.5 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
                       <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
                       <span className="font-bold text-emerald-900">
-                        پایش بلادرنگ تمام تعاملات کاربر ({selectedUser.phone || selectedUser.fullName})
+                        پرونده جامع و تایم‌لاین رویدادهای کاربر ({selectedUser.phone || selectedUser.fullName})
                       </span>
                     </div>
                     <span className="text-[11px] text-emerald-700 font-mono font-bold">
-                      {userLogsQuery.data?.length || 0} رویداد ثبت‌شده
+                      {userCombinedLogs.length} رویداد ثبت‌شده
                     </span>
                   </div>
 
-                  {userLogsQuery.isLoading && (
+                  {userLogsQuery.isLoading && userCombinedLogs.length === 0 && (
                     <div className="p-8 text-center text-xs text-slate-500">
                       در حال بارگذاری لاگ‌های زنده کاربر...
                     </div>
                   )}
 
-                  {!userLogsQuery.isLoading && (userLogsQuery.data?.length === 0 || !userLogsQuery.data) && (
+                  {!userLogsQuery.isLoading && userCombinedLogs.length === 0 && (
                     <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-500">
                       هیچ رویداد تله‌متری خاصی برای این کاربر ثبت نشده یا هنوز لاگ ارسال نکرده است.
                     </div>
                   )}
 
                   <div className="space-y-2">
-                    {userLogsQuery.data?.map((log) => {
+                    {userCombinedLogs.map((log) => {
                       const isLocation = log.action === "LOCATION_UPDATE";
                       const isLogin = log.action === "USER_LOGIN_PHONE" || log.action === "USER_SESSION_SYNC";
                       const isLaunch = log.action === "APP_LAUNCH";
@@ -1130,6 +1558,9 @@ export function AdminUserManagement() {
                         : isLogout
                         ? "bg-rose-50 text-rose-700 border-rose-200"
                         : "bg-slate-50 text-slate-700 border-slate-200";
+
+                      const lat = log.details?.latitude || log.details?.lat;
+                      const lon = log.details?.longitude || log.details?.lon || log.details?.lng;
 
                       return (
                         <div
@@ -1179,9 +1610,23 @@ export function AdminUserManagement() {
                             </div>
                           )}
 
-                          <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
-                            {log.ipAddress && <span>IP: {log.ipAddress}</span>}
-                            <span>موجودیت: {log.entityName}</span>
+                          <div className="flex items-center justify-between gap-2 flex-wrap text-[10px] text-slate-400 pt-1">
+                            <div className="flex items-center gap-3">
+                              {log.ipAddress && <span>IP: {log.ipAddress}</span>}
+                              <span>موجودیت: {log.entityName || "mobile_app"}</span>
+                            </div>
+
+                            {isLocation && lat && lon && (
+                              <a
+                                href={`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-blue-600 font-bold hover:underline"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                <span>مشاهده مختصات این پینگ روی نقشه</span>
+                              </a>
+                            )}
                           </div>
                         </div>
                       );
