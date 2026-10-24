@@ -132,17 +132,28 @@ export async function POST(req: NextRequest) {
     });
 
     if (!targetUser) {
-      // Auto-register from mobile request telemetry
-      const reg = await userRegistry.registerOrLoginGmail({
-        email: userEmail || `mobile_${Date.now()}@karaan.ir`,
-        fullName: fullName || "کاربر همراه کاروین",
-        role: role === "WORKER" ? "WORKER" : "EMPLOYER",
-        phone: userPhone || `0912${Math.floor(1000000 + Math.random() * 9000000)}`,
-        platform: platform || "ANDROID",
-        deviceModel: deviceModel || "Google Pixel / Android Emulator",
-        city: city || "تهران",
-      });
-      targetUser = reg.user;
+      if (userPhone && userPhone.trim()) {
+        const reg = await userRegistry.registerOrLoginPhone({
+          phone: userPhone.trim(),
+          fullName: fullName?.trim() || `کاربر ${userPhone.trim()}`,
+          role: role === "WORKER" ? "WORKER" : "EMPLOYER",
+          platform: platform || "ANDROID",
+          deviceModel: deviceModel || "Google Pixel / Android App",
+          city: city || "تهران",
+        });
+        targetUser = reg.user;
+      } else {
+        const reg = await userRegistry.registerOrLoginGmail({
+          email: userEmail || `mobile_${Date.now()}@karaan.ir`,
+          fullName: fullName || "کاربر همراه کاروین",
+          role: role === "WORKER" ? "WORKER" : "EMPLOYER",
+          phone: `0912${Math.floor(1000000 + Math.random() * 9000000)}`,
+          platform: platform || "ANDROID",
+          deviceModel: deviceModel || "Google Pixel / Android Emulator",
+          city: city || "تهران",
+        });
+        targetUser = reg.user;
+      }
     }
 
     const created = await userRegistry.submitUserRequest(targetUser.id, {

@@ -215,6 +215,30 @@ async function syncFromCloudStore(force = false): Promise<void> {
             (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
 
+          // Merge offeredServices unique by id
+          const srvMap = new Map<string, ProviderOfferedService>();
+          for (const s of cloudU.offeredServices || []) {
+            if (s && s.id) srvMap.set(s.id, s);
+          }
+          for (const s of localU.offeredServices || []) {
+            if (s && s.id) srvMap.set(s.id, s);
+          }
+          const mergedServices = Array.from(srvMap.values()).sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+
+          // Merge activityTimeline unique by id
+          const actMap = new Map<string, UserActivityEvent>();
+          for (const a of cloudU.activityTimeline || []) {
+            if (a && a.id) actMap.set(a.id, a);
+          }
+          for (const a of localU.activityTimeline || []) {
+            if (a && a.id) actMap.set(a.id, a);
+          }
+          const mergedTimeline = Array.from(actMap.values()).sort(
+            (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
+
           const localTime = new Date(localU.lastLoginAt || 0).getTime();
           const cloudTime = new Date(cloudU.lastLoginAt || 0).getTime();
           const fresher = localTime >= cloudTime ? localU : cloudU;
@@ -223,6 +247,8 @@ async function syncFromCloudStore(force = false): Promise<void> {
             ...cloudU,
             ...fresher,
             submittedRequests: mergedRequests,
+            offeredServices: mergedServices,
+            activityTimeline: mergedTimeline,
           });
         }
       }
@@ -379,6 +405,8 @@ export class UserRegistryService {
           last_login_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
       `;
+      await sql`ALTER TABLE registered_users ADD COLUMN IF NOT EXISTS offered_services JSONB DEFAULT '[]'::jsonb;`;
+      await sql`ALTER TABLE registered_users ADD COLUMN IF NOT EXISTS activity_timeline JSONB DEFAULT '[]'::jsonb;`;
       await sql`CREATE INDEX IF NOT EXISTS idx_reg_users_email ON registered_users(email);`;
       await sql`CREATE INDEX IF NOT EXISTS idx_reg_users_phone ON registered_users(phone);`;
       await sql`CREATE INDEX IF NOT EXISTS idx_reg_users_role ON registered_users(role);`;
@@ -656,6 +684,50 @@ export class UserRegistryService {
     }
 
     const token = `karvin_${crypto.randomBytes(32).toString("hex")}`;
+
+    // Persistent storage in PostgreSQL
+    try {
+      await this.ensureDbTable();
+      await sql`
+        INSERT INTO registered_users (
+          id, full_name, email, phone, role, platform, device_model, app_version, ip_address, is_verified, is_blocked, provider, city, skills, submitted_requests, offered_services, activity_timeline, notes, created_at, last_login_at
+        ) VALUES (
+          ${userResult.id},
+          ${userResult.fullName},
+          ${userResult.email},
+          ${userResult.phone},
+          ${userResult.role},
+          ${userResult.platform},
+          ${userResult.deviceModel},
+          ${userResult.appVersion},
+          ${userResult.ipAddress},
+          ${userResult.isVerified},
+          ${userResult.isBlocked},
+          ${userResult.provider},
+          ${userResult.city ?? null},
+          ${JSON.stringify(userResult.skills || [])}::jsonb,
+          ${JSON.stringify(userResult.submittedRequests || [])}::jsonb,
+          ${JSON.stringify(userResult.offeredServices || [])}::jsonb,
+          ${JSON.stringify(userResult.activityTimeline || [])}::jsonb,
+          ${userResult.notes ?? null},
+          ${userResult.createdAt},
+          ${userResult.lastLoginAt}
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          last_login_at = EXCLUDED.last_login_at,
+          role = EXCLUDED.role,
+          full_name = EXCLUDED.full_name,
+          device_model = EXCLUDED.device_model,
+          platform = EXCLUDED.platform,
+          skills = EXCLUDED.skills,
+          activity_timeline = EXCLUDED.activity_timeline,
+          offered_services = EXCLUDED.offered_services,
+          submitted_requests = EXCLUDED.submitted_requests;
+      `;
+    } catch {
+      // In-memory & cloud fallback
+    }
+
     await pushToCloudStore();
 
     return { user: userResult, token };
@@ -813,6 +885,31 @@ export class UserRegistryService {
   async getAllOfferedServices(): Promise<ProviderOfferedService[]> {
     await syncFromCloudStore();
     const store = getMemoryStore();
+
+    // Also load fresh records from PostgreSQL if connected
+    try {
+      await this.ensureDbTable();
+      const rows = await sql`
+        SELECT * FROM registered_users 
+        WHERE (offered_services IS NOT NULL AND jsonb_array_length(offered_services) > 0)
+           OR role = 'WORKER';
+      `;
+      for (const row of rows) {
+        const u = mapDbRowToRegisteredUser(row);
+        const existing = store.get(u.id);
+        if (!existing) {
+          store.set(u.id, u);
+        } else if (u.offeredServices && u.offeredServices.length > 0) {
+          const srvMap = new Map<string, ProviderOfferedService>();
+          for (const s of existing.offeredServices || []) srvMap.set(s.id, s);
+          for (const s of u.offeredServices) srvMap.set(s.id, s);
+          existing.offeredServices = Array.from(srvMap.values());
+        }
+      }
+    } catch {
+      // In-memory & cloud fallback
+    }
+
     const list: ProviderOfferedService[] = [];
 
     for (const u of store.values()) {
@@ -972,10 +1069,12 @@ export class UserRegistryService {
     }
     const cleanEmail = query.email?.trim().toLowerCase();
     const cleanPhone = query.phone?.trim();
+    const phoneTail = cleanPhone ? cleanPhone.replace(/\D/g, "").slice(-10) : "";
 
     for (const u of store.values()) {
       if (cleanEmail && u.email?.toLowerCase() === cleanEmail) return u;
       if (cleanPhone && u.phone === cleanPhone) return u;
+      if (phoneTail && u.phone.replace(/\D/g, "").slice(-10) === phoneTail) return u;
     }
 
     try {
@@ -988,8 +1087,8 @@ export class UserRegistryService {
         const rows = await sql`SELECT * FROM registered_users WHERE email = ${cleanEmail} LIMIT 1;`;
         if (rows.length > 0) return mapDbRowToRegisteredUser(rows[0]);
       }
-      if (cleanPhone) {
-        const rows = await sql`SELECT * FROM registered_users WHERE phone = ${cleanPhone} LIMIT 1;`;
+      if (phoneTail) {
+        const rows = await sql`SELECT * FROM registered_users WHERE phone LIKE ${"%" + phoneTail} LIMIT 1;`;
         if (rows.length > 0) return mapDbRowToRegisteredUser(rows[0]);
       }
     } catch {
