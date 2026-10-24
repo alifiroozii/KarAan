@@ -121,8 +121,22 @@ fun KarvinApp(
                 }
 
                 // ─── Auth ───
-                composable(Routes.Login) {
-                    val activeRole = profileState.user?.role ?: UserRole.REQUESTER
+                composable(
+                    Routes.Login,
+                    arguments = listOf(
+                        navArgument("role") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        }
+                    )
+                ) { entry ->
+                    val roleArg = entry.arguments?.getString("role")
+                    val activeRole = when (roleArg) {
+                        "PROVIDER", "WORKER" -> UserRole.PROVIDER
+                        "REQUESTER", "EMPLOYER" -> UserRole.REQUESTER
+                        else -> profileState.user?.role ?: UserRole.REQUESTER
+                    }
                     LoginScreen(
                         lockedRole = activeRole,
                         onOtpSent = { phone ->
@@ -161,16 +175,16 @@ fun KarvinApp(
                             when (mode) {
                                 AppMode.REQUESTER -> {
                                     profileViewModel.setRole(UserRole.REQUESTER)
-                                    navController.navigate(Routes.Login)
+                                    navController.navigate(Routes.login("REQUESTER"))
                                 }
                                 AppMode.PROVIDER -> {
                                     profileViewModel.setRole(UserRole.PROVIDER)
-                                    navController.navigate(Routes.Login)
+                                    navController.navigate(Routes.login("PROVIDER"))
                                 }
                             }
                         },
                         onLoginClick = {
-                            navController.navigate(Routes.Login)
+                            navController.navigate(Routes.login("REQUESTER"))
                         },
                     )
                 }
@@ -245,6 +259,10 @@ fun KarvinApp(
 
                 composable(Routes.ProviderHome) {
                     ProviderHomeScreen(navController)
+                }
+
+                composable(Routes.CreateService) {
+                    com.karvin.app.feature.home.CreateServiceScreen(navController)
                 }
 
                 composable(Routes.ProviderMap) {

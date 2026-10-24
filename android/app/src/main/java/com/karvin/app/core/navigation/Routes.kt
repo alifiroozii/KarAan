@@ -5,7 +5,7 @@ object Routes {
     const val Splash = "splash"
     const val Onboarding = "onboarding"
     const val ModeSelection = "mode_selection"
-    const val Login = "auth/login"
+    const val Login = "auth/login?role={role}"
     const val Otp = "auth/otp?phone={phone}"
 
     // Requester flow
@@ -21,6 +21,7 @@ object Routes {
     const val PerformerSearch = "provider/search"
     const val PerformerMap = "provider/map"
     const val PerformerJobs = "provider/jobs"
+    const val CreateService = "provider/create-service"
     const val ProviderWorkArea = "provider/work-area"
     const val AvailabilityDeclared = "provider/availability_declared"
 
@@ -60,7 +61,7 @@ object Routes {
     const val Conversation = "conversation/{conversationId}"
     const val Rating = "rating/{targetId}"
 
-    fun login() = Login
+    fun login(role: String? = null) = if (role != null) "auth/login?role=$role" else "auth/login?role=REQUESTER"
     fun otp(phone: String) = "auth/otp?phone=$phone"
     fun wallet() = Wallet
     fun jobDetails(id: String, employerMode: Boolean = false) = "job/$id?employerMode=$employerMode"

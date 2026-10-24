@@ -65,6 +65,19 @@ interface UserActivityEvent {
   gpsCoordinates?: { latitude: number; longitude: number };
 }
 
+interface UserOfferedService {
+  id: string;
+  title: string;
+  category: string;
+  rate?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  details?: string;
+  isAvailable: boolean;
+  createdAt: string;
+}
+
 interface UserItem {
   id: string;
   fullName: string;
@@ -85,6 +98,7 @@ interface UserItem {
   city?: string;
   skills?: string[];
   submittedRequests?: UserSubmittedRequest[];
+  offeredServices?: UserOfferedService[];
   notes?: string;
   gpsCoordinates?: { latitude: number; longitude: number; updatedAt?: string };
   activityTimeline?: UserActivityEvent[];
@@ -128,7 +142,7 @@ export function AdminUserManagement() {
 
   // Selected user for Deep Inspector Modal
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
-  const [inspectorTab, setInspectorTab] = useState<"PROFILE" | "DEVICE" | "REQUESTS" | "LOGS" | "JSON">("PROFILE");
+  const [inspectorTab, setInspectorTab] = useState<"PROFILE" | "DEVICE" | "REQUESTS" | "SERVICES" | "LOGS" | "JSON">("PROFILE");
   const [copiedId, setCopiedId] = useState(false);
 
   // Live user telemetry audit logs
@@ -390,8 +404,11 @@ export function AdminUserManagement() {
         return;
       }
       setSelectedUser(body.data.user);
-      setInspectorTab("LOGS");
-      setDossierFeedback(`✓ پرونده الکترونیکی ${body.data.user.fullName} (${body.data.totalLogsCount} رویداد تله‌متری) باز شد.`);
+      setInspectorTab(body.data.user.role === "WORKER" && (body.data.servicesCount || 0) > 0 ? "SERVICES" : "LOGS");
+      const roleText = body.data.roleCategory === "PROVIDER" ? "متخصص و مجری" : "کارفرما و درخواست‌کننده";
+      setDossierFeedback(
+        `✓ پرونده الکترونیکی ${body.data.user.fullName} (${roleText} | ${body.data.totalLogsCount} رویداد | ${body.data.servicesCount || 0} سرویس ارائه‌شده | ${body.data.requestsCount || 0} سفارش) باز شد.`
+      );
     } catch (e: any) {
       setDossierFeedback("خطا در جستجوی پرونده: " + e.message);
     } finally {
@@ -1001,16 +1018,30 @@ export function AdminUserManagement() {
                       {/* Role Badge */}
                       <td className="py-3.5 px-4">
                         {isWorker && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700">
-                            <UserRound className="h-3 w-3" />
-                            <span>متخصص / کارجو</span>
-                          </span>
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700">
+                              <UserRound className="h-3 w-3" />
+                              <span>متخصص / کارجو</span>
+                            </span>
+                            {Boolean(user.offeredServices?.length) && (
+                              <span className="block text-[10px] text-teal-700 font-bold">
+                                🛠️ {user.offeredServices?.length} تخصص ثبت‌شده
+                              </span>
+                            )}
+                          </div>
                         )}
                         {isEmployer && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
-                            <Building2 className="h-3 w-3" />
-                            <span>کارفرما / متقاضی</span>
-                          </span>
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+                              <Building2 className="h-3 w-3" />
+                              <span>کارفرما / متقاضی</span>
+                            </span>
+                            {requestsCount > 0 && (
+                              <span className="block text-[10px] text-blue-700 font-bold">
+                                💼 {requestsCount} سفارش کار
+                              </span>
+                            )}
+                          </div>
                         )}
                         {!isWorker && !isEmployer && (
                           <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-700">
@@ -1226,6 +1257,17 @@ export function AdminUserManagement() {
                 }`}
               >
                 درخواست‌ها ({selectedUser.submittedRequests?.length || 0})
+              </button>
+              <button
+                onClick={() => setInspectorTab("SERVICES")}
+                className={`pb-3 px-3 text-xs font-bold border-b-2 transition cursor-pointer flex items-center gap-1.5 ${
+                  inspectorTab === "SERVICES"
+                    ? "border-teal-600 text-teal-600"
+                    : "border-transparent text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                <Briefcase className="h-3.5 w-3.5" />
+                <span>سرویس‌ها ({selectedUser.offeredServices?.length || 0})</span>
               </button>
               <button
                 onClick={() => setInspectorTab("JSON")}
@@ -1514,6 +1556,77 @@ export function AdminUserManagement() {
                 </div>
               )}
 
+              {/* TAB: OFFERED SERVICES (WORKER SPECIALTIES) */}
+              {inspectorTab === "SERVICES" && (
+                <div className="space-y-3">
+                  <div className="rounded-2xl border border-teal-100 bg-teal-50/50 p-3.5 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4 text-teal-600" />
+                      <span className="font-bold text-teal-900">
+                        خدمات و تخصص‌های ثبت‌شده توسط مجری ({selectedUser.fullName})
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-teal-700 font-mono font-bold">
+                      {selectedUser.offeredServices?.length || 0} سرویس فعال
+                    </span>
+                  </div>
+
+                  {(!selectedUser.offeredServices || selectedUser.offeredServices.length === 0) ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-400">
+                      این کاربر هنوز سرویس یا تخصصی به عنوان مجری در سامانه ثبت نکرده است.
+                    </div>
+                  ) : (
+                    selectedUser.offeredServices.map((srv) => (
+                      <div
+                        key={srv.id}
+                        className="rounded-2xl border border-teal-200/60 p-4 space-y-2 bg-white shadow-2xs"
+                      >
+                        <div className="flex items-center justify-between">
+                          <strong className="text-slate-900 text-xs sm:text-sm font-bold flex items-center gap-2">
+                            <span>{srv.title}</span>
+                          </strong>
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${
+                              srv.isAvailable
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                                : "bg-slate-50 text-slate-500 border-slate-300"
+                            }`}
+                          >
+                            {srv.isAvailable ? "✓ فعال و آماده پذیرش کار" : "غیرفعال"}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+                          <span>دسته‌بندی: {srv.category}</span>
+                          <span>•</span>
+                          <span className="text-teal-700 font-bold">نرخ / دستمزد: {srv.rate || "توافقی"}</span>
+                          <span>•</span>
+                          <span>شهر/محدوده: {srv.city || "تهران"}</span>
+                          {srv.latitude && srv.longitude && (
+                            <>
+                              <span>•</span>
+                              <span className="font-mono text-slate-600">
+                                موقعیت: ({srv.latitude.toFixed(4)}, {srv.longitude.toFixed(4)})
+                              </span>
+                            </>
+                          )}
+                        </div>
+
+                        {srv.details && (
+                          <p className="text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                            {srv.details}
+                          </p>
+                        )}
+
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          زمان ثبت: {new Date(srv.createdAt).toLocaleString("fa-IR")}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
               {/* TAB: USER LIVE TELEMETRY LOGS & ACTIVITY TIMELINE */}
               {inspectorTab === "LOGS" && (
                 <div className="space-y-3">
@@ -1547,12 +1660,15 @@ export function AdminUserManagement() {
                       const isLogin = log.action === "USER_LOGIN_PHONE" || log.action === "USER_SESSION_SYNC";
                       const isLaunch = log.action === "APP_LAUNCH";
                       const isOrder = log.action === "ORDER_SUBMITTED";
+                      const isService = log.action === "PROVIDER_SERVICE_OFFERED";
                       const isLogout = log.action === "USER_LOGOUT";
 
                       const badgeColor = isLocation
                         ? "bg-amber-50 text-amber-700 border-amber-200"
                         : isLogin
                         ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : isService
+                        ? "bg-teal-50 text-teal-700 border-teal-200"
                         : isOrder
                         ? "bg-blue-50 text-blue-700 border-blue-200"
                         : isLogout
@@ -1579,6 +1695,8 @@ export function AdminUserManagement() {
                                   ? "🚀 شروع و اجرای اپلیکیشن کارجور"
                                   : isLogin
                                   ? "🔑 ورود مستقیم با شماره موبایل"
+                                  : isService
+                                  ? "🛠️ ثبت سرویس و تخصص جدید توسط مجری"
                                   : isLocation
                                   ? "📍 پایش موقعیت مکانی کاربر (GPS)"
                                   : isOrder

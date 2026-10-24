@@ -185,6 +185,7 @@ export class AdminOperationsService {
         city: u.city,
         skills: u.skills,
         submittedRequests: u.submittedRequests,
+        offeredServices: u.offeredServices || [],
         notes: u.notes,
         createdAt: u.createdAt,
         updatedAt: u.lastLoginAt,

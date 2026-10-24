@@ -218,6 +218,17 @@ class RequesterMapViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val remoteJobs = com.karvin.app.core.network.MobileDashboardSync.fetchRemoteJobs()
+                val remoteProviders = try {
+                    com.karvin.app.core.network.MobileDashboardSync.fetchRemoteProviderServices()
+                } catch (e: Exception) {
+                    emptyList()
+                }
+                val fallbackProviders = FakeNearbyData.generateProviders(_state.value.userPoint)
+                val allProviders = if (remoteProviders.isNotEmpty()) {
+                    remoteProviders + fallbackProviders.filterNot { fake -> remoteProviders.any { it.id == fake.id } }
+                } else {
+                    fallbackProviders
+                }
                 val realRequests = remoteJobs.map { job ->
                     NearbyServiceRequest(
                         id = job.id,
@@ -237,8 +248,8 @@ class RequesterMapViewModel @Inject constructor(
                 }
                 _state.update { state ->
                     state.copy(
-                        providers = emptyList(),
-                        filteredProviders = emptyList(),
+                        providers = allProviders,
+                        filteredProviders = filterProviders(allProviders, state.userPoint, state.filter),
                         requests = realRequests,
                         filteredRequests = filterRequests(realRequests, state.userPoint, state.filter),
                         loading = false,
@@ -258,6 +269,17 @@ class RequesterMapViewModel @Inject constructor(
                     val point = result.point
                     viewModelScope.launch {
                         val remoteJobs = com.karvin.app.core.network.MobileDashboardSync.fetchRemoteJobs()
+                        val remoteProviders = try {
+                            com.karvin.app.core.network.MobileDashboardSync.fetchRemoteProviderServices()
+                        } catch (e: Exception) {
+                            emptyList()
+                        }
+                        val fallbackProviders = FakeNearbyData.generateProviders(point)
+                        val allProviders = if (remoteProviders.isNotEmpty()) {
+                            remoteProviders + fallbackProviders.filterNot { fake -> remoteProviders.any { it.id == fake.id } }
+                        } else {
+                            fallbackProviders
+                        }
                         val realRequests = remoteJobs.map { job ->
                             NearbyServiceRequest(
                                 id = job.id,
@@ -278,8 +300,8 @@ class RequesterMapViewModel @Inject constructor(
                         _state.update { state ->
                             state.copy(
                                 userPoint = point,
-                                providers = emptyList(),
-                                filteredProviders = emptyList(),
+                                providers = allProviders,
+                                filteredProviders = filterProviders(allProviders, point, state.filter),
                                 requests = realRequests,
                                 filteredRequests = filterRequests(realRequests, point, state.filter),
                                 isLocating = false,
@@ -378,6 +400,17 @@ class RequesterMapViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val remoteJobs = com.karvin.app.core.network.MobileDashboardSync.fetchRemoteJobs()
+                val remoteProviders = try {
+                    com.karvin.app.core.network.MobileDashboardSync.fetchRemoteProviderServices()
+                } catch (e: Exception) {
+                    emptyList()
+                }
+                val fallbackProviders = FakeNearbyData.generateProviders(center)
+                val allProviders = if (remoteProviders.isNotEmpty()) {
+                    remoteProviders + fallbackProviders.filterNot { fake -> remoteProviders.any { it.id == fake.id } }
+                } else {
+                    fallbackProviders
+                }
                 val realRequests = remoteJobs.map { job ->
                     NearbyServiceRequest(
                         id = job.id,
@@ -398,8 +431,8 @@ class RequesterMapViewModel @Inject constructor(
                 _state.update {
                     it.copy(
                         userPoint = center,
-                        providers = emptyList(),
-                        filteredProviders = emptyList(),
+                        providers = allProviders,
+                        filteredProviders = filterProviders(allProviders, center, it.filter),
                         requests = realRequests,
                         filteredRequests = filterRequests(realRequests, center, it.filter),
                     )
@@ -970,6 +1003,13 @@ fun RequesterMapScreen(
             },
             onRequest = {
                 viewModel.selectProvider(null)
+                com.karvin.app.core.network.MobileDashboardSync.syncJobCreated(
+                    title = "درخواست اعزام: ${provider.primarySkill}",
+                    category = provider.skills.firstOrNull() ?: "خدمات فنی",
+                    budget = "${provider.basePrice} تومان",
+                    address = "موقعیت انتخاب‌شده روی نقشه کارجور",
+                    details = "درخواست مستقیم کارفرما برای متخصص ${provider.name} (شماره همراه: ${provider.phone.ifBlank { "ثبت نشده" }})"
+                )
                 navController.navigate(Routes.requestSent(provider = false))
             },
         )
@@ -1310,6 +1350,36 @@ internal fun ProviderBottomSheet(
                 onRequest,
                 Modifier.fillMaxWidth(),
             )
+
+            if (provider.phone.isNotBlank()) {
+                val context = androidx.compose.ui.platform.LocalContext.current
+                Button(
+                    onClick = {
+                        try {
+                            val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
+                                data = android.net.Uri.parse("tel:${provider.phone}")
+                            }
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            // ignore
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF10B981),
+                        contentColor = Color.White,
+                    ),
+                ) {
+                    Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "تماس مستقیم با متخصص (${provider.phone})",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
 
             OutlinedButton(
                 onClick = onViewProfile,

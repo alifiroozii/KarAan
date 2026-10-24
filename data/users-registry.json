@@ -1,1 +1,21 @@
-[]
+[
+  {
+    "id": "usr_admin_master",
+    "fullName": "مدیر ارشد کاروین (مدیریت سامانه)",
+    "email": "admin@karaan.ir",
+    "phone": "09120000000",
+    "role": "ADMIN",
+    "avatarUrl": null,
+    "platform": "WEB",
+    "deviceModel": "macOS / Chrome Admin Console",
+    "appVersion": "Admin Console v2.4.0",
+    "ipAddress": "127.0.0.1",
+    "isVerified": true,
+    "isBlocked": false,
+    "provider": "ADMIN_SEED",
+    "createdAt": "2026-10-17T15:42:26.912Z",
+    "lastLoginAt": "2026-10-18T08:00:00.000Z",
+    "city": "تهران",
+    "notes": "دسترسی Super Admin به سامانه مانیتورینگ کاربران"
+  }
+]

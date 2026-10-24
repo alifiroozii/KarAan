@@ -379,21 +379,86 @@ fun ProviderHomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                AppTopBar("خانه", actions = {
+                AppTopBar("پیشخوان متخصصان", actions = {
                     IconButton(onClick = { navController.navigate(Routes.Notifications) }) {
-                        Icon(Icons.Default.Notifications, contentDescription = "اعلان‌ها", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Notifications, contentDescription = "اعلان‌ها", tint = Color(0xFF0D9488))
                     }
                 })
             }
 
         item {
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text("سلام", style = MaterialTheme.typography.headlineSmall)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("سلام استادکار گرامی 👋", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF0D9488).copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            "نقش: متخصص و مجری",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0D9488)
+                        )
+                    }
+                }
                 Text(
-                    "درخواست‌های نزدیک را ببین و اعلام آمادگی کن.",
+                    "خدمات و تخصص‌های خود را ثبت کنید تا در نقشه کارفرمایان قرار بگیرید و کار دریافت کنید.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        }
+
+        // PRIMARY HERO ACTION: ثبت تخصص و سرویس جدید
+        item {
+            Card(
+                onClick = { navController.navigate(Routes.CreateService) },
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0D9488)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.2f),
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(
+                            "ثبت سرویس و تخصص جدید",
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "تعریف مهارت، نرخ دستمزد و اعلام آمادگی به کارفرمایان",
+                            color = Color.White.copy(alpha = 0.85f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    Text(
+                        "+",
+                        color = Color.White,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
 

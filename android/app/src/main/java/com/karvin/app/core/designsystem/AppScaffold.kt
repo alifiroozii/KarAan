@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
@@ -134,31 +135,35 @@ fun GoogleStitchBottomBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            // Tab 1: کاوش
+            val isProvider = role == UserRole.PROVIDER
+
+            // Tab 1: کاوش برای کارفرما / پیشخوان برای متخصص
             val isExploreSelected = currentRoute == mapRoute || currentRoute == homeRoute
+            val tab1Title = if (isProvider) "پیشخوان" else "کاوش"
+            val tab1Icon = if (isProvider) Icons.Default.Build else Icons.Default.Explore
             StitchNavItem(
-                title = "کاوش",
-                icon = Icons.Default.Explore,
+                title = tab1Title,
+                icon = tab1Icon,
                 selected = isExploreSelected,
                 modifier = Modifier.weight(1f),
-                onClick = { onNavigate(mapRoute) }
+                onClick = { onNavigate(if (isProvider) homeRoute else mapRoute) }
             )
 
-            // Tab 2: درخواست‌ها
+            // Tab 2: فرصت‌های کار برای متخصص / سفارش‌های من برای کارفرما
             val isJobsSelected = currentRoute == jobsRoute
+            val tab2Title = if (isProvider) "فرصت‌های کار" else "سفارش‌های من"
             StitchNavItem(
-                title = "درخواست‌ها",
+                title = tab2Title,
                 icon = Icons.Default.Assignment,
                 selected = isJobsSelected,
                 modifier = Modifier.weight(1f),
                 onClick = { onNavigate(jobsRoute) }
             )
 
-            // Central Primary Action Button (کاملاً در بستر نوار پایین و بدون تداخل با خط بالا)
-            val isProvider = role == UserRole.PROVIDER
-            val centerTitle = if (isProvider) "فرصت‌ها" else "ثبت کار"
-            val centerTarget = if (isProvider) Routes.ProviderJobs else Routes.CreateJob
-            val centerIcon = if (isProvider) Icons.Default.Explore else Icons.Default.Add
+            // Central Primary Action Button: ثبت سرویس برای متخصص / ثبت کار برای کارفرما
+            val centerTitle = if (isProvider) "ثبت سرویس" else "ثبت کار"
+            val centerTarget = if (isProvider) Routes.CreateService else Routes.CreateJob
+            val centerIcon = Icons.Default.Add
 
             Column(
                 modifier = Modifier

@@ -24,10 +24,30 @@ export interface UserSubmittedRequest {
 export interface UserActivityEvent {
   id: string;
   action: string;
-  title: string;
+  title?: string;
   timestamp: string;
   details?: Record<string, any>;
   ipAddress?: string;
+  gpsCoordinates?: { latitude: number; longitude: number };
+}
+
+export interface ProviderOfferedService {
+  id: string;
+  providerId: string;
+  providerName: string;
+  providerPhone: string;
+  title: string;
+  category: string;
+  rate: string;
+  city: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  isAvailable: boolean;
+  createdAt: string;
+  rating?: number;
+  reviewCount?: number;
+  details?: string;
 }
 
 export interface RegisteredUser {
@@ -49,6 +69,7 @@ export interface RegisteredUser {
   city?: string;
   skills?: string[];
   submittedRequests?: UserSubmittedRequest[];
+  offeredServices?: ProviderOfferedService[];
   notes?: string;
   gpsCoordinates?: {
     lat: number;
@@ -288,6 +309,18 @@ function mapDbRowToRegisteredUser(row: any): RegisteredUser {
     }
   }
 
+  let parsedServices: ProviderOfferedService[] = [];
+  const srvData = row.offered_services ?? row.offeredServices;
+  if (Array.isArray(srvData)) {
+    parsedServices = srvData;
+  } else if (typeof srvData === "string") {
+    try {
+      parsedServices = JSON.parse(srvData);
+    } catch {
+      parsedServices = [];
+    }
+  }
+
   return {
     id: String(row.id),
     fullName: String(row.full_name ?? row.fullName ?? ""),
@@ -307,6 +340,7 @@ function mapDbRowToRegisteredUser(row: any): RegisteredUser {
     city: row.city ? String(row.city) : "تهران",
     skills: parsedSkills,
     submittedRequests: parsedRequests,
+    offeredServices: parsedServices,
     notes: row.notes ? String(row.notes) : undefined,
     gpsCoordinates: row.gps_coordinates ?? row.gpsCoordinates,
     activityTimeline: Array.isArray(row.activity_timeline ?? row.activityTimeline)
@@ -515,17 +549,35 @@ export class UserRegistryService {
     notes?: string;
   }): Promise<{ user: RegisteredUser; token: string }> {
     await syncFromCloudStore();
-    const phone = input.phone.trim();
-    const fullName = input.fullName?.trim() || `کاربر ${phone}`;
-    const role: UserRole = input.role || "EMPLOYER";
+    const rawDigits = input.phone.replace(/\D/g, "");
+    const cleanTail = rawDigits.slice(-10);
+    const normalizedPhone = input.phone.trim();
     const platform = input.platform || "ANDROID";
     const store = getMemoryStore();
 
     let existingUser: RegisteredUser | undefined;
     for (const u of store.values()) {
-      if (u.phone === phone) {
+      const uDigits = u.phone.replace(/\D/g, "");
+      if (uDigits.slice(-10) === cleanTail) {
         existingUser = u;
         break;
+      }
+    }
+
+    if (!existingUser) {
+      try {
+        await this.ensureDbTable();
+        const rows = await sql`
+          SELECT * FROM registered_users
+          WHERE phone LIKE ${'%' + cleanTail}
+          LIMIT 1;
+        `;
+        if (rows.length > 0) {
+          existingUser = mapDbRowToRegisteredUser(rows[0]);
+          store.set(existingUser.id, existingUser);
+        }
+      } catch {
+        // In-memory fallback
       }
     }
 
@@ -535,25 +587,43 @@ export class UserRegistryService {
     if (existingUser) {
       existingUser.lastLoginAt = nowIso;
       existingUser.platform = platform;
-      if (input.fullName && input.fullName.trim() && existingUser.fullName.startsWith("کاربر ")) {
+      if (input.fullName && input.fullName.trim() && (existingUser.fullName.startsWith("کاربر ") || !existingUser.fullName)) {
         existingUser.fullName = input.fullName.trim();
       }
       if (input.deviceModel) existingUser.deviceModel = input.deviceModel;
       if (input.appVersion) existingUser.appVersion = input.appVersion;
       if (input.ipAddress) existingUser.ipAddress = input.ipAddress;
       if (input.city) existingUser.city = input.city;
-      if (input.role) existingUser.role = input.role;
-      if (input.notes) existingUser.notes = input.notes;
+      if (input.role && !existingUser.role) existingUser.role = input.role;
+      if (input.skills && input.skills.length > 0) {
+        existingUser.skills = Array.from(new Set([...(existingUser.skills || []), ...input.skills]));
+      }
+
+      // Append login event to user's persistent dossier timeline
+      if (!existingUser.activityTimeline) existingUser.activityTimeline = [];
+      existingUser.activityTimeline.unshift({
+        id: `act_${crypto.randomUUID().slice(0, 10)}`,
+        action: "USER_LOGIN_PHONE",
+        timestamp: nowIso,
+        details: {
+          role: existingUser.role,
+          device: existingUser.deviceModel,
+          event: "ورود مستقیم با شماره تلفن (کاربر از پیش ثبت‌شده در سامانه)",
+        },
+        ipAddress: input.ipAddress || existingUser.ipAddress,
+      });
+
       store.set(existingUser.id, existingUser);
       userResult = existingUser;
     } else {
       const newUserId = `usr_${crypto.randomUUID()}`;
+      const chosenRole: UserRole = input.role || "EMPLOYER";
       userResult = {
         id: newUserId,
-        fullName,
-        email: `${phone}@karaan.ir`,
-        phone,
-        role,
+        fullName: input.fullName?.trim() || `کاربر ${normalizedPhone}`,
+        email: `${normalizedPhone}@karaan.ir`,
+        phone: normalizedPhone,
+        role: chosenRole,
         avatarUrl: null,
         platform,
         deviceModel: input.deviceModel || (platform === "ANDROID" ? "Android Device (Mobile App)" : "Web Browser"),
@@ -567,6 +637,19 @@ export class UserRegistryService {
         city: input.city || "تهران",
         skills: input.skills || [],
         submittedRequests: [],
+        offeredServices: [],
+        activityTimeline: [
+          {
+            id: `act_${crypto.randomUUID().slice(0, 10)}`,
+            action: "USER_REGISTER_PHONE",
+            timestamp: nowIso,
+            details: {
+              role: chosenRole,
+              event: "ثبت‌نام اولیه کاربر در سامانه کارجور",
+            },
+            ipAddress: input.ipAddress || "127.0.0.1",
+          },
+        ],
         notes: input.notes || "ثبت‌نام مستقیم با شماره موبایل",
       };
       store.set(newUserId, userResult);
@@ -576,6 +659,178 @@ export class UserRegistryService {
     await pushToCloudStore();
 
     return { user: userResult, token };
+  }
+
+  /**
+   * Register an offered service by a provider/worker.
+   */
+  async registerProviderService(input: {
+    providerId?: string;
+    phone: string;
+    fullName?: string;
+    title: string;
+    category: string;
+    rate: string;
+    city?: string;
+    address?: string;
+    latitude?: number;
+    longitude?: number;
+    details?: string;
+  }): Promise<ProviderOfferedService> {
+    await syncFromCloudStore();
+    const cleanPhone = input.phone.trim();
+    const cleanTail = cleanPhone.replace(/\D/g, "").slice(-10);
+
+    const store = getMemoryStore();
+    let targetUser: RegisteredUser | undefined;
+
+    for (const u of store.values()) {
+      const uTail = u.phone.replace(/\D/g, "").slice(-10);
+      if (uTail === cleanTail || (input.providerId && u.id === input.providerId)) {
+        targetUser = u;
+        break;
+      }
+    }
+
+    const nowIso = new Date().toISOString();
+
+    if (!targetUser) {
+      const newUserId = `usr_${crypto.randomUUID()}`;
+      targetUser = {
+        id: newUserId,
+        fullName: input.fullName?.trim() || `متخصص ${cleanPhone}`,
+        email: `${cleanPhone}@karaan.ir`,
+        phone: cleanPhone,
+        role: "WORKER",
+        avatarUrl: null,
+        platform: "ANDROID",
+        deviceModel: "Android Mobile Device",
+        appVersion: "KARJOOR v2.5.0",
+        ipAddress: "127.0.0.1",
+        isVerified: true,
+        isBlocked: false,
+        provider: "PHONE_OTP",
+        createdAt: nowIso,
+        lastLoginAt: nowIso,
+        city: input.city || "تهران",
+        skills: [input.category],
+        submittedRequests: [],
+        offeredServices: [],
+        activityTimeline: [],
+      };
+      store.set(newUserId, targetUser);
+    } else {
+      targetUser.role = "WORKER";
+      if (input.fullName && input.fullName.trim() && targetUser.fullName.startsWith("کاربر ")) {
+        targetUser.fullName = input.fullName.trim();
+      }
+      targetUser.lastLoginAt = nowIso;
+    }
+
+    const newService: ProviderOfferedService = {
+      id: `srv_${crypto.randomUUID().slice(0, 8)}`,
+      providerId: targetUser.id,
+      providerName: targetUser.fullName,
+      providerPhone: targetUser.phone,
+      title: input.title,
+      category: input.category,
+      rate: input.rate || "توافقی",
+      city: input.city || targetUser.city || "تهران",
+      address: input.address,
+      latitude: input.latitude || 35.7005,
+      longitude: input.longitude || 51.3915,
+      isAvailable: true,
+      createdAt: nowIso,
+      rating: 5.0,
+      reviewCount: 1,
+      details: input.details,
+    };
+
+    if (!targetUser.offeredServices) targetUser.offeredServices = [];
+    targetUser.offeredServices.unshift(newService);
+
+    if (!targetUser.skills) targetUser.skills = [];
+    if (!targetUser.skills.includes(input.category)) {
+      targetUser.skills.push(input.category);
+    }
+
+    if (!targetUser.activityTimeline) targetUser.activityTimeline = [];
+    targetUser.activityTimeline.unshift({
+      id: `act_${crypto.randomUUID().slice(0, 10)}`,
+      action: "PROVIDER_SERVICE_OFFERED",
+      timestamp: nowIso,
+      details: {
+        serviceId: newService.id,
+        title: newService.title,
+        category: newService.category,
+        rate: newService.rate,
+        city: newService.city,
+        address: newService.address,
+      },
+      ipAddress: targetUser.ipAddress,
+      gpsCoordinates: input.latitude && input.longitude ? { latitude: input.latitude, longitude: input.longitude } : undefined,
+    });
+
+    store.set(targetUser.id, targetUser);
+
+    await this.recordTelemetryLog({
+      userId: targetUser.id,
+      actorName: targetUser.fullName,
+      phone: targetUser.phone,
+      role: "WORKER",
+      action: "PROVIDER_SERVICE_OFFERED",
+      entityName: "provider_service",
+      entityId: newService.id,
+      details: {
+        title: newService.title,
+        category: newService.category,
+        rate: newService.rate,
+        city: newService.city,
+      },
+    });
+
+    try {
+      await this.ensureDbTable();
+      await sql`
+        UPDATE registered_users
+        SET offered_services = ${JSON.stringify(targetUser.offeredServices)}::jsonb,
+            skills = ${JSON.stringify(targetUser.skills)}::jsonb,
+            activity_timeline = ${JSON.stringify(targetUser.activityTimeline)}::jsonb,
+            last_login_at = ${targetUser.lastLoginAt}
+        WHERE id = ${targetUser.id};
+      `;
+    } catch {
+      // In-memory fallback
+    }
+
+    await pushToCloudStore();
+    return newService;
+  }
+
+  /**
+   * Get all active offered services by providers for Requester Map and List.
+   */
+  async getAllOfferedServices(): Promise<ProviderOfferedService[]> {
+    await syncFromCloudStore();
+    const store = getMemoryStore();
+    const list: ProviderOfferedService[] = [];
+
+    for (const u of store.values()) {
+      if (u.offeredServices && u.offeredServices.length > 0) {
+        for (const s of u.offeredServices) {
+          if (s.isAvailable !== false) {
+            list.push({
+              ...s,
+              providerName: u.fullName,
+              providerPhone: u.phone,
+              latitude: s.latitude || u.gpsCoordinates?.lat || 35.7005,
+              longitude: s.longitude || u.gpsCoordinates?.lng || 51.3915,
+            });
+          }
+        }
+      }
+    }
+    return list;
   }
 
   /**
@@ -1222,6 +1477,8 @@ export class UserRegistryService {
       logs: sortedLogs,
       totalLogsCount: sortedLogs.length,
       requestsCount: user.submittedRequests?.length || 0,
+      servicesCount: user.offeredServices?.length || 0,
+      offeredServices: user.offeredServices || [],
       roleCategory: user.role === "EMPLOYER" || (user.role as any) === "REQUESTER" ? "REQUESTER" : "PROVIDER",
       latestGps: user.gpsCoordinates || null,
       generatedAt: new Date().toISOString(),

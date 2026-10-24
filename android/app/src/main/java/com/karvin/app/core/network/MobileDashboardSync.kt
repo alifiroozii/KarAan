@@ -244,6 +244,120 @@ object MobileDashboardSync {
         }
     }
 
+    fun syncProviderServiceCreated(
+        title: String,
+        category: String,
+        rate: String,
+        city: String = "تهران",
+        address: String? = null,
+        details: String? = null,
+        userPhone: String? = null,
+        fullName: String? = null,
+        lat: Double? = null,
+        lng: Double? = null,
+        onSuccess: (() -> Unit)? = null
+    ) {
+        scope.launch {
+            val determinedPhone = (userPhone ?: activePhone).trim()
+            val determinedName = fullName?.trim()?.ifBlank { activeFullName } ?: activeFullName.ifBlank { "متخصص $determinedPhone" }
+
+            val json = JSONObject().apply {
+                put("title", title)
+                put("category", category)
+                put("rate", rate)
+                put("city", city.ifBlank { "تهران" })
+                put("address", address ?: "تهران، میدان انقلاب")
+                put("details", details ?: "سرویس فعال ثبت‌شده توسط متخصص در اپلیکیشن اندروید")
+                put("phone", determinedPhone)
+                put("fullName", determinedName)
+                if (lat != null) put("latitude", lat)
+                if (lng != null) put("longitude", lng)
+            }
+
+            postJson("/api/providers/services", json)
+
+            // Central telemetry audit log
+            syncTelemetryEvent(
+                action = "PROVIDER_SERVICE_OFFERED",
+                phone = determinedPhone,
+                fullName = determinedName,
+                role = "WORKER",
+                lat = lat,
+                lng = lng,
+                details = mapOf(
+                    "title" to title,
+                    "category" to category,
+                    "rate" to rate,
+                    "city" to city,
+                    "event" to "ثبت رسمی سرویس و اعلام آمادگی به کارفرمایان"
+                )
+            )
+
+            launch(Dispatchers.Main) {
+                onSuccess?.invoke()
+            }
+        }
+    }
+
+    suspend fun fetchRemoteProviderServices(): List<com.karvin.app.domain.model.NearbyProvider> = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        for (baseUrl in BASE_URLS) {
+            try {
+                val url = URL("$baseUrl/api/providers/services")
+                val conn = (url.openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    setRequestProperty("Accept", "application/json")
+                    setRequestProperty("User-Agent", "Karjoor-Android-App/2.5.0")
+                    connectTimeout = 3000
+                    readTimeout = 3000
+                }
+                if (conn.responseCode in 200..299) {
+                    val body = conn.inputStream.bufferedReader().use { it.readText() }
+                    val json = JSONObject(body)
+                    if (json.optBoolean("success")) {
+                        val dataObj = json.optJSONObject("data")
+                        val items = dataObj?.optJSONArray("items") ?: JSONArray()
+                        val list = mutableListOf<com.karvin.app.domain.model.NearbyProvider>()
+                        for (i in 0 until items.length()) {
+                            val itm = items.getJSONObject(i)
+                            val lat = if (itm.has("latitude") && !itm.isNull("latitude")) itm.getDouble("latitude") else (35.7005 + (i * 0.002))
+                            val lng = if (itm.has("longitude") && !itm.isNull("longitude")) itm.getDouble("longitude") else (51.3915 + (i * 0.002))
+                            val serviceTitle = itm.optString("title", "خدمات فنی و ساختمانی")
+                            val cat = itm.optString("category", "فنی")
+                            val phoneNum = itm.optString("providerPhone", "")
+                            val rateStr = itm.optString("rate", "توافقی")
+                            val cleanRate = rateStr.filter { it.isDigit() }.toLongOrNull() ?: 150000L
+
+                            list.add(
+                                com.karvin.app.domain.model.NearbyProvider(
+                                    id = itm.optString("id", "srv_$i"),
+                                    name = itm.optString("providerName", "متخصص کارجور"),
+                                    primarySkill = serviceTitle,
+                                    skills = listOf(cat, serviceTitle),
+                                    point = com.karvin.app.domain.model.GeoPoint(lat, lng),
+                                    rating = itm.optDouble("rating", 5.0),
+                                    reviewCount = itm.optInt("reviewCount", 1),
+                                    completedJobs = 1,
+                                    isAvailable = itm.optBoolean("isAvailable", true),
+                                    isVerified = true,
+                                    basePrice = cleanRate,
+                                    shortBio = itm.optString("details", "متخصص آماده ارائه خدمات در محل"),
+                                    responseTime = "کمتر از ۱۰ دقیقه",
+                                    portfolioItems = emptyList(),
+                                    services = listOf(serviceTitle),
+                                    phone = phoneNum
+                                )
+                            )
+                        }
+                        if (list.isNotEmpty()) return@withContext list
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Error fetchRemoteProviderServices from $baseUrl: ${e.message}")
+            }
+        }
+        emptyList()
+    }
+
     fun syncStatusUpdated(requestId: String, status: String, notes: String? = null) {
         scope.launch {
             val json = JSONObject().apply {

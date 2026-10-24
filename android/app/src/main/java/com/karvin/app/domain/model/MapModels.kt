@@ -22,6 +22,7 @@ data class NearbyProvider(
     val responseTime: String,
     val portfolioItems: List<String>,
     val services: List<String>,
+    val phone: String = "",
 )
 
 /**
